@@ -1,44 +1,44 @@
 import { useState } from 'react';
 
-export default function LandingPage({ onPlay }: { onPlay: (variant: string) => void }) {
+export default function LandingPage() {
   const [timeControl, setTimeControl] = useState('10 min');
   const [gameMode, setGameMode] = useState('Standard Chess');
+
+  const handleRequestAccess = () => {
+    alert("Thank you! Your early access request has been recorded.");
+  };
 
   return (
     <div className="wireframe-theme">
       {/* 1. NAVBAR */}
       <nav className="navbar">
         <div className="nav-brand">
-          <div className="logo-box">logo</div>
-          <span className="brand-name">CHATURANGA</span>
+          <div className="logo-box">QST</div>
+          <span className="brand-name">Chaturanga</span>
         </div>
         <div className="nav-links">
-          <a href="#">Play</a>
-          <a href="#">Modes</a>
-          <a href="#">Puzzles</a>
-          <a href="#">Learn</a>
-          <a href="#">Leaderboard</a>
+          <a href="#play">Play</a>
+          <a href="#learn">Learn</a>
+          <a href="#watch">Watch</a>
+          <a href="#community">Community</a>
         </div>
         <div className="nav-auth">
           <button className="btn-login">Log in</button>
-          <button className="btn-signup">Sign up free</button>
+          <button className="btn-signup" onClick={handleRequestAccess}>Sign up</button>
         </div>
       </nav>
 
       <main className="main-content">
-        {/* 2. HERO */}
+        {/* 2. HERO SPLIT */}
         <section className="hero-section">
           <div className="hero-left">
             <h1 className="hero-title">Play chess the way it was born.</h1>
-            <p className="hero-subtitle">
-              8 modes. Ancient origins, modern speed.<br />
-              Play online, vs AI, or with friends.
-            </p>
-
+            <div className="hero-subtitle">Variants, 4-Player, and Fog of War.</div>
+            
             <div className="quick-play-box">
               <div className="box-header">
                 <h3>Quick Play</h3>
-                <span className="badge">WEB APP: works as guest</span>
+                <span className="badge">Beta</span>
               </div>
               
               <div className="form-group">
@@ -59,50 +59,30 @@ export default function LandingPage({ onPlay }: { onPlay: (variant: string) => v
               <div className="form-group">
                 <label>Time control</label>
                 <div className="time-toggles">
-                  {['1 min', '3 min', '10 min', '30 min'].map(time => (
-                    <button 
-                      key={time}
-                      className={`btn-time ${timeControl === time ? 'active' : ''}`}
-                      onClick={() => setTimeControl(time)}
-                    >
-                      {time}
-                    </button>
-                  ))}
+                  <button className={`btn-time ${timeControl === '1 min' ? 'active' : ''}`} onClick={() => setTimeControl('1 min')}>1 min</button>
+                  <button className={`btn-time ${timeControl === '3 min' ? 'active' : ''}`} onClick={() => setTimeControl('3 min')}>3 min</button>
+                  <button className={`btn-time ${timeControl === '10 min' ? 'active' : ''}`} onClick={() => setTimeControl('10 min')}>10 min</button>
                 </div>
               </div>
 
-              <button className="btn-play-now" onClick={() => {
-                const variantCode = gameMode === 'Offline vs AI' ? 'offline_ai' : gameMode === 'Fog of War' ? 'fog' : gameMode === 'Spell Chess (MM)' ? 'spell' : gameMode === '4-Player FFA' ? '4p' : 'classic';
-                onPlay(variantCode);
-              }}>
-                ► Play Now
+              <button className="btn-play-now" onClick={handleRequestAccess}>
+                Request Early Access
               </button>
               <div className="play-footer">
-                or play as guest · vs friend · vs AI
+                12,492 players online right now
               </div>
             </div>
           </div>
 
           <div className="hero-right">
+            {/* Visual placeholder for the board wireframe */}
             <div className="demo-board">
-              {/* Static demo board matching wireframe */}
-              {[...Array(8)].map((_, r) => (
-                <div className="demo-row" key={r}>
-                  {[...Array(8)].map((_, c) => {
-                    const isDark = (r + c) % 2 !== 0;
-                    let piece = '';
-                    if (r === 0) piece = ['♜','♞','♝','♛','♚','♝','♞','♜'][c];
-                    else if (r === 1) piece = '♟';
-                    return (
-                      <div key={c} className={`demo-sq ${isDark ? 'dark' : 'light'}`}>
-                        {piece && <span className="demo-piece">{piece}</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
+              <div className="demo-row"><div className="demo-sq light">♜</div><div className="demo-sq dark">♞</div><div className="demo-sq light">♝</div><div className="demo-sq dark">♛</div></div>
+              <div className="demo-row"><div className="demo-sq dark">♟</div><div className="demo-sq light">♟</div><div className="demo-sq dark">♟</div><div className="demo-sq light">♟</div></div>
+              <div className="demo-row"><div className="demo-sq light"></div><div className="demo-sq dark"></div><div className="demo-sq light"></div><div className="demo-sq dark"></div></div>
+              <div className="demo-row"><div className="demo-sq dark">♖</div><div className="demo-sq light">♘</div><div className="demo-sq dark">♗</div><div className="demo-sq light">♕</div></div>
             </div>
-            <div className="board-caption">Hero board preview / animated demo</div>
+            <div className="board-caption">LIVE: Magnus vs Hikaru</div>
           </div>
         </section>
 
@@ -113,21 +93,21 @@ export default function LandingPage({ onPlay }: { onPlay: (variant: string) => v
           
           <div className="modes-grid">
             {[
-              { id: 'classic', icon: '♟', title: 'Standard Chess', desc: 'Classic 8x8 rules • Practice mode', cta: 'Play →' },
-              { id: 'fog', icon: '🌫️', title: 'Fog of War', desc: 'See only what your pieces see', cta: 'Play →' },
-              { id: 'spell', icon: '⚡', title: 'Spell Chess (MM)', desc: '10s math trials to earn spells', cta: 'Play →' },
-              { id: '4p', icon: '⚔️', title: '4-Player FFA', desc: '14x14 crossfire • Absolute chaos', cta: 'Play →' },
-              { id: 'bughouse', icon: '👥', title: 'Bughouse', desc: '2v2 team chess', cta: 'Play →' },
-              { id: '960', icon: '🎲', title: 'Chess960', desc: 'Shuffled back rank', cta: 'Play →' },
-              { id: 'atomic', icon: '💥', title: 'Atomic', desc: 'Explosive captures', cta: 'Play →' },
-              { id: 'crazyhouse', icon: '🌀', title: 'Crazyhouse', desc: 'Drop captured pieces', cta: 'Play →' },
+              { id: 'classic', icon: '♟', title: 'Standard Chess', desc: 'Classic 8x8 rules • Practice mode', cta: 'Request Access' },
+              { id: 'fog', icon: '🌫️', title: 'Fog of War', desc: 'See only what your pieces see', cta: 'Request Access' },
+              { id: 'spell', icon: '⚡', title: 'Spell Chess (MM)', desc: '10s math trials to earn spells', cta: 'Request Access' },
+              { id: '4p', icon: '⚔️', title: '4-Player FFA', desc: '14x14 crossfire • Absolute chaos', cta: 'Request Access' },
+              { id: 'bughouse', icon: '👥', title: 'Bughouse', desc: '2v2 team chess', cta: 'Request Access' },
+              { id: '960', icon: '🎲', title: 'Chess960', desc: 'Shuffled back rank', cta: 'Request Access' },
+              { id: 'atomic', icon: '💥', title: 'Atomic', desc: 'Explosive captures', cta: 'Request Access' },
+              { id: 'crazyhouse', icon: '🌀', title: 'Crazyhouse', desc: 'Drop captured pieces', cta: 'Request Access' },
             ].map(mode => (
               <div className="mode-card" key={mode.id}>
                 <div className="mode-icon-circle">{mode.icon}</div>
                 <h3>{mode.title}</h3>
                 <p>{mode.desc}</p>
                 <div className="mode-line"></div>
-                <button className="btn-card-play" onClick={() => onPlay(mode.id)}>
+                <button className="btn-card-play" onClick={handleRequestAccess}>
                   {mode.cta}
                 </button>
               </div>
@@ -142,24 +122,24 @@ export default function LandingPage({ onPlay }: { onPlay: (variant: string) => v
             <div className="step">
               <div className="step-circle">1</div>
               <div className="step-text">
-                <h4>Pick a mode</h4>
-                <p>Choose rules & time control</p>
+                <h4>Sign up</h4>
+                <p>Create a free account</p>
               </div>
             </div>
             <div className="step-line"></div>
             <div className="step">
               <div className="step-circle">2</div>
               <div className="step-text">
-                <h4>Get matched</h4>
-                <p>Instant opponent or AI</p>
+                <h4>Pick a mode</h4>
+                <p>Classic or Variants</p>
               </div>
             </div>
             <div className="step-line"></div>
             <div className="step">
               <div className="step-circle">3</div>
               <div className="step-text">
-                <h4>Play & climb</h4>
-                <p>Earn rating, unlock boards</p>
+                <h4>Play</h4>
+                <p>Match instantly</p>
               </div>
             </div>
           </div>
@@ -168,37 +148,37 @@ export default function LandingPage({ onPlay }: { onPlay: (variant: string) => v
         {/* 5. LIVE GAME + LEADERBOARD */}
         <section className="live-leaderboard-section">
           <div className="live-game-box">
-            <h3>Live game spotlight</h3>
+            <h3>Live Spotlight</h3>
             <div className="live-content">
               <div className="live-board-placeholder">
                 <div className="placeholder-x"></div>
-                <span>mini board (live)</span>
+                <span>BOARD</span>
               </div>
               <div className="live-info">
                 <div className="player-vs">
-                  <strong>Player A (1840)</strong>
-                  <span className="vs-text">vs</span>
-                  <strong>Player B (1812)</strong>
+                  <div className="vs-text">Player A (1840)</div>
+                  <div>vs</div>
+                  <div className="vs-text">Player B (1812)</div>
                 </div>
                 <div className="fake-lines">
                   <div className="line l-long"></div>
                   <div className="line l-med"></div>
                   <div className="line l-short"></div>
                 </div>
-                <button className="btn-watch">Watch live</button>
+                <button className="btn-watch" onClick={handleRequestAccess}>Watch Game →</button>
               </div>
             </div>
           </div>
-
+          
           <div className="leaderboard-box">
-            <h3>Top players</h3>
+            <h3>Leaderboard - Blitz</h3>
             <div className="leaderboard-list">
-              {[1, 2, 3, 4, 5, 6].map(num => (
-                <div className="lb-row" key={num}>
-                  <span className="lb-rank">#{num}</span>
+              {[1, 2, 3, 4].map(rank => (
+                <div className="lb-row" key={rank}>
+                  <div className="lb-rank">#{rank}</div>
                   <div className="lb-avatar"></div>
                   <div className="lb-name-line"></div>
-                  <span className="lb-rating">2xxx</span>
+                  <div className="lb-rating">{2900 - rank * 40}</div>
                 </div>
               ))}
             </div>
@@ -208,45 +188,39 @@ export default function LandingPage({ onPlay }: { onPlay: (variant: string) => v
         {/* 6. FINAL CTA */}
         <section className="final-cta">
           <h2>Your move.</h2>
-          <button className="btn-cta-signup">Create free account</button>
+          <button className="btn-cta-signup" onClick={handleRequestAccess}>Join Chaturanga Today</button>
         </section>
       </main>
 
       {/* 7. FOOTER */}
       <footer className="site-footer">
-        <div className="footer-brand">
-          <div className="logo-box">logo</div>
-          <span className="brand-name">CHATURANGA</span>
+        <div className="f-col">
+          <div className="footer-brand">
+            <div className="logo-box" style={{ background: '#fff' }}>QST</div>
+            <span className="brand-name">Chaturanga</span>
+          </div>
         </div>
         <div className="footer-links">
           <div className="f-col">
             <h4>Play</h4>
             <div className="f-line"></div>
-            <div className="f-line"></div>
-            <div className="f-line"></div>
+            <div className="f-line" style={{ width: '60px' }}></div>
+            <div className="f-line" style={{ width: '70px' }}></div>
           </div>
           <div className="f-col">
-            <h4>Company</h4>
+            <h4>Learn</h4>
             <div className="f-line"></div>
-            <div className="f-line"></div>
-            <div className="f-line"></div>
+            <div className="f-line" style={{ width: '50px' }}></div>
           </div>
           <div className="f-col">
-            <h4>Support</h4>
+            <h4>About</h4>
             <div className="f-line"></div>
-            <div className="f-line"></div>
-            <div className="f-line"></div>
-          </div>
-          <div className="f-col">
-            <h4>Legal</h4>
-            <div className="f-line"></div>
-            <div className="f-line"></div>
-            <div className="f-line"></div>
+            <div className="f-line" style={{ width: '80px' }}></div>
           </div>
         </div>
       </footer>
       <div className="footer-bottom">
-        © 2026 Chaturanga • Socials: ◯ ◯ ◯ ◯
+        © 2026 Chaturanga. All rights reserved.
       </div>
     </div>
   );

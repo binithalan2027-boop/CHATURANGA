@@ -1,36 +1,9 @@
-import { useState } from 'react';
 import LandingPage from './LandingPage';
-import GameView from './GameView';
-import OfflineGameView from './OfflineGameView';
-import { SocketProvider, useSocket } from './SocketContext';
 import './index.css';
-
-function MainApp() {
-  const { connected, connect } = useSocket();
-  const [offlineMode, setOfflineMode] = useState(false);
-
-  if (offlineMode) {
-    return <OfflineGameView onExit={() => setOfflineMode(false)} />;
-  }
-
-  if (connected) {
-    return <GameView />;
-  }
-
-  return <LandingPage onPlay={(variant) => {
-    if (variant === 'offline_ai') {
-      setOfflineMode(true);
-    } else {
-      connect(variant);
-    }
-  }} />;
-}
 
 function App() {
   return (
-    <SocketProvider>
-      <MainApp />
-    </SocketProvider>
+    <LandingPage />
   );
 }
 
