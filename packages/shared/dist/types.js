@@ -1,2 +1,0 @@
-// Core Domain Types
-export {};
