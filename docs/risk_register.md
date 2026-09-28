@@ -1,0 +1,6 @@
+# Risk Register
+
+1. **Fog of War Data Leaks:** Highest risk. If the server accidentally sends the full board state, hidden pieces, or full legal move arrays (which reveal blockers), the Fog of War mode is compromised. Mitigation: Strict separation of `GameState` (server-only) and `PlayerView` (client-facing). Property tests specifically looking for leaked data in serialized output.
+2. **Four-Player Geometry Complexity:** Adapting standard move generation to a 14x14 cross board with 4 distinct forward directions and elimination rules will be complex. Mitigation: Isolate 4-player logic from standard 8x8 logic. Do not try to force standard `chess.js` to handle 4-player.
+3. **State Desync:** Clients getting out of sync with the server due to delayed or dropped WebSocket messages. Mitigation: Rely on Colyseus for state synchronization, which uses a monotonic sequence/patching system. Commands must be idempotent or version-checked.
+4. **Visual Scope Creep:** The visual direction ("tactile layered cards", "expressive pieces", "bouncy micro-interactions") is ambitious and could consume all development time. Mitigation: Build the core game logic and unpolished UI first (Phases 1-5). Reserve Phase 6 strictly for the polished visual layer. Use a token/motion system rather than bespoke animations everywhere.

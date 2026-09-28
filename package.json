@@ -1,0 +1,22 @@
+{
+  "name": "chaturanga",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@chaturanga/shared && npm run build --workspace=@chaturanga/server && npm run build --workspace=@chaturanga/client",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev": "run-p dev:server dev:client dev:shared",
+    "dev:server": "npm run dev --workspace=@chaturanga/server",
+    "dev:client": "npm run dev --workspace=@chaturanga/client",
+    "dev:shared": "npm run dev --workspace=@chaturanga/shared"
+  },
+  "devDependencies": {
+    "eslint": "^10.11.0",
+    "npm-run-all": "^4.1.5"
+  }
+}
