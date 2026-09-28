@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@chaturanga/shared && npm run build --workspace=@chaturanga/server && npm run build --workspace=@chaturanga/client",
+    "build": "npm run build --workspace=@chaturanga/client && cp -r packages/client/dist dist",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
