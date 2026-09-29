@@ -12,11 +12,13 @@ import './index.css';
 type Screen = 'landing' | 'auth' | 'bot_select' | 'playing' | 'policy' | 'learn' | 'about' | 'profile';
 
 interface User {
+  id: string;
   name: string;
   email: string;
 }
 
 import { supabase } from './lib/supabase';
+import { useMatchmaking } from './lib/useMatchmaking';
 
 function App() {
   const [screen, setScreen] = useState<Screen>('landing');
@@ -25,21 +27,23 @@ function App() {
   const [timeMinutes, setTimeMinutes] = useState<number>(10);
   const [gameMode, setGameMode] = useState<string>('standard');
 
+  const { status: matchStatus, match, startSearch, stopSearch } = useMatchmaking(user);
+
   useEffect(() => {
-    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
+          id: session.user.id,
           name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Player',
           email: session.user.email || ''
         });
       }
     });
 
-    // Listen to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
+          id: session.user.id,
           name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Player',
           email: session.user.email || ''
         });
@@ -48,32 +52,16 @@ function App() {
       }
     });
 
-    // Admin / URL shortcuts
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('admin') || params.has('play')) {
-      setUser({ name: 'Admin', email: 'admin@chaturanga.dev' });
-      setScreen('bot_select');
-    } else if (params.has('policy')) {
-      setScreen('policy');
-    } else if (params.has('learn')) {
-      setScreen('learn');
-    } else if (params.has('about')) {
-      setScreen('about');
-    }
-
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleAuth = (u: User) => {
-    setUser(u);
-    setScreen('bot_select');
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setScreen('landing');
-  };
+  useEffect(() => {
+    if (matchStatus === 'found' && match) {
+      // Transition to multiplayer match!
+      setScreen('playing'); 
+      setGameMode('online_match');
+    }
+  }, [matchStatus, match]);
 
   const triggerPlay = () => {
     if (user) {
@@ -83,18 +71,23 @@ function App() {
     }
   };
 
-  if (screen === 'playing') {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  if (screen === 'auth') {
     return (
-      <OfflineGameView
-        botElo={selectedElo}
-        timeMinutes={timeMinutes}
-        gameMode={gameMode as any}
-        onExit={() => setScreen('bot_select')}
+      <AuthPage
+        onAuth={(u) => {
+          setUser(u);
+          setScreen('landing');
+        }}
+        onBack={() => setScreen('landing')}
       />
     );
   }
 
-  // --- BOT SELECT ---
   if (screen === 'bot_select') {
     return (
       <BotSelectScreen
@@ -109,32 +102,42 @@ function App() {
     );
   }
 
-  // --- AUTH ---
-  if (screen === 'auth') {
+  if (screen === 'playing') {
+    if (gameMode === 'online_match' && match) {
+       // Note: OnlineGameMode is a stub for now. 
+       // We can route this to an actual OnlineGameMode component that uses the match info!
+       return (
+         <div className="min-h-screen bg-void-black text-white flex flex-col items-center justify-center p-8 text-center font-headline-md tracking-wider">
+            <h1 className="text-primary text-4xl mb-4">MULTIPLAYER ARENA BOOTING...</h1>
+            <p className="text-on-surface-variant max-w-lg mb-8">
+              Match established between <b>{user?.name}</b> and <b>{match.opponentName}</b>.
+            </p>
+            <p className="text-sm opacity-50 mb-8">Match ID: {match.matchId}</p>
+            <button onClick={() => { stopSearch(); setScreen('landing'); }} className="px-6 py-2 border border-surface-container hover:bg-surface-container-high transition-colors">
+              ABORT CONNECTION
+            </button>
+         </div>
+       );
+    }
+
     return (
-      <AuthPage
-        onAuth={handleAuth}
-        onBack={() => setScreen('landing')}
+      <OfflineGameView
+        botElo={selectedElo}
+        timeMinutes={timeMinutes}
+        gameMode={gameMode as any}
+        onExit={() => setScreen('bot_select')}
       />
     );
   }
 
-  // --- POLICY ---
   if (screen === 'policy') {
     return <PolicyPage onBack={() => setScreen('landing')} />;
   }
 
-  // --- LEARN ---
   if (screen === 'learn') {
-    return (
-      <LearnPage
-        onBack={() => setScreen('landing')}
-        onPlay={triggerPlay}
-      />
-    );
+    return <LearnPage onBack={() => setScreen('landing')} onPlay={triggerPlay} />;
   }
 
-  // --- ABOUT ---
   if (screen === 'about') {
     return (
       <AboutPage
@@ -144,7 +147,6 @@ function App() {
     );
   }
 
-  // --- PROFILE ---
   if (screen === 'profile') {
     return (
       <ProfilePage
@@ -165,6 +167,9 @@ function App() {
       onOpenLearn={() => setScreen('learn')}
       onOpenAbout={() => setScreen('about')}
       onOpenProfile={() => setScreen('profile')}
+      matchStatus={matchStatus}
+      onSearchMatch={startSearch}
+      onCancelMatch={stopSearch}
     />
   );
 }

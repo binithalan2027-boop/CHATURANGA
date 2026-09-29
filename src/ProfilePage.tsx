@@ -1,4 +1,4 @@
-import { useState } from \'react\';
+import { useState } from 'react';
 
 interface ProfilePageProps {
   onBack: () => void;
@@ -19,7 +19,7 @@ export default function ProfilePage({ onBack, user }: ProfilePageProps) {
     fideRating: 'N/A'
   });
 
-  const [friends, setFriends] = useState([
+  const [friends] = useState([
     { name: 'VoidWalker99', status: 'online', code: '1122-3344-5566-7788' },
     { name: 'CrimsonKing', status: 'offline', code: '9988-7766-5544-3322' }
   ]);

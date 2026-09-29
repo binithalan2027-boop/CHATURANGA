@@ -13,6 +13,9 @@ interface LandingPageProps {
   onOpenLearn?: () => void;
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
+  matchStatus: 'idle' | 'searching' | 'found';
+  onSearchMatch: () => void;
+  onCancelMatch: () => void;
 }
 
 export default function LandingPage(props: LandingPageProps) {
@@ -22,7 +25,12 @@ export default function LandingPage(props: LandingPageProps) {
       
       <main className="w-full pt-20 bg-void-black flex-1">
         <div className="flex flex-col w-full">
-          <HeroSection onPlay={props.onPlay} />
+          <HeroSection 
+            onPlay={props.onPlay}
+            matchStatus={props.matchStatus}
+            onSearchMatch={props.onSearchMatch}
+            onCancelMatch={props.onCancelMatch}
+          />
           <ModesSection />
         </div>
       </main>

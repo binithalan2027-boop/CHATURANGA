@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from './lib/supabase';
 
 interface AuthPageProps {
-  onAuth: (user: { name: string; email: string }) => void;
+  onAuth: (user: { id: string; name: string; email: string }) => void;
   onBack: () => void;
 }
 
@@ -21,14 +21,14 @@ export default function AuthPage({ onAuth, onBack }: AuthPageProps) {
 
     try {
       if (mode === 'signup') {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { display_name: name } }
         });
         if (signUpError) throw signUpError;
         
-        onAuth({ name: name || email.split('@')[0], email });
+        onAuth({ id: data.user?.id || '', name: name || email.split('@')[0], email });
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -37,6 +37,7 @@ export default function AuthPage({ onAuth, onBack }: AuthPageProps) {
         if (signInError) throw signInError;
 
         onAuth({ 
+          id: data.user?.id || '',
           name: data.user?.user_metadata?.display_name || email.split('@')[0], 
           email: data.user?.email || ''
         });

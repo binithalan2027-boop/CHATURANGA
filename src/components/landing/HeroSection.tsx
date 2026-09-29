@@ -1,32 +1,27 @@
 
-import { useState } from \'react\';
+import { useState } from 'react';
 
 interface HeroSectionProps {
   onPlay: () => void;
+  onSearchMatch: () => void;
+  onCancelMatch: () => void;
+  matchStatus: 'idle' | 'searching' | 'found';
 }
 
-export default function HeroSection({ onPlay }: HeroSectionProps) {
+export default function HeroSection({ onPlay, onSearchMatch, onCancelMatch, matchStatus }: HeroSectionProps) {
   const [timeControl, setTimeControl] = useState('10');
-  const [isQueued, setIsQueued] = useState(false);
-  const [matchBtnText, setMatchBtnText] = useState('FIND IMMEDIATE MATCH');
 
   const handleMatchmaking = () => {
-    if (!isQueued) {
-      setIsQueued(true);
-      setMatchBtnText("SEARCHING COMBATANTS (00:03)...");
-      setTimeout(() => {
-        setMatchBtnText("OPPONENT FOUND! ENTERING ARENA...");
-        setTimeout(() => {
-          setMatchBtnText("FIND IMMEDIATE MATCH");
-          setIsQueued(false);
-          onPlay(); 
-        }, 1800);
-      }, 2400);
-    } else {
-      setIsQueued(false);
-      setMatchBtnText("FIND IMMEDIATE MATCH");
+    if (matchStatus === 'idle') {
+      onSearchMatch();
+    } else if (matchStatus === 'searching') {
+      onCancelMatch();
     }
   };
+
+  let matchBtnText = 'FIND IMMEDIATE MATCH';
+  if (matchStatus === 'searching') matchBtnText = 'SEARCHING COMBATANTS...';
+  if (matchStatus === 'found') matchBtnText = 'OPPONENT FOUND! ENTERING ARENA...';
 
   return (
     <>
@@ -108,9 +103,9 @@ export default function HeroSection({ onPlay }: HeroSectionProps) {
 
               <button 
                 onClick={handleMatchmaking}
-                className={`w-full py-space-md rounded-lg font-display-sm uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${isQueued ? 'bg-surface-container-highest text-primary animate-pulse border border-primary/30' : 'bg-bone-ivory text-void-black hover:bg-white hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]'}`}
+                className={`w-full py-space-md rounded-lg font-display-sm uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${matchStatus !== 'idle' ? 'bg-surface-container-highest text-primary animate-pulse border border-primary/30' : 'bg-bone-ivory text-void-black hover:bg-white hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]'}`}
               >
-                {isQueued && (
+                {matchStatus !== 'idle' && (
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_infinite]"></div>
                 )}
                 {matchBtnText}
