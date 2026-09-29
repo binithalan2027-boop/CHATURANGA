@@ -23,7 +23,8 @@ const TIME_OPTIONS: TimeOption[] = [
 
 const GAME_MODES = [
   { id: 'standard', icon: '⚔️', name: 'Ranked Classic', desc: 'True tactical combat' },
-  { id: 'chess960', icon: '🔮', name: 'Fischer Chaos', desc: 'Randomized back rank' },
+  { id: 'spell', icon: '🔮', name: 'Spell Chess', desc: 'Void Freeze & Shadow Swap' },
+  { id: 'chess960', icon: '🎲', name: 'Fischer Chaos', desc: 'Randomized back rank' },
   { id: 'fog', icon: '🌑', name: 'Stealth Ambush', desc: 'Pitch-black visibility' },
   { id: 'atomic', icon: '☠️', name: 'Cursed Blast', desc: 'Explosive sacrifices' },
 ];
