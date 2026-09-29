@@ -380,7 +380,8 @@ export default function LandingPage({
                 { id: '960', icon: 'shuffle', color: 'text-spectral-cyan', bg: 'group-hover:bg-surface-container-high', title: 'CHESS960 CHAOS', subtitle: 'FISCHER', desc: 'Shuffled back-rank monsters eliminate opening book memorization.' },
                 { id: 'puzzle', icon: 'timer', color: 'text-primary', bg: 'group-hover:bg-primary-container', title: 'CURSED TRIALS', subtitle: 'SPEED RUSH', desc: 'Solve lethal mate-in-1 and mate-in-2 scenarios against a 3-minute blood clock.' },
                 { id: 'ai', icon: 'psychology_alt', color: 'text-secondary', bg: 'group-hover:bg-secondary-container', title: 'GRIM AI ARENA', subtitle: 'OFFLINE', desc: 'Challenge 5 depths of neural engines voiced by dark entity archetypes.' },
-                { id: 'friends', icon: 'group_add', color: 'text-bone-ivory', bg: 'group-hover:bg-surface-container-high', title: 'FRIENDS SANCTUM', subtitle: 'PRIVATE ROOM', desc: 'Create custom password lobbies with time handicaps and piece bans.' }
+                { id: 'friends', icon: 'group_add', color: 'text-bone-ivory', bg: 'group-hover:bg-surface-container-high', title: 'FRIENDS SANCTUM', subtitle: 'PRIVATE ROOM', desc: 'Create custom password lobbies with time handicaps and piece bans.' },
+                { id: 'atomic', icon: 'dangerous', color: 'text-crimson-glow', bg: 'group-hover:bg-primary-container', title: 'CURSED BLAST', subtitle: 'ATOMIC', desc: 'Explosive sacrifices. Captures wipe out the surrounding 3x3 blast radius.' }
               ].map(mode => (
                 <div key={mode.id} className="group bg-surface-card hover:bg-surface-hover rounded-xl p-space-md flex flex-col gap-space-md transition-all duration-200 cursor-pointer" onClick={onPlay}>
                   <div className={`w-12 h-12 rounded bg-surface-container flex items-center justify-center ${mode.color} ${mode.bg} group-hover:text-white transition-colors`}>
