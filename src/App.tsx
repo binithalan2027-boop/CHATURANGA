@@ -6,7 +6,6 @@ import OfflineGameView from './OfflineGameView';
 import PolicyPage from './PolicyPage';
 import LearnPage from './LearnPage';
 import AboutPage from './AboutPage';
-import { BotPersonality } from './ai/useStockfish';
 import './index.css';
 
 type Screen = 'landing' | 'auth' | 'bot_select' | 'playing' | 'policy' | 'learn' | 'about';
@@ -21,7 +20,7 @@ import { supabase } from './lib/supabase';
 function App() {
   const [screen, setScreen] = useState<Screen>('landing');
   const [user, setUser] = useState<User | null>(null);
-  const [selectedBot, setSelectedBot] = useState<BotPersonality>('martin');
+  const [selectedElo, setSelectedElo] = useState<number>(1300);
   const [timeMinutes, setTimeMinutes] = useState<number>(10);
   const [gameMode, setGameMode] = useState<string>('standard');
 
@@ -83,11 +82,10 @@ function App() {
     }
   };
 
-  // --- PLAYING ---
   if (screen === 'playing') {
     return (
       <OfflineGameView
-        botId={selectedBot}
+        botElo={selectedElo}
         timeMinutes={timeMinutes}
         gameMode={gameMode as any}
         onExit={() => setScreen('bot_select')}
@@ -99,8 +97,8 @@ function App() {
   if (screen === 'bot_select') {
     return (
       <BotSelectScreen
-        onStart={(botId, time, mode) => {
-          setSelectedBot(botId);
+        onStart={(elo, time, mode) => {
+          setSelectedElo(elo);
           setTimeMinutes(time);
           setGameMode(mode);
           setScreen('playing');

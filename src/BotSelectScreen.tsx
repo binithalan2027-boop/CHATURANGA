@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { BotPersonality, BOTS } from './ai/useStockfish';
+import { getBotByElo } from './ai/useStockfish';
 
 export interface BotSelectScreenProps {
-  onStart: (botId: BotPersonality, timeMinutes: number, gameMode: string) => void;
+  onStart: (elo: number, timeMinutes: number, gameMode: string) => void;
   onBack: () => void;
 }
 
@@ -21,12 +21,6 @@ const TIME_OPTIONS: TimeOption[] = [
   { label: 'No Limit', value: 0 },
 ];
 
-const BOT_ELO: Record<BotPersonality, string> = {
-  martin: '~250',
-  nelson: '~1300',
-  mittens: '~3200',
-};
-
 const GAME_MODES = [
   { id: 'standard', icon: '⚔️', name: 'Ranked Classic', desc: 'True tactical combat' },
   { id: 'chess960', icon: '🔮', name: 'Fischer Chaos', desc: 'Randomized back rank' },
@@ -34,180 +28,128 @@ const GAME_MODES = [
   { id: 'atomic', icon: '☠️', name: 'Cursed Blast', desc: 'Explosive sacrifices' },
 ];
 
-const BOT_KEYS: BotPersonality[] = ['martin', 'nelson', 'mittens'];
-
 export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProps) {
-  const [selectedBot, setSelectedBot] = useState<BotPersonality>('martin');
+  const [elo, setElo] = useState<number>(1300);
   const [selectedTime, setSelectedTime] = useState<number>(10);
   const [selectedMode, setSelectedMode] = useState<string>('standard');
 
-  const handleCardClick = (botId: BotPersonality) => {
-    setSelectedBot(botId);
-  };
-
-  const handlePlayOnCard = (e: React.MouseEvent, botId: BotPersonality) => {
-    e.stopPropagation();
-    setSelectedBot(botId);
-    onStart(botId, selectedTime, selectedMode);
-  };
-
-  const handleMainPlay = () => {
-    onStart(selectedBot, selectedTime, selectedMode);
-  };
-
-  const currentBotConfig = BOTS[selectedBot];
-  const currentMode = GAME_MODES.find((m) => m.id === selectedMode) || GAME_MODES[0];
+  const bot = getBotByElo(elo);
 
   return (
-    <div className="min-h-screen bg-void-black flex flex-col items-center p-8">
-      <div className="w-full max-w-6xl flex flex-col gap-12">
-        <header className="flex flex-col items-center text-center gap-4 py-8">
-          <div className="font-label-sm uppercase tracking-widest text-on-surface-variant bg-surface-container-low px-4 py-1 rounded">SINGLEPLAYER PRACTICE</div>
-          <h1 className="font-display-lg text-bone-ivory uppercase tracking-tight">CHOOSE YOUR OPPONENT</h1>
-          <p className="font-body-md text-on-surface-variant">Select a chess bot personality and time control to begin</p>
-        </header>
-
-        {/* 3-Column Bot Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-          {BOT_KEYS.map((botId) => {
-            const bot = BOTS[botId];
-            const isSelected = selectedBot === botId;
-            const elo = BOT_ELO[botId];
-
-            return (
-              <div
-                key={botId}
-                className={`bg-gradient-to-b from-surface-card to-void-black p-8 rounded-lg border flex flex-col items-center text-center transition-all cursor-pointer hover:shadow-primary-container/30 ${
-                  isSelected 
-                    ? 'border-primary-container shadow-[0_0_15px_rgba(var(--color-primary-container),0.3)]' 
-                    : 'border-surface-container-low'
-                }`}
-                onClick={() => handleCardClick(botId)}
-                role="button"
-                tabIndex={0}
-                aria-pressed={isSelected}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleCardClick(botId);
-                  }
-                }}
-              >
-                {isSelected ? (
-                  <div className="font-label-sm uppercase tracking-widest bg-primary-container text-on-primary-container px-3 py-1 rounded mb-6">SELECTED</div>
-                ) : (
-                  <div className="h-7 mb-6"></div>
-                )}
-                
-                <div className="text-7xl mb-6" aria-label={`${bot.name} avatar`}>
-                  {bot.avatar}
-                </div>
-
-                <h2 className="font-headline-md text-bone-ivory uppercase mb-3">{bot.name}</h2>
-
-                <div className="font-label-sm uppercase tracking-widest text-on-surface-variant bg-surface-container-low px-4 py-1 rounded-full mb-6">
-                  <span>⚡ Rating: {elo}</span>
-                </div>
-
-                <p className="font-body-md text-on-surface-variant mb-8 flex-grow">{bot.description}</p>
-
-                <div className="w-full">
-                  <button
-                    type="button"
-                    className="w-full font-label-sm uppercase tracking-widest bg-primary-container text-on-primary-container hover:bg-crimson-glow py-3 rounded transition-colors"
-                    onClick={(e) => handlePlayOnCard(e, botId)}
-                    title={`Start match against ${bot.name}`}
-                  >
-                    Play
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+    <div className="min-h-screen bg-void-black flex flex-col items-center py-space-xl px-space-md w-full font-body-md text-on-surface">
+      <div className="w-full max-w-6xl mx-auto flex flex-col gap-space-lg">
+        
+        {/* Header */}
+        <div className="flex flex-col items-center text-center gap-space-sm mb-space-md">
+          <h1 className="font-display-lg text-display-lg text-bone-ivory uppercase tracking-tight">Grim AI Arena</h1>
+          <p className="font-body-md text-on-surface-variant max-w-2xl">Tune the entity's neural capacity. Lower ratings will act erratic and sacrifice pieces; higher ratings command absolute foresight.</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-gutter justify-between items-stretch">
-          {/* Game Mode Section */}
-          <section className="flex flex-col gap-6 w-full md:w-1/2">
-            <div className="flex justify-between items-end">
-              <span className="font-headline-md text-bone-ivory uppercase">🎮 GAME MODE</span>
-              <span className="font-body-md text-on-surface-variant">
-                {currentMode.name}
-              </span>
-            </div>
+        {/* Dynamic AI Core */}
+        <div className="w-full bg-surface-card border border-surface-container-high rounded-xl p-space-xl flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-container/10 to-transparent pointer-events-none" />
+          
+          <div className="text-[120px] leading-none mb-space-sm filter drop-shadow-2xl animate-pulse">
+            {bot.avatar}
+          </div>
+          
+          <h2 className="font-headline-lg text-headline-lg text-bone-ivory uppercase tracking-wide mb-2">{bot.name}</h2>
+          
+          <div className="font-label-sm uppercase tracking-widest text-primary bg-primary-container/20 border border-primary/30 px-6 py-2 rounded-full mb-space-md">
+            ESTIMATED ELO: {elo}
+          </div>
+          
+          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mb-space-xl">
+            "{bot.description}"
+          </p>
 
-            <div className="grid grid-cols-2 gap-4">
+          <div className="w-full max-w-3xl flex flex-col gap-4">
+            <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant uppercase">
+              <span>Mindless (1)</span>
+              <span>Godlike (3500)</span>
+            </div>
+            <input 
+              type="range" 
+              min="1" 
+              max="3500" 
+              value={elo} 
+              onChange={(e) => setElo(parseInt(e.target.value))}
+              className="w-full h-3 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-crimson-glow"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-gutter justify-between items-stretch">
+          {/* Game Mode Section */}
+          <div className="flex-1 bg-surface-card p-space-md rounded-lg border border-surface-container-low flex flex-col gap-space-md">
+            <h3 className="font-headline-sm text-bone-ivory uppercase tracking-wider flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]">sports_esports</span>
+              Game Mode
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {GAME_MODES.map((mode) => (
                 <button
                   key={mode.id}
-                  type="button"
-                  className={`bg-surface-container-lowest flex gap-2 flex-col items-center p-4 rounded border transition-colors ${
-                    selectedMode === mode.id 
-                      ? 'border-primary-container text-bone-ivory' 
-                      : 'border-surface-container-low text-on-surface-variant hover:border-primary-container/50'
+                  className={`flex flex-col items-start p-3 rounded border text-left transition-colors ${
+                    selectedMode === mode.id
+                      ? 'bg-surface-container-high border-secondary text-bone-ivory shadow-lg'
+                      : 'bg-surface-container-lowest border-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-white'
                   }`}
                   onClick={() => setSelectedMode(mode.id)}
                 >
-                  <span className="text-3xl mb-2">{mode.icon}</span>
-                  <span className="font-label-sm uppercase tracking-widest mb-1">{mode.name}</span>
-                  <span className="text-xs opacity-75">{mode.desc}</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">{mode.icon}</span>
+                    <span className="font-headline-sm text-sm uppercase tracking-wider">{mode.name}</span>
+                  </div>
+                  <span className="font-body-sm text-xs opacity-80">{mode.desc}</span>
                 </button>
               ))}
             </div>
-          </section>
+          </div>
 
           {/* Time Control Section */}
-          <section className="flex flex-col gap-6 w-full md:w-1/2">
-            <div className="flex justify-between items-end">
-              <span className="font-headline-md text-bone-ivory uppercase">⏱️ TIME CONTROL</span>
-              <span className="font-body-md text-on-surface-variant">
-                {selectedTime === 0 ? 'Unlimited Clock' : `${selectedTime} minutes per side`}
-              </span>
+          <div className="flex-1 bg-surface-card p-space-md rounded-lg border border-surface-container-low flex flex-col gap-space-md">
+            <h3 className="font-headline-sm text-bone-ivory uppercase tracking-wider flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]">timer</span>
+              Time Control
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              {TIME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`px-4 py-3 rounded font-label-sm uppercase tracking-widest transition-colors ${
+                    selectedTime === opt.value
+                      ? 'bg-crimson-glow text-bone-ivory shadow-md shadow-crimson-glow/30'
+                      : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-white border border-surface-container-low'
+                  }`}
+                  onClick={() => setSelectedTime(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
-
-            <div className="bg-surface-container-lowest flex gap-2 flex-wrap p-6 rounded border border-surface-container-low">
-              {TIME_OPTIONS.map((opt) => {
-                const isActive = selectedTime === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`font-label-sm uppercase tracking-widest px-4 py-2 rounded transition-colors ${
-                      isActive 
-                        ? 'bg-primary-container text-on-primary-container' 
-                        : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-card'
-                    }`}
-                    onClick={() => setSelectedTime(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          </div>
         </div>
 
-        {/* Bottom Actions Row */}
-        <footer className="flex justify-between items-center border-t border-surface-container-low pt-8 mt-4 pb-12">
+        {/* Actions */}
+        <div className="flex justify-between items-center mt-space-sm">
           <button
-            type="button"
-            className="font-label-sm uppercase tracking-widest text-on-surface-variant hover:text-bone-ivory transition-colors"
             onClick={onBack}
+            className="px-space-md py-3 font-label-sm uppercase tracking-widest text-on-surface-variant hover:text-white transition-colors flex items-center gap-2"
           >
-            ← Back
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+            Back to Hub
           </button>
-
+          
           <button
-            type="button"
-            className="font-label-sm uppercase tracking-widest bg-primary-container text-on-primary-container hover:bg-crimson-glow px-8 py-4 rounded transition-colors text-lg"
-            onClick={handleMainPlay}
+            onClick={() => onStart(elo, selectedTime, selectedMode)}
+            className="px-space-xl py-4 bg-bone-ivory text-void-black hover:bg-white font-headline-md text-headline-md uppercase tracking-wider rounded flex items-center gap-space-sm transition-transform active:scale-95 shadow-[0_0_20px_rgba(232,221,200,0.3)]"
           >
-            PLAY {currentMode.name.toUpperCase()} VS {currentBotConfig?.name.split(' ')[0].toUpperCase()} ({selectedTime === 0 ? 'NO LIMIT' : `${selectedTime}M`}) ⚔️
+            <span className="material-symbols-outlined text-[24px]">swords</span>
+            ENTER ARENA
           </button>
-        </footer>
+        </div>
       </div>
     </div>
   );
 }
-
-export { BotSelectScreen };

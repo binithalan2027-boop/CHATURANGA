@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-export type BotPersonality = 'martin' | 'nelson' | 'mittens';
+export type BotPersonality = 'thrall' | 'fiend' | 'mage' | 'assassin' | 'lich' | 'voidweaver' | 'eldritch' | string;
 
 export interface BotConfig {
   id: BotPersonality;
@@ -12,35 +12,41 @@ export interface BotConfig {
   description: string;
 }
 
-export const BOTS: Record<BotPersonality, BotConfig> = {
-  martin: {
-    id: 'martin',
-    name: 'Cursed Thrall',
-    avatar: '💀',
-    skillLevel: 0,
-    depth: 1,
-    moveTime: 50,
-    description: 'A mindless vessel of the dark arts. Sacrifices pieces without reason.'
-  },
-  nelson: {
-    id: 'nelson',
-    name: 'Blood Mage',
-    avatar: '🧛',
-    skillLevel: 5,
-    depth: 5,
-    moveTime: 500,
-    description: 'Highly aggressive and predatory. Strikes fast, seeking early decimation.'
-  },
-  mittens: {
-    id: 'mittens',
-    name: 'The Voidweaver',
-    avatar: '👁️',
-    skillLevel: 20,
-    depth: 15,
-    moveTime: 1500,
-    description: 'An ancient tactical intelligence from the abyss. Resistance is futile.'
-  }
-};
+export const AI_TIERS = [
+  { maxElo: 500, id: 'thrall', name: 'Cursed Thrall', avatar: '💀', desc: 'A mindless vessel of the dark arts. Sacrifices pieces without reason.' },
+  { maxElo: 1000, id: 'fiend', name: 'Shadow Fiend', avatar: '🦇', desc: 'Erratic and unpredictable. Barely understands strategy.' },
+  { maxElo: 1500, id: 'mage', name: 'Blood Mage', avatar: '🧛', desc: 'Highly aggressive and predatory. Strikes fast, seeking early decimation.' },
+  { maxElo: 2000, id: 'assassin', name: 'Nightmare Assassin', avatar: '🥷', desc: 'Lethal precision. Will punish every tactical blunder.' },
+  { maxElo: 2500, id: 'lich', name: 'Lich King', avatar: '👑', desc: 'An immortal grandmaster. Commands the board with absolute control.' },
+  { maxElo: 3000, id: 'voidweaver', name: 'The Voidweaver', avatar: '👁️', desc: 'An ancient tactical intelligence from the abyss.' },
+  { maxElo: 3500, id: 'eldritch', name: 'Eldritch God', avatar: '🐙', desc: 'Flawless execution. Perfect foresight. Resistance is futile.' }
+];
+
+export function getBotByElo(elo: number): BotConfig {
+  const tier = AI_TIERS.find(t => elo <= t.maxElo) || AI_TIERS[AI_TIERS.length - 1];
+  
+  // Scale skill level (0 to 20) based on elo
+  const skillLevel = Math.max(0, Math.min(20, Math.floor((elo / 3500) * 20)));
+  
+  // Scale depth (1 to 20) based on elo
+  const depth = Math.max(1, Math.min(20, Math.floor((elo / 3500) * 20)));
+  
+  // Scale movetime (50ms to 2000ms)
+  const moveTime = Math.max(50, Math.min(2000, Math.floor((elo / 3500) * 2000)));
+
+  return {
+    id: tier.id as any,
+    name: tier.name,
+    avatar: tier.avatar,
+    description: tier.desc,
+    skillLevel,
+    depth,
+    moveTime
+  };
+}
+
+// Keep BOTS exported for backward compatibility if needed in game view
+export const BOTS = AI_TIERS.reduce((acc, tier) => ({ ...acc, [tier.id]: getBotByElo(tier.maxElo) }), {} as Record<string, BotConfig>);
 
 export function useStockfish() {
   const workerRef = useRef<Worker | null>(null);

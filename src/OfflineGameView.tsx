@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Chess, Square, Move } from 'chess.js';
-import { useStockfish, BOTS, BotPersonality } from './ai/useStockfish';
+import { useStockfish } from './ai/useStockfish';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -48,24 +48,26 @@ function generateChess960Fen(): string {
 
 interface OfflineGameViewProps {
   onExit: () => void;
-  botId?: BotPersonality;
+  botElo?: number;
   timeMinutes?: number;
   gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic';
 }
 
-export default function OfflineGameView({ onExit, botId = 'martin', gameMode = 'standard' }: OfflineGameViewProps) {
+import { getBotByElo } from './ai/useStockfish';
+
+export default function OfflineGameView({ onExit, botElo = 250, gameMode = 'standard' }: OfflineGameViewProps) {
   const [chess, setChess] = useState(() => new Chess(gameMode === 'chess960' ? generateChess960Fen() : undefined));
   const [fen, setFen] = useState(chess.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
-  const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]); // pieces white captured (black pieces)
-  const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]); // pieces black captured (white pieces)
+  const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]); 
+  const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]); 
   const [atomicWinner, setAtomicWinner] = useState<'w' | 'b' | null>(null);
 
-  const [selectedBotId, setSelectedBotId] = useState<BotPersonality>(botId);
+  const [currentBotElo, setCurrentBotElo] = useState<number>(botElo);
   const { isReady, isThinking, getBestMove, engineError } = useStockfish();
 
-  const currentBot = BOTS[selectedBotId];
+  const currentBot = getBotByElo(currentBotElo);
 
   // Compute legal moves for the selected piece
   const legalMoves = useMemo(() => {
@@ -277,16 +279,16 @@ export default function OfflineGameView({ onExit, botId = 'martin', gameMode = '
             {engineError && <span className="text-xs bg-yellow-400 text-black px-1 font-bold">Fallback</span>}
           </div>
           <div className="flex items-center gap-2">
-            <select
-              className="bg-surface-dark border border-surface-container-high rounded px-2 py-1 text-sm outline-none"
-              value={selectedBotId}
-              onChange={(e) => setSelectedBotId(e.target.value as BotPersonality)}
+            <input
+              type="range"
+              min="1"
+              max="3500"
+              value={currentBotElo}
+              onChange={(e) => setCurrentBotElo(parseInt(e.target.value))}
               disabled={isThinking || chess.history().length > 0}
-            >
-              {Object.values(BOTS).map(bot => (
-                <option key={bot.id} value={bot.id}>{bot.name}</option>
-              ))}
-            </select>
+              className="w-24 h-2 bg-surface-container-highest rounded appearance-none cursor-pointer accent-secondary"
+              title={`ELO: ${currentBotElo}`}
+            />
             <button className="px-3 py-1 bg-surface-container-high hover:bg-surface-container-highest rounded text-sm transition-colors" onClick={handleNewGame}>New Game</button>
             <button className="px-3 py-1 bg-crimson-glow hover:bg-red-700 text-white font-bold rounded text-sm transition-colors" onClick={onExit}>SURRENDER TO THE VOID</button>
           </div>
