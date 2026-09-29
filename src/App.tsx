@@ -3,6 +3,7 @@ import LandingPage from './LandingPage';
 import AuthPage from './AuthPage';
 import BotSelectScreen from './BotSelectScreen';
 import OfflineGameView from './OfflineGameView';
+import OnlineGameMode from './modes/OnlineGameMode';
 import PolicyPage from './PolicyPage';
 import LearnPage from './LearnPage';
 import AboutPage from './AboutPage';
@@ -104,19 +105,15 @@ function App() {
 
   if (screen === 'playing') {
     if (gameMode === 'online_match' && match) {
-       // Note: OnlineGameMode is a stub for now. 
-       // We can route this to an actual OnlineGameMode component that uses the match info!
        return (
-         <div className="min-h-screen bg-void-black text-white flex flex-col items-center justify-center p-8 text-center font-headline-md tracking-wider">
-            <h1 className="text-primary text-4xl mb-4">MULTIPLAYER ARENA BOOTING...</h1>
-            <p className="text-on-surface-variant max-w-lg mb-8">
-              Match established between <b>{user?.name}</b> and <b>{match.opponentName}</b>.
-            </p>
-            <p className="text-sm opacity-50 mb-8">Match ID: {match.matchId}</p>
-            <button onClick={() => { stopSearch(); setScreen('landing'); }} className="px-6 py-2 border border-surface-container hover:bg-surface-container-high transition-colors">
-              ABORT CONNECTION
-            </button>
-         </div>
+         <OnlineGameMode
+           matchId={match.matchId}
+           color={match.color}
+           opponentName={match.opponentName}
+           playerName={user?.name || 'Player'}
+           timeMinutes={timeMinutes}
+           onExit={() => { stopSearch(); setScreen('landing'); }}
+         />
        );
     }
 
