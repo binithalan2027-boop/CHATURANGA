@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><path stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9a4 4 0 0 0-3.22 6.38 6.48 6.48 0 0 0-.87 10.65c-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47a6.46 6.46 0 0 0-.87-10.65A4.01 4.01 0 0 0 22.5 9z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+      <defs>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+      <g style="color: #FF1E44; filter: url(#glow); drop-shadow: 0px 8px 12px rgba(0,0,0,0.8);">
+        <path d="M50 20 C60 20 65 30 65 40 C65 55 55 60 50 80 C45 60 35 55 35 40 C35 30 40 20 50 20 Z M45 35 A5 5 0 1 0 55 35 A5 5 0 1 0 45 35" fill="currentColor"/>
+      </g>
+    </svg>

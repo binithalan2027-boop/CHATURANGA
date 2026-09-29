@@ -42,7 +42,11 @@ export default function AuthPage({ onAuth, onBack }: AuthPageProps) {
         });
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      if (err.message === 'Failed to fetch') {
+        setError('DATABASE OFFLINE: Please provide your Supabase API keys to the system.');
+      } else {
+        setError(err.message || 'Authentication failed');
+      }
     } finally {
       setLoading(false);
     }
