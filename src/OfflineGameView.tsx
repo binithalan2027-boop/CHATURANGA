@@ -10,21 +10,57 @@ const PIECE_SYMBOLS: Record<string, string> = {
   'b-p': '♟', 'b-n': '♞', 'b-b': '♝', 'b-r': '♜', 'b-q': '♛', 'b-k': '♚',
 };
 
+const PIECE_IMAGES: Record<string, string> = {
+  'w-k': '/pieces/wK.svg', 'w-q': '/pieces/wQ.svg', 'w-r': '/pieces/wR.svg',
+  'w-b': '/pieces/wB.svg', 'w-n': '/pieces/wN.svg', 'w-p': '/pieces/wP.svg',
+  'b-k': '/pieces/bK.svg', 'b-q': '/pieces/bQ.svg', 'b-r': '/pieces/bR.svg',
+  'b-b': '/pieces/bB.svg', 'b-n': '/pieces/bN.svg', 'b-p': '/pieces/bP.svg',
+};
+
 const PIECE_VALUES: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+
+function generateChess960Fen(): string {
+  const pieces = Array(8).fill('');
+  // Place bishops on opposite colored squares
+  const b1 = Math.floor(Math.random() * 4) * 2; // 0, 2, 4, 6
+  const b2 = Math.floor(Math.random() * 4) * 2 + 1; // 1, 3, 5, 7
+  pieces[b1] = 'b';
+  pieces[b2] = 'b';
+  // Place queen
+  let q;
+  do { q = Math.floor(Math.random() * 8); } while (pieces[q] !== '');
+  pieces[q] = 'q';
+  // Place knights
+  for (let i = 0; i < 2; i++) {
+    let n;
+    do { n = Math.floor(Math.random() * 8); } while (pieces[n] !== '');
+    pieces[n] = 'n';
+  }
+  // Place rooks and king
+  const emptySquares = pieces.map((p, i) => p === '' ? i : -1).filter(i => i !== -1);
+  pieces[emptySquares[0]] = 'r';
+  pieces[emptySquares[1]] = 'k';
+  pieces[emptySquares[2]] = 'r';
+  
+  const rank = pieces.join('');
+  return `${rank.toLowerCase()}/pppppppp/8/8/8/8/PPPPPPPP/${rank.toUpperCase()} w KQkq - 0 1`;
+}
 
 interface OfflineGameViewProps {
   onExit: () => void;
   botId?: BotPersonality;
   timeMinutes?: number;
+  gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic';
 }
 
-export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGameViewProps) {
-  const [chess] = useState(new Chess());
+export default function OfflineGameView({ onExit, botId = 'martin', gameMode = 'standard' }: OfflineGameViewProps) {
+  const [chess, setChess] = useState(() => new Chess(gameMode === 'chess960' ? generateChess960Fen() : undefined));
   const [fen, setFen] = useState(chess.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]); // pieces white captured (black pieces)
   const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]); // pieces black captured (white pieces)
+  const [atomicWinner, setAtomicWinner] = useState<'w' | 'b' | null>(null);
 
   const [selectedBotId, setSelectedBotId] = useState<BotPersonality>(botId);
   const { isReady, isThinking, getBestMove, engineError } = useStockfish();
@@ -33,26 +69,35 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
 
   // Compute legal moves for the selected piece
   const legalMoves = useMemo(() => {
-    if (!selectedSquare) return new Set<string>();
-    const moves = chess.moves({ square: selectedSquare as Square, verbose: true });
-    return new Set(moves.map((m: Move) => m.to));
-  }, [selectedSquare, fen, chess]);
+    if (!selectedSquare || atomicWinner) return new Set<string>();
+    try {
+      const moves = chess.moves({ square: selectedSquare as Square, verbose: true });
+      return new Set(moves.map((m: Move) => m.to));
+    } catch(e) {
+      return new Set<string>();
+    }
+  }, [selectedSquare, fen, chess, atomicWinner]);
 
   // Find king square if in check
   const checkSquare = useMemo(() => {
-    if (!chess.isCheck()) return null;
-    const turn = chess.turn();
-    const board = chess.board();
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
-        const piece = board[r][f];
-        if (piece && piece.type === 'k' && piece.color === turn) {
-          return `${FILES[f]}${RANKS[r]}`;
+    if (atomicWinner) return null;
+    try {
+      if (!chess.isCheck()) return null;
+      const turn = chess.turn();
+      const board = chess.board();
+      for (let r = 0; r < 8; r++) {
+        for (let f = 0; f < 8; f++) {
+          const piece = board[r][f];
+          if (piece && piece.type === 'k' && piece.color === turn) {
+            return `${FILES[f]}${RANKS[r]}`;
+          }
         }
       }
+    } catch(e) {
+      // In case atomic chess broke the internal state by removing a king
     }
     return null;
-  }, [fen, chess]);
+  }, [fen, chess, atomicWinner]);
 
   // Compute material advantage
   const materialAdvantage = useMemo(() => {
@@ -75,21 +120,74 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
     return pairs;
   }, [fen, chess]);
 
+  // Compute visible squares for Fog of War mode
+  const visibleSquares = useMemo(() => {
+    if (gameMode !== 'fog') return null;
+    const visible = new Set<string>();
+    const board = chess.board();
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const piece = board[r][f];
+        if (piece && piece.color === 'w') {
+          const sq = `${FILES[f]}${RANKS[r]}`;
+          visible.add(sq);
+          try {
+            const moves = chess.moves({ square: sq as Square, verbose: true });
+            moves.forEach(m => visible.add(m.to));
+          } catch(e) {}
+        }
+      }
+    }
+    return visible;
+  }, [fen, chess, gameMode]);
+
   const recordCapture = (moveResult: any) => {
     if (moveResult.captured) {
       if (moveResult.color === 'w') {
-        // White captured a black piece
         setCapturedByWhite(prev => [...prev, moveResult.captured]);
       } else {
-        // Black captured a white piece
         setCapturedByBlack(prev => [...prev, moveResult.captured]);
       }
     }
   };
 
+  const applyAtomicExplosion = (moveResult: any) => {
+    if (gameMode !== 'atomic' || !moveResult.captured) return;
+    
+    const to = moveResult.to;
+    const fileIdx = FILES.indexOf(to[0]);
+    const rankIdx = RANKS.indexOf(to[1]);
+    
+    const toRemove: string[] = [to];
+    for (let r = Math.max(0, rankIdx - 1); r <= Math.min(7, rankIdx + 1); r++) {
+      for (let f = Math.max(0, fileIdx - 1); f <= Math.min(7, fileIdx + 1); f++) {
+        const sq = `${FILES[f]}${RANKS[r]}`;
+        if (sq !== to) {
+           const p = chess.get(sq as Square);
+           if (p && p.type !== 'p') {
+               toRemove.push(sq);
+           }
+        }
+      }
+    }
+    
+    let kingExploded: 'w' | 'b' | null = null;
+    toRemove.forEach(sq => {
+       const p = chess.get(sq as Square);
+       if (p) {
+           if (p.type === 'k') kingExploded = p.color;
+           chess.remove(sq as Square);
+       }
+    });
+    
+    if (kingExploded) {
+       setAtomicWinner(kingExploded === 'w' ? 'b' : 'w');
+    }
+  };
+
   useEffect(() => {
     async function playBotMove() {
-      if (chess.turn() === 'b' && !chess.isGameOver() && isReady) {
+      if (chess.turn() === 'b' && !chess.isGameOver() && !atomicWinner && isReady) {
         try {
           const moveLan = await getBestMove(chess.fen(), currentBot);
           if (moveLan) {
@@ -97,6 +195,7 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
             if (result) {
               setLastMove({ from: result.from, to: result.to });
               recordCapture(result);
+              applyAtomicExplosion(result);
             }
             setFen(chess.fen());
           }
@@ -106,10 +205,10 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
       }
     }
     playBotMove();
-  }, [fen, chess, isReady, currentBot, getBestMove]);
+  }, [fen, chess, isReady, currentBot, getBestMove, atomicWinner, gameMode]);
 
   const handleSquareClick = (sq: string) => {
-    if (chess.turn() === 'b' || chess.isGameOver()) return;
+    if (chess.turn() === 'b' || chess.isGameOver() || atomicWinner) return;
 
     if (selectedSquare) {
       if (selectedSquare !== sq) {
@@ -118,6 +217,7 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
           if (result) {
             setLastMove({ from: result.from, to: result.to });
             recordCapture(result);
+            applyAtomicExplosion(result);
           }
           setFen(chess.fen());
         } catch (e) {
@@ -139,27 +239,32 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
   };
 
   const handleNewGame = () => {
-    chess.reset();
-    setFen(chess.fen());
+    const newChess = new Chess(gameMode === 'chess960' ? generateChess960Fen() : undefined);
+    setChess(newChess);
+    setFen(newChess.fen());
     setSelectedSquare(null);
     setLastMove(null);
     setCapturedByWhite([]);
     setCapturedByBlack([]);
+    setAtomicWinner(null);
   };
 
   const board = chess.board();
 
-  const gameStatus = chess.isGameOver()
-    ? chess.isCheckmate()
-      ? `Checkmate! ${chess.turn() === 'w' ? currentBot.name : 'You'} win!`
-      : chess.isDraw()
-        ? 'Draw!'
-        : chess.isStalemate()
-          ? 'Stalemate!'
-          : 'Game Over!'
-    : isThinking
-      ? `${currentBot.avatar} ${currentBot.name} is thinking...`
-      : '🎯 Your Turn (White)';
+  const isGameOver = chess.isGameOver() || atomicWinner;
+  const gameStatus = atomicWinner
+    ? `Game Over! ${atomicWinner === 'w' ? 'You' : currentBot.name} wins! (Atomic explosion)`
+    : chess.isGameOver()
+      ? chess.isCheckmate()
+        ? `Checkmate! ${chess.turn() === 'w' ? currentBot.name : 'You'} win!`
+        : chess.isDraw()
+          ? 'Draw!'
+          : chess.isStalemate()
+            ? 'Stalemate!'
+            : 'Game Over!'
+      : isThinking
+        ? `${currentBot.avatar} ${currentBot.name} is thinking...`
+        : '🎯 Your Turn (White)';
 
   return (
     <div className="game-wrapper">
@@ -217,6 +322,7 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
                     const isLastMove = lastMove && (lastMove.from === sq || lastMove.to === sq);
                     const isCheck = checkSquare === sq;
                     const isCapture = isLegalTarget && piece !== null;
+                    const isVisible = gameMode === 'fog' && visibleSquares ? visibleSquares.has(sq) : true;
 
                     const classes = [
                       'board-sq',
@@ -232,13 +338,22 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
                         className={classes}
                         onClick={() => handleSquareClick(sq)}
                       >
-                        {piece && (
-                          <span className={`board-piece ${piece.color}-piece-active`}>
-                            {PIECE_SYMBOLS[`${piece.color}-${piece.type}`]}
-                          </span>
+                        {isVisible ? (
+                          <>
+                            {piece && (
+                              <img 
+                                src={PIECE_IMAGES[`${piece.color}-${piece.type}`]} 
+                                alt={`${piece.color} ${piece.type}`}
+                                className="board-piece-img" 
+                                draggable={false} 
+                              />
+                            )}
+                            {isLegalTarget && !isCapture && <span className="legal-dot"></span>}
+                            {isLegalTarget && isCapture && <span className="legal-capture"></span>}
+                          </>
+                        ) : (
+                          <div className="fog-overlay"></div>
                         )}
-                        {isLegalTarget && !isCapture && <span className="legal-dot"></span>}
-                        {isLegalTarget && isCapture && <span className="legal-capture"></span>}
                       </div>
                     );
                   })}
@@ -284,7 +399,7 @@ export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGam
 
       {/* STATUS FOOTER */}
       <div className="game-footer">
-        <h3 className={isThinking ? 'thinking-pulse' : ''}>{gameStatus}</h3>
+        <h3 className={isThinking && !isGameOver ? 'thinking-pulse' : ''}>{gameStatus}</h3>
         <p className="bot-quote">"{currentBot.description}"</p>
       </div>
     </div>

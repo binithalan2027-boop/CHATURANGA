@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BotPersonality, BOTS } from './ai/useStockfish';
 
 export interface BotSelectScreenProps {
-  onStart: (botId: BotPersonality, timeMinutes: number) => void;
+  onStart: (botId: BotPersonality, timeMinutes: number, gameMode: string) => void;
   onBack: () => void;
 }
 
@@ -27,11 +27,19 @@ const BOT_ELO: Record<BotPersonality, string> = {
   mittens: '~3200',
 };
 
+const GAME_MODES = [
+  { id: 'standard', icon: '♟️', name: 'Standard', desc: 'Classic 8×8 chess' },
+  { id: 'chess960', icon: '🎲', name: 'Chess960', desc: 'Randomized back rank' },
+  { id: 'fog', icon: '🌫️', name: 'Fog of War', desc: 'Limited visibility' },
+  { id: 'atomic', icon: '💥', name: 'Atomic', desc: 'Explosive captures' },
+];
+
 const BOT_KEYS: BotPersonality[] = ['martin', 'nelson', 'mittens'];
 
 export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProps) {
   const [selectedBot, setSelectedBot] = useState<BotPersonality>('martin');
   const [selectedTime, setSelectedTime] = useState<number>(10);
+  const [selectedMode, setSelectedMode] = useState<string>('standard');
 
   const handleCardClick = (botId: BotPersonality) => {
     setSelectedBot(botId);
@@ -40,14 +48,15 @@ export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProp
   const handlePlayOnCard = (e: React.MouseEvent, botId: BotPersonality) => {
     e.stopPropagation();
     setSelectedBot(botId);
-    onStart(botId, selectedTime);
+    onStart(botId, selectedTime, selectedMode);
   };
 
   const handleMainPlay = () => {
-    onStart(selectedBot, selectedTime);
+    onStart(selectedBot, selectedTime, selectedMode);
   };
 
   const currentBotConfig = BOTS[selectedBot];
+  const currentMode = GAME_MODES.find((m) => m.id === selectedMode) || GAME_MODES[0];
 
   return (
     <div className="bs-screen">
@@ -109,6 +118,31 @@ export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProp
           })}
         </div>
 
+        {/* Game Mode Section */}
+        <section className="bs-mode-section">
+          <div className="bs-time-header">
+            <span className="bs-time-label">🎮 GAME MODE</span>
+            <span className="bs-time-selected-hint">
+              {currentMode.name}
+            </span>
+          </div>
+
+          <div className="bs-mode-grid">
+            {GAME_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`bs-mode-card ${selectedMode === mode.id ? 'active' : ''}`}
+                onClick={() => setSelectedMode(mode.id)}
+              >
+                <span className="bs-mode-icon">{mode.icon}</span>
+                <span className="bs-mode-name">{mode.name}</span>
+                <span className="bs-mode-desc">{mode.desc}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Time Control Section */}
         <section className="bs-time-section">
           <div className="bs-time-header">
@@ -150,7 +184,7 @@ export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProp
             className="bs-btn-play"
             onClick={handleMainPlay}
           >
-            PLAY VS {currentBotConfig?.name.split(' ')[0].toUpperCase()} ({selectedTime === 0 ? 'NO LIMIT' : `${selectedTime}M`}) ⚔️
+            PLAY {currentMode.name.toUpperCase()} VS {currentBotConfig?.name.split(' ')[0].toUpperCase()} ({selectedTime === 0 ? 'NO LIMIT' : `${selectedTime}M`}) ⚔️
           </button>
         </footer>
       </div>

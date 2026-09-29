@@ -5,9 +5,20 @@ interface LandingPageProps {
   onPlay: () => void;
   onLogin: () => void;
   onLogout: () => void;
+  onOpenPolicy?: () => void;
+  onOpenLearn?: () => void;
+  onOpenAbout?: () => void;
 }
 
-export default function LandingPage({ user, onPlay, onLogin, onLogout }: LandingPageProps) {
+export default function LandingPage({
+  user,
+  onPlay,
+  onLogin,
+  onLogout,
+  onOpenPolicy,
+  onOpenLearn,
+  onOpenAbout,
+}: LandingPageProps) {
   const [timeControl, setTimeControl] = useState('10 min');
   const [gameMode, setGameMode] = useState('Standard Chess');
 
@@ -21,9 +32,9 @@ export default function LandingPage({ user, onPlay, onLogin, onLogout }: Landing
         </div>
         <div className="nav-links">
           <a href="#play" onClick={(e) => { e.preventDefault(); onPlay(); }}>Play</a>
-          <a href="#learn">Learn</a>
-          <a href="#watch">Watch</a>
-          <a href="#community">Community</a>
+          <a href="#learn" onClick={(e) => { e.preventDefault(); onOpenLearn?.(); }}>Learn</a>
+          <a href="#about" onClick={(e) => { e.preventDefault(); onOpenAbout?.(); }}>About</a>
+          <a href="#policy" onClick={(e) => { e.preventDefault(); onOpenPolicy?.(); }}>Policy</a>
         </div>
         <div className="nav-auth">
           {user ? (
@@ -106,13 +117,13 @@ export default function LandingPage({ user, onPlay, onLogin, onLogout }: Landing
           <div className="modes-grid">
             {[
               { id: 'classic', icon: '♟', title: 'Standard Chess', desc: 'Classic 8x8 rules • Practice mode', cta: 'Play Now' },
-              { id: 'fog', icon: '🌫️', title: 'Fog of War', desc: 'See only what your pieces see', cta: 'Coming Soon' },
-              { id: 'spell', icon: '⚡', title: 'Spell Chess (MM)', desc: '10s math trials to earn spells', cta: 'Coming Soon' },
-              { id: '4p', icon: '⚔️', title: '4-Player FFA', desc: '14x14 crossfire • Absolute chaos', cta: 'Coming Soon' },
-              { id: 'bughouse', icon: '👥', title: 'Bughouse', desc: '2v2 team chess', cta: 'Coming Soon' },
-              { id: '960', icon: '🎲', title: 'Chess960', desc: 'Shuffled back rank', cta: 'Coming Soon' },
-              { id: 'atomic', icon: '💥', title: 'Atomic', desc: 'Explosive captures', cta: 'Coming Soon' },
-              { id: 'crazyhouse', icon: '🌀', title: 'Crazyhouse', desc: 'Drop captured pieces', cta: 'Coming Soon' },
+              { id: 'fog', icon: '🌫️', title: 'Fog of War', desc: 'See only what your pieces see', cta: 'Play Now' },
+              { id: 'spell', icon: '⚡', title: 'Spell Chess (MM)', desc: '10s math trials to earn spells', cta: 'Play Now' },
+              { id: '4p', icon: '⚔️', title: '4-Player FFA', desc: '14x14 crossfire • Absolute chaos', cta: 'Play Now' },
+              { id: 'bughouse', icon: '👥', title: 'Bughouse', desc: '2v2 team chess', cta: 'Play Now' },
+              { id: '960', icon: '🎲', title: 'Chess960', desc: 'Shuffled back rank', cta: 'Play Now' },
+              { id: 'atomic', icon: '💥', title: 'Atomic', desc: 'Explosive captures', cta: 'Play Now' },
+              { id: 'crazyhouse', icon: '🌀', title: 'Crazyhouse', desc: 'Drop captured pieces', cta: 'Play Now' },
             ].map(mode => (
               <div className="mode-card" key={mode.id}>
                 <div className="mode-icon-circle">{mode.icon}</div>
@@ -121,8 +132,7 @@ export default function LandingPage({ user, onPlay, onLogin, onLogout }: Landing
                 <div className="mode-line"></div>
                 <button
                   className="btn-card-play"
-                  onClick={() => mode.id === 'classic' ? onPlay() : undefined}
-                  disabled={mode.id !== 'classic'}
+                  onClick={onPlay}
                 >
                   {mode.cta}
                 </button>
@@ -193,9 +203,22 @@ export default function LandingPage({ user, onPlay, onLogin, onLogout }: Landing
           </div>
         </div>
         <div className="footer-links">
-          <div className="f-col"><h4>Play</h4><div className="f-line"></div><div className="f-line" style={{ width: '60px' }}></div></div>
-          <div className="f-col"><h4>Learn</h4><div className="f-line"></div><div className="f-line" style={{ width: '50px' }}></div></div>
-          <div className="f-col"><h4>About</h4><div className="f-line"></div><div className="f-line" style={{ width: '80px' }}></div></div>
+          <div className="f-col">
+            <h4 onClick={onPlay} style={{ cursor: 'pointer' }}>Play</h4>
+            <div className="f-line"></div>
+          </div>
+          <div className="f-col">
+            <h4 onClick={onOpenLearn} style={{ cursor: 'pointer' }}>Learn</h4>
+            <div className="f-line"></div>
+          </div>
+          <div className="f-col">
+            <h4 onClick={onOpenAbout} style={{ cursor: 'pointer' }}>About</h4>
+            <div className="f-line"></div>
+          </div>
+          <div className="f-col">
+            <h4 onClick={onOpenPolicy} style={{ cursor: 'pointer' }}>Policy</h4>
+            <div className="f-line"></div>
+          </div>
         </div>
       </footer>
       <div className="footer-bottom">© 2026 Chaturanga. All rights reserved.</div>
