@@ -1,136 +1,139 @@
 import { useState } from 'react';
+import { supabase } from './lib/supabase';
 
 interface AuthPageProps {
   onAuth: (user: { name: string; email: string }) => void;
   onBack: () => void;
 }
 
-type AuthMode = 'login' | 'signup';
-
 export default function AuthPage({ onAuth, onBack }: AuthPageProps) {
-  const [mode, setMode] = useState<AuthMode>('login');
-  const [name, setName] = useState('');
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
-  const [phone] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (mode === 'signup') {
-      if (!name.trim()) { setError('Name is required'); return; }
-      if (!email.trim() && !phone.trim()) { setError('Email or phone is required'); return; }
-      if (!password || password.length < 6) { setError('Password must be 6+ characters'); return; }
-      onAuth({ name: name.trim(), email: email.trim() || phone.trim() });
-    } else {
-      if (!email.trim() && !phone.trim()) { setError('Email or phone is required'); return; }
-      if (!password) { setError('Password is required'); return; }
-      onAuth({ name: email.split('@')[0] || 'Player', email: email.trim() || phone.trim() });
+    try {
+      if (mode === 'signup') {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: name } }
+        });
+        if (signUpError) throw signUpError;
+        
+        onAuth({ name: name || email.split('@')[0], email });
+      } else {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (signInError) throw signInError;
+
+        onAuth({ 
+          name: data.user?.user_metadata?.display_name || email.split('@')[0], 
+          email: data.user?.email || ''
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    // Simulate OAuth — in production this would redirect to the provider
-    onAuth({ name: `${provider} User`, email: `user@${provider.toLowerCase()}.com` });
-  };
-
   return (
-    <div className="auth-screen">
-      <div className="auth-container">
-        {/* Back Button */}
-        <button className="auth-back" onClick={onBack}>← Back to Home</button>
+    <div className="min-h-screen bg-void-black flex flex-col items-center justify-center p-space-md relative overflow-hidden">
+      {/* Background accents */}
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary-container/20 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-tertiary-container/20 rounded-full blur-[140px] pointer-events-none"></div>
+      
+      <div className="w-full max-w-md z-10">
+        <button className="flex items-center gap-2 text-on-surface-variant hover:text-bone-ivory font-label-sm uppercase tracking-wider mb-space-lg transition-colors" onClick={onBack}>
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          <span>Return to Arena</span>
+        </button>
 
-        {/* Logo */}
-        <div className="auth-logo">
-          <div className="auth-logo-box">QST</div>
-          <span className="auth-logo-name">Chaturanga</span>
-        </div>
+        <div className="bg-surface-card border border-surface-container-high shadow-2xl rounded-xl overflow-hidden">
+          <div className="p-space-lg flex flex-col items-center border-b border-surface-container-high bg-surface-container-low">
+            <h1 className="font-display-lg text-display-lg text-bone-ivory uppercase tracking-tight text-center">
+              {mode === 'login' ? 'ENTER THE SANCTUM' : 'FORGE YOUR BLOODLINE'}
+            </h1>
+            <p className="font-label-sm text-primary uppercase tracking-widest mt-1 text-center">
+              {mode === 'login' ? '[ ALREADY INITIATED ]' : '[ NEW COMBATANT REGISTRATION ]'}
+            </p>
+          </div>
 
-        {/* Tab Switch */}
-        <div className="auth-tabs">
-          <button
-            className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => { setMode('login'); setError(''); }}
-          >
-            Log In
-          </button>
-          <button
-            className={`auth-tab ${mode === 'signup' ? 'active' : ''}`}
-            onClick={() => { setMode('signup'); setError(''); }}
-          >
-            Sign Up
-          </button>
-        </div>
+          <form onSubmit={handleSubmit} className="p-space-lg flex flex-col gap-space-md">
+            {error && (
+              <div className="bg-error-container/20 border border-error text-error p-3 rounded font-label-sm uppercase tracking-wider text-center">
+                {error}
+              </div>
+            )}
 
-        {/* Social Login Buttons */}
-        <div className="auth-social">
-          <button className="auth-social-btn google" onClick={() => handleSocialLogin('Google')}>
-            <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            Continue with Google
-          </button>
-          <button className="auth-social-btn discord" onClick={() => handleSocialLogin('Discord')}>
-            <svg width="20" height="20" viewBox="0 0 71 55" fill="white"><path d="M60.1 4.9A58.5 58.5 0 0045.4.2a.2.2 0 00-.2.1 40.8 40.8 0 00-1.8 3.7 54 54 0 00-16.2 0A26.5 26.5 0 0025.4.3a.2.2 0 00-.2-.1A58.4 58.4 0 0010.5 4.9a.2.2 0 00-.1.1C1.5 18.7-.9 32.2.3 45.5v.1a58.7 58.7 0 0017.7 9 .2.2 0 00.3-.1 42 42 0 003.6-5.9.2.2 0 00-.1-.3 38.7 38.7 0 01-5.5-2.6.2.2 0 01 0-.4l1.1-.9a.2.2 0 01.2 0 41.8 41.8 0 0035.6 0 .2.2 0 01.2 0l1.1.9a.2.2 0 010 .4c-1.8 1-3.6 1.9-5.5 2.6a.2.2 0 00-.1.3 47.2 47.2 0 003.6 5.9.2.2 0 00.3.1A58.5 58.5 0 0070.3 45.6v-.1c1.4-15.2-2.4-28.4-10.1-40.1a.2.2 0 00-.1-.1zM23.7 37.3c-3.5 0-6.3-3.2-6.3-7.1 0-3.9 2.8-7.1 6.3-7.1s6.4 3.2 6.3 7.1c0 3.9-2.8 7.1-6.3 7.1zm23.2 0c-3.5 0-6.3-3.2-6.3-7.1 0-3.9 2.8-7.1 6.3-7.1s6.4 3.2 6.3 7.1c0 3.9-2.7 7.1-6.3 7.1z"/></svg>
-            Continue with Discord
-          </button>
-          <button className="auth-social-btn phone" onClick={() => handleSocialLogin('Phone')}>
-            📱 Continue with Phone
-          </button>
-        </div>
+            {mode === 'signup' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="font-label-sm text-bone-ivory uppercase tracking-wider">Combatant Name</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="bg-surface-dark border border-surface-container-high rounded p-3 text-bone-ivory font-body-md focus:border-primary-container focus:outline-none transition-colors"
+                  placeholder="e.g. Valkyrie_Zero"
+                />
+              </div>
+            )}
 
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
-
-        {/* Form */}
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {mode === 'signup' && (
-            <div className="auth-field">
-              <label>Username</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label-sm text-bone-ivory uppercase tracking-wider">Email Address</label>
               <input
-                type="text"
-                placeholder="Choose a display name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="bg-surface-dark border border-surface-container-high rounded p-3 text-bone-ivory font-body-md focus:border-primary-container focus:outline-none transition-colors"
+                placeholder="combatant@realm.com"
               />
             </div>
-          )}
 
-          <div className="auth-field">
-            <label>Email or Phone</label>
-            <input
-              type="text"
-              placeholder="email@example.com or +91..."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label-sm text-bone-ivory uppercase tracking-wider">Secure Passcode</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="bg-surface-dark border border-surface-container-high rounded p-3 text-bone-ivory font-body-md focus:border-primary-container focus:outline-none transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
 
-          <div className="auth-field">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder={mode === 'signup' ? 'Create a password (6+ chars)' : 'Enter your password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          {error && <div className="auth-error">{error}</div>}
-
-          <button type="submit" className="auth-submit">
-            {mode === 'login' ? 'Log In' : 'Create Account'}
-          </button>
-        </form>
-
-        <p className="auth-switch">
-          {mode === 'login' ? (
-            <>Don't have an account? <button onClick={() => setMode('signup')}>Sign up free</button></>
-          ) : (
-            <>Already have an account? <button onClick={() => setMode('login')}>Log in</button></>
-          )}
-        </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-4 w-full bg-primary-container hover:bg-crimson-glow text-bone-ivory font-headline-md text-headline-md py-3 rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+            >
+              {loading ? 'INITIATING...' : (mode === 'login' ? 'COMMENCE COMBAT' : 'JOIN THE HORDE')}
+            </button>
+            
+            <div className="text-center mt-2">
+              <button
+                type="button"
+                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                className="font-label-sm text-on-surface-variant hover:text-primary uppercase tracking-widest transition-colors"
+              >
+                {mode === 'login' ? 'NO ACCOUNT? REGISTER NOW →' : 'ALREADY REGISTERED? LOG IN →'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

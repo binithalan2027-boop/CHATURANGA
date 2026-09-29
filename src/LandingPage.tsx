@@ -47,7 +47,7 @@ export default function LandingPage({
       <header className="fixed top-0 left-0 right-0 z-50 bg-void-black/90 backdrop-blur-xl">
         <div className="h-20 w-full px-margin-mobile lg:px-margin flex items-center justify-between gap-gutter">
           <div className="flex items-center gap-space-md shrink-0">
-            <img alt="Chaturanga Battle Chess Logo" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WoLNWXp7LvnAJAdBP1a4f52kjIzsDI0LIMK4kc73s_CWz5G3G4xGePZMurtPn-R452y_QzVXx1VFH4NyHWzsCgMuYPIFW1b0v2uxe7Ml03ImUZLc3xAfGfkul6ylIkgLDQGAmM1rolht19xKJS3WIx_9SzBAigc7IM1kH8iUqr4MsQ-kCrEociK0N9oRHnR8dDBpqdNH4e_KS5GdrV1utRTGEGzF21HgVV7TFpdFp7kVIo7uLCM9CUA2A" />
+            <img alt="Chaturanga Battle Chess Logo" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WoLNWXp7LvnAJAdBP1a4f52kjIzsDI0LIMK4kc73s_CWz5G3G4xGePZMurtPn-R452y_QzVXx1VFH4NyHWzsCgMuYPIFW1b0v2uxe7Ml03ImUZLc3xAfGfkul6ylIkgLDQGAmM1rolht19xKJS3WIx_9SzBAigc7IM1kH8iUqr4MsQ-kCrEociK0N9oRHnR8dDBpqdNH4e_KS5GdrV1utRTGEGzF21HgVV7TFpdFp7kVIo7uLCM9CUA2A=s2048" />
             <a className="flex items-baseline gap-space-xs" href="#" onClick={(e) => { e.preventDefault(); onPlay(); }}>
               <span className="font-headline-lg text-headline-lg tracking-wider text-bone-ivory uppercase">CHATURANGA</span>
             </a>
@@ -232,7 +232,7 @@ export default function LandingPage({
               <div className="lg:col-span-5 flex flex-col gap-space-md">
                 <div className="relative bg-surface-dark rounded-xl overflow-hidden shadow-2xl group">
                   <div className="relative aspect-[16/10] sm:aspect-square w-full overflow-hidden bg-void-black">
-                    <img className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out" alt="Cinematic 3D render" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBG9bMyg55WJHWfs3fJtRzTj1K0aLzBhxx3PVqbzM-csipIwRIIsRfsrzZzxh236Y8KHmJyoprJW82XMNZjPtYF1JejvkEcv0hl-vNcU3QlOk-vwiA9hqMEBm_kKhdIT4BMuYMMH7yVH--VEPhj0b4w5vd4xfvXrQyFeNuhD-BzELfGn5bQShxJyXGFmpO58zUoHqjpjG_a1TEd8MBXfjmH7y6Xl84U64SU6POiVvZRzAC_e_0j7D_y" />
+                    <img className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out" alt="Cinematic 3D render" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBG9bMyg55WJHWfs3fJtRzTj1K0aLzBhxx3PVqbzM-csipIwRIIsRfsrzZzxh236Y8KHmJyoprJW82XMNZjPtYF1JejvkEcv0hl-vNcU3QlOk-vwiA9hqMEBm_kKhdIT4BMuYMMH7yVH--VEPhj0b4w5vd4xfvXrQyFeNuhD-BzELfGn5bQShxJyXGFmpO58zUoHqjpjG_a1TEd8MBXfjmH7y6Xl84U64SU6POiVvZRzAC_e_0j7D_y=s2048" />
                     <div className="absolute inset-0 bg-gradient-to-t from-surface-dark via-void-black/20 to-transparent"></div>
                     <div className="absolute top-4 left-4 bg-void-black/85 backdrop-blur-md px-space-md py-2 rounded flex items-center gap-space-sm shadow-xl">
                       <span className="w-2.5 h-2.5 rounded-full bg-crimson-glow animate-ping"></span>
@@ -295,7 +295,7 @@ export default function LandingPage({
               {/* Carnival */}
               <div className="group relative bg-surface-card rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1.5 shadow-xl hover:shadow-2xl hover:shadow-primary-container/30">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-void-black">
-                  <img className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" alt="Jester" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAld1Z9E60WE9DgTNKCsqAIP8Qg6xeRspGyRYoT8DHgTl2TTMQ_R5dMqCLfTYHpE6evQMd2lC2yKqpmzmDMtk8lUmC6YHx0_ka9yj7m3V_pCh5lhzfCPCK4iNN5YcaU-D_VrlbuyenPaRxHDndkcJrMuKZhkdFxLakpamOWKaCXNfTvxZVo0H3AzmZsAv36FZrKOeNriJUxqFv_MbjNsxd3mekeNAOzpSTcjqoaty86RtDVLy7H7ux2" />
+                  <img className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" alt="Jester" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAld1Z9E60WE9DgTNKCsqAIP8Qg6xeRspGyRYoT8DHgTl2TTMQ_R5dMqCLfTYHpE6evQMd2lC2yKqpmzmDMtk8lUmC6YHx0_ka9yj7m3V_pCh5lhzfCPCK4iNN5YcaU-D_VrlbuyenPaRxHDndkcJrMuKZhkdFxLakpamOWKaCXNfTvxZVo0H3AzmZsAv36FZrKOeNriJUxqFv_MbjNsxd3mekeNAOzpSTcjqoaty86RtDVLy7H7ux2=s2048" />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-card via-transparent to-transparent"></div>
                   <span className="absolute top-3 left-3 bg-primary-container text-on-primary-container font-label-sm text-label-sm px-space-sm py-0.5 rounded uppercase tracking-wider">SET A • CRIMSON</span>
                 </div>
@@ -318,7 +318,7 @@ export default function LandingPage({
               {/* Swarm */}
               <div className="group relative bg-surface-card rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1.5 shadow-xl hover:shadow-2xl hover:shadow-tertiary-container/30">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-void-black">
-                  <img className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" alt="Spider Queen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDo-zXX-r3Wi_zMjNs4n0FeTU07-BGk-JmB6-gY_H0rJpWWqb-95cIG2_jmHSsyxwY5CizYmrkm0zim4tTRVRtf7dOJYamZegNyXLTsTnpFKMTC-PilwQalUD3jYyX5A1lLp5_AXaaOckgh9lSPiM1iVj2QJ4QkUOPUeMSRIBavDNQIYKa1PRb74pr7cdaw5oJkWV2COFKAmDHHidMPmZeHBhzxHDEotL4ksQ0cR-a1MtAa61ysD2n" />
+                  <img className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" alt="Spider Queen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDo-zXX-r3Wi_zMjNs4n0FeTU07-BGk-JmB6-gY_H0rJpWWqb-95cIG2_jmHSsyxwY5CizYmrkm0zim4tTRVRtf7dOJYamZegNyXLTsTnpFKMTC-PilwQalUD3jYyX5A1lLp5_AXaaOckgh9lSPiM1iVj2QJ4QkUOPUeMSRIBavDNQIYKa1PRb74pr7cdaw5oJkWV2COFKAmDHHidMPmZeHBhzxHDEotL4ksQ0cR-a1MtAa61ysD2n=s2048" />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-card via-transparent to-transparent"></div>
                   <span className="absolute top-3 left-3 bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm px-space-sm py-0.5 rounded uppercase tracking-wider">SET B • CURSED VIOLET</span>
                 </div>
@@ -341,7 +341,7 @@ export default function LandingPage({
               {/* Harvest */}
               <div className="group relative bg-surface-card rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1.5 shadow-xl hover:shadow-2xl hover:shadow-secondary-container/30">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-void-black">
-                  <img className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" alt="Witch Bishop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoqcRKYxWZigH-tb-g60twYF2396nkO58LnBVeKuFQy24KnldeFLRsdNlM0wn22PPHv18eDwxzrg_oPkagDtXYZj2nIhLy2j6BFSbVxAbMmWbMLrNvrKWytk_Ynq_8dk7bwQOZI7dObbGmLYsru_JPh_JtP2H3W5jzCEYg28K5vtEKZcv9z8DGv1_Jyv5EicDNSHWK8k0p5OvROXJocrHCHvcTFoIgKVc0q32xx2WGzrLoXeDMNyfH" />
+                  <img className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" alt="Witch Bishop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoqcRKYxWZigH-tb-g60twYF2396nkO58LnBVeKuFQy24KnldeFLRsdNlM0wn22PPHv18eDwxzrg_oPkagDtXYZj2nIhLy2j6BFSbVxAbMmWbMLrNvrKWytk_Ynq_8dk7bwQOZI7dObbGmLYsru_JPh_JtP2H3W5jzCEYg28K5vtEKZcv9z8DGv1_Jyv5EicDNSHWK8k0p5OvROXJocrHCHvcTFoIgKVc0q32xx2WGzrLoXeDMNyfH=s2048" />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-card via-transparent to-transparent"></div>
                   <span className="absolute top-3 left-3 bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-space-sm py-0.5 rounded uppercase tracking-wider">SET C • ORANGE</span>
                 </div>

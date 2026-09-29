@@ -16,6 +16,8 @@ interface User {
   email: string;
 }
 
+import { supabase } from './lib/supabase';
+
 function App() {
   const [screen, setScreen] = useState<Screen>('landing');
   const [user, setUser] = useState<User | null>(null);
@@ -23,12 +25,28 @@ function App() {
   const [timeMinutes, setTimeMinutes] = useState<number>(10);
   const [gameMode, setGameMode] = useState<string>('standard');
 
-  // Check for stored user on mount
   useEffect(() => {
-    const stored = localStorage.getItem('chaturanga_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch {}
-    }
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Player',
+          email: session.user.email || ''
+        });
+      }
+    });
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Player',
+          email: session.user.email || ''
+        });
+      } else {
+        setUser(null);
+      }
+    });
 
     // Admin / URL shortcuts
     const params = new URLSearchParams(window.location.search);
@@ -42,17 +60,18 @@ function App() {
     } else if (params.has('about')) {
       setScreen('about');
     }
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleAuth = (u: User) => {
     setUser(u);
-    localStorage.setItem('chaturanga_user', JSON.stringify(u));
     setScreen('bot_select');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('chaturanga_user');
     setScreen('landing');
   };
 

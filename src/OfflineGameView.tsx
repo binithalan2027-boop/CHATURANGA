@@ -267,140 +267,129 @@ export default function OfflineGameView({ onExit, botId = 'martin', gameMode = '
         : '🎯 Your Turn (White)';
 
   return (
-    <div className="game-wrapper">
-      {/* HEADER */}
-      <div className="game-header">
-        <div className="header-left">
-          <span className="status-dot" style={{ background: isReady ? (engineError ? '#FFDE00' : '#00FF66') : '#FF3366' }}></span>
-          <span>{currentBot.avatar} Vs {currentBot.name}</span>
-          {engineError && <span style={{ fontSize: '0.7rem', background: '#FFDE00', border: '2px solid #000', padding: '0.1rem 0.4rem', fontWeight: 800 }}>Fallback Mode</span>}
-        </div>
-        <div className="header-right">
-          <label>Opponent:</label>
-          <select
-            value={selectedBotId}
-            onChange={(e) => setSelectedBotId(e.target.value as BotPersonality)}
-            disabled={isThinking || chess.history().length > 0}
-          >
-            {Object.values(BOTS).map(bot => (
-              <option key={bot.id} value={bot.id}>{bot.name}</option>
-            ))}
-          </select>
-          <button className="btn-new-game" onClick={handleNewGame}>New Game</button>
-          <button className="btn-exit" onClick={onExit}>Exit</button>
-        </div>
-      </div>
-
-      <div className="game-body">
-        {/* OPPONENT INFO BAR (Black / Bot) */}
-        <div className="player-bar opponent-bar">
-          <div className="player-identity">
-            <div className="player-avatar">{currentBot.avatar}</div>
-            <div className="player-name">{currentBot.name}</div>
+    <div className="min-h-screen bg-void-black flex flex-col lg:flex-row items-center justify-center p-space-md gap-gutter w-full text-bone-ivory font-body-md">
+      <div className="flex flex-col gap-4 w-full max-w-[600px]">
+        {/* HEADER */}
+        <div className="flex items-center justify-between bg-surface-card p-3 rounded-lg border border-surface-container-high">
+          <div className="flex items-center gap-2">
+            <span className={`w-3 h-3 rounded-full ${isReady ? (engineError ? 'bg-yellow-400' : 'bg-green-500') : 'bg-red-500'}`}></span>
+            <span className="font-headline-sm">{currentBot.avatar} Vs {currentBot.name}</span>
+            {engineError && <span className="text-xs bg-yellow-400 text-black px-1 font-bold">Fallback</span>}
           </div>
-          <div className="captured-pieces">
+          <div className="flex items-center gap-2">
+            <select
+              className="bg-surface-dark border border-surface-container-high rounded px-2 py-1 text-sm outline-none"
+              value={selectedBotId}
+              onChange={(e) => setSelectedBotId(e.target.value as BotPersonality)}
+              disabled={isThinking || chess.history().length > 0}
+            >
+              {Object.values(BOTS).map(bot => (
+                <option key={bot.id} value={bot.id}>{bot.name}</option>
+              ))}
+            </select>
+            <button className="px-3 py-1 bg-surface-container-high hover:bg-surface-container-highest rounded text-sm transition-colors" onClick={handleNewGame}>New Game</button>
+            <button className="px-3 py-1 bg-crimson-glow hover:bg-red-700 text-white font-bold rounded text-sm transition-colors" onClick={onExit}>SURRENDER TO THE VOID</button>
+          </div>
+        </div>
+
+        {/* OPPONENT INFO BAR */}
+        <div className="bg-surface-card border border-surface-container-high p-space-sm rounded flex items-center justify-between font-headline-md text-bone-ivory">
+          <div className="flex items-center gap-2">
+            <div>{currentBot.avatar}</div>
+            <div>{currentBot.name}</div>
+          </div>
+          <div className="flex items-center gap-1 text-surface-container-highest">
             {capturedByBlack.map((p, i) => (
-              <span key={i} className="captured-piece">{PIECE_SYMBOLS[`w-${p}`]}</span>
+              <span key={i}>{PIECE_SYMBOLS[`w-${p}`]}</span>
             ))}
-            {materialAdvantage < 0 && <span className="material-diff">+{Math.abs(materialAdvantage)}</span>}
+            {materialAdvantage < 0 && <span className="text-sm ml-2 text-green-400">+{Math.abs(materialAdvantage)}</span>}
           </div>
         </div>
 
-        <div className="board-and-history">
-          {/* BOARD */}
-          <div className="board-container-active">
-            <div className="active-board">
-              {RANKS.map((r, rIdx) => (
-                <div className="board-row" key={r}>
-                  <span className="rank-label">{r}</span>
-                  {FILES.map((f, fIdx) => {
-                    const sq = `${f}${r}`;
-                    const piece = board[rIdx][fIdx];
-                    const isLight = (rIdx + fIdx) % 2 === 0;
-                    const isSelected = selectedSquare === sq;
-                    const isLegalTarget = legalMoves.has(sq);
-                    const isLastMove = lastMove && (lastMove.from === sq || lastMove.to === sq);
-                    const isCheck = checkSquare === sq;
-                    const isCapture = isLegalTarget && piece !== null;
-                    const isVisible = gameMode === 'fog' && visibleSquares ? visibleSquares.has(sq) : true;
+        {/* BOARD */}
+        <div className="aspect-square w-full max-w-[600px] border-4 border-surface-container-highest shadow-[0_0_40px_rgba(163,19,43,0.3)] rounded grid grid-cols-8 grid-rows-8">
+          {RANKS.map((r, rIdx) => 
+            FILES.map((f, fIdx) => {
+              const sq = `${f}${r}`;
+              const piece = board[rIdx][fIdx];
+              const isLight = (rIdx + fIdx) % 2 === 0;
+              const isSelected = selectedSquare === sq;
+              const isLegalTarget = legalMoves.has(sq);
+              const isLastMove = lastMove && (lastMove.from === sq || lastMove.to === sq);
+              const isCheck = checkSquare === sq;
+              const isCapture = isLegalTarget && piece !== null;
+              const isVisible = gameMode === 'fog' && visibleSquares ? visibleSquares.has(sq) : true;
 
-                    const classes = [
-                      'board-sq',
-                      isLight ? 'light' : 'dark',
-                      isSelected ? 'selected' : '',
-                      isLastMove ? 'last-move' : '',
-                      isCheck ? 'in-check' : '',
-                    ].filter(Boolean).join(' ');
+              let bgClass = isLight ? 'bg-surface-container-high' : 'bg-surface-dark';
+              if (isCheck) bgClass = 'bg-crimson-glow/40 animate-pulse';
+              else if (isSelected) bgClass = 'bg-tertiary-container/40';
+              else if (isLastMove) bgClass = 'bg-secondary-container/20';
 
-                    return (
-                      <div
-                        key={sq}
-                        className={classes}
-                        onClick={() => handleSquareClick(sq)}
-                      >
-                        {isVisible ? (
-                          <>
-                            {piece && (
-                              <img 
-                                src={PIECE_IMAGES[`${piece.color}-${piece.type}`]} 
-                                alt={`${piece.color} ${piece.type}`}
-                                className="board-piece-img" 
-                                draggable={false} 
-                              />
-                            )}
-                            {isLegalTarget && !isCapture && <span className="legal-dot"></span>}
-                            {isLegalTarget && isCapture && <span className="legal-capture"></span>}
-                          </>
-                        ) : (
-                          <div className="fog-overlay"></div>
-                        )}
-                      </div>
-                    );
-                  })}
+              return (
+                <div
+                  key={sq}
+                  className={`relative flex items-center justify-center cursor-pointer ${bgClass}`}
+                  onClick={() => handleSquareClick(sq)}
+                >
+                  {fIdx === 0 && <span className="absolute top-0.5 left-1 text-[10px] font-mono opacity-40 pointer-events-none select-none">{r}</span>}
+                  {rIdx === 7 && <span className="absolute bottom-0.5 right-1 text-[10px] font-mono opacity-40 pointer-events-none select-none">{f}</span>}
+
+                  {isVisible ? (
+                    <>
+                      {piece && (
+                        <img 
+                          src={PIECE_IMAGES[`${piece.color}-${piece.type}`]} 
+                          alt={`${piece.color} ${piece.type}`}
+                          className="w-[85%] h-[85%] drop-shadow-lg pointer-events-none select-none transition-transform hover:scale-110 z-10" 
+                          draggable={false} 
+                        />
+                      )}
+                      {isLegalTarget && !isCapture && <div className="absolute w-1/3 h-1/3 rounded-full bg-crimson-glow/50 z-20 pointer-events-none" />}
+                      {isLegalTarget && isCapture && <div className="absolute w-[85%] h-[85%] rounded-full border-[4px] border-crimson-glow/50 z-20 pointer-events-none" />}
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-void-black/90 backdrop-blur-sm z-30 pointer-events-none"></div>
+                  )}
                 </div>
-              ))}
-              <div className="file-labels">
-                <span className="rank-spacer"></span>
-                {FILES.map(f => <span key={f} className="file-label">{f}</span>)}
-              </div>
-            </div>
-          </div>
-
-          {/* MOVE HISTORY */}
-          <div className="move-history-panel">
-            <h4>Moves</h4>
-            <div className="move-list">
-              {moveHistory.length === 0 && <p className="no-moves">No moves yet</p>}
-              {moveHistory.map(pair => (
-                <div className="move-row" key={pair.num}>
-                  <span className="move-num">{pair.num}.</span>
-                  <span className="move-white">{pair.white}</span>
-                  <span className="move-black">{pair.black || ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+              );
+            })
+          )}
         </div>
 
-        {/* PLAYER INFO BAR (White / You) */}
-        <div className="player-bar player-bar-you">
-          <div className="player-identity">
-            <div className="player-avatar">👤</div>
-            <div className="player-name">You (White)</div>
+        {/* PLAYER INFO BAR */}
+        <div className="bg-surface-card border border-surface-container-high p-space-sm rounded flex items-center justify-between font-headline-md text-bone-ivory">
+          <div className="flex items-center gap-2">
+            <div>👤</div>
+            <div>You (White)</div>
           </div>
-          <div className="captured-pieces">
+          <div className="flex items-center gap-1 text-surface-container-highest">
             {capturedByWhite.map((p, i) => (
-              <span key={i} className="captured-piece">{PIECE_SYMBOLS[`b-${p}`]}</span>
+              <span key={i}>{PIECE_SYMBOLS[`b-${p}`]}</span>
             ))}
-            {materialAdvantage > 0 && <span className="material-diff">+{materialAdvantage}</span>}
+            {materialAdvantage > 0 && <span className="text-sm ml-2 text-green-400">+{materialAdvantage}</span>}
           </div>
+        </div>
+
+        {/* STATUS FOOTER */}
+        <div className="text-center mt-2">
+          <h3 className={`text-xl font-headline-lg text-crimson-glow ${isThinking && !isGameOver ? 'animate-pulse' : ''}`}>{gameStatus}</h3>
+          <p className="text-surface-container-highest italic opacity-80 mt-1">"{currentBot.description}"</p>
         </div>
       </div>
 
-      {/* STATUS FOOTER */}
-      <div className="game-footer">
-        <h3 className={isThinking && !isGameOver ? 'thinking-pulse' : ''}>{gameStatus}</h3>
-        <p className="bot-quote">"{currentBot.description}"</p>
+      {/* MOVE HISTORY SIDEBAR */}
+      <div className="w-full lg:w-80 bg-surface-card rounded-xl p-space-md font-mono text-body-sm h-[60vh] overflow-y-auto border border-surface-container-high flex flex-col">
+        <h4 className="text-lg font-headline-sm text-bone-ivory mb-4 border-b border-surface-container-high pb-2">Chronicles of Void</h4>
+        <div className="flex flex-col gap-1">
+          {moveHistory.length === 0 && <p className="text-surface-container-highest italic">The abyss awaits the first move...</p>}
+          {moveHistory.map(pair => (
+            <div className="flex items-center hover:bg-surface-container-high/50 p-1 rounded transition-colors" key={pair.num}>
+              <span className="w-8 text-surface-container-highest opacity-70">{pair.num}.</span>
+              <span className="flex-1 text-bone-ivory">{pair.white}</span>
+              <span className="flex-1 text-tertiary-container">{pair.black || ''}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
