@@ -12,7 +12,13 @@ const PIECE_SYMBOLS: Record<string, string> = {
 
 const PIECE_VALUES: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
-export default function OfflineGameView({ onExit }: { onExit: () => void }) {
+interface OfflineGameViewProps {
+  onExit: () => void;
+  botId?: BotPersonality;
+  timeMinutes?: number;
+}
+
+export default function OfflineGameView({ onExit, botId = 'martin' }: OfflineGameViewProps) {
   const [chess] = useState(new Chess());
   const [fen, setFen] = useState(chess.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
@@ -20,7 +26,7 @@ export default function OfflineGameView({ onExit }: { onExit: () => void }) {
   const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]); // pieces white captured (black pieces)
   const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]); // pieces black captured (white pieces)
 
-  const [selectedBotId, setSelectedBotId] = useState<BotPersonality>('martin');
+  const [selectedBotId, setSelectedBotId] = useState<BotPersonality>(botId);
   const { isReady, isThinking, getBestMove, engineError } = useStockfish();
 
   const currentBot = BOTS[selectedBotId];
