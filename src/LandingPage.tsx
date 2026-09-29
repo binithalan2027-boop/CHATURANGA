@@ -1,11 +1,15 @@
 import { useState } from 'react';
 
-export default function LandingPage() {
+export default function LandingPage({ onPlay }: { onPlay: (mode: string) => void }) {
   const [timeControl, setTimeControl] = useState('10 min');
   const [gameMode, setGameMode] = useState('Standard Chess');
 
   const handleRequestAccess = () => {
-    alert("Thank you! Your early access request has been recorded.");
+    if (gameMode === 'Offline vs AI') {
+      onPlay('offline_ai');
+    } else {
+      alert("Thank you! Your early access request has been recorded.");
+    }
   };
 
   return (
@@ -107,8 +111,8 @@ export default function LandingPage() {
                 <h3>{mode.title}</h3>
                 <p>{mode.desc}</p>
                 <div className="mode-line"></div>
-                <button className="btn-card-play" onClick={handleRequestAccess}>
-                  {mode.cta}
+                <button className="btn-card-play" onClick={() => mode.id === 'classic' ? onPlay('offline_ai') : handleRequestAccess()}>
+                  {mode.id === 'classic' ? 'Play Offline' : mode.cta}
                 </button>
               </div>
             ))}
