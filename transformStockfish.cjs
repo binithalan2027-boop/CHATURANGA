@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+const fs = require('fs');
+
+const content = `import { useState, useEffect, useCallback, useRef } from 'react';
 
 export type BotPersonality = 'thrall' | 'fiend' | 'mage' | 'assassin' | 'lich' | 'voidweaver' | 'eldritch' | string;
 
@@ -76,7 +78,7 @@ export function useStockfish() {
 
         // Parse MultiPV lines
         if (typeof msg === 'string' && msg.includes('multipv') && msg.includes(' pv ')) {
-          const mpvMatch = msg.match(/multipv (\d+)/);
+          const mpvMatch = msg.match(/multipv (\\d+)/);
           const pvMatch = msg.match(/pv ([a-h1-8qrbn]{4,5})/);
           if (mpvMatch && pvMatch) {
             const pvIndex = parseInt(mpvMatch[1], 10);
@@ -100,7 +102,7 @@ export function useStockfish() {
                 const blunderPv = Math.floor(Math.random() * (maxPv - 1)) + 2; 
                 if (pvLinesRef.current[blunderPv]) {
                   finalMove = pvLinesRef.current[blunderPv];
-                  console.log(`[Grim AI] Blunder triggered! Expected ${parts[1]}, playing ${finalMove} (PV ${blunderPv})`);
+                  console.log(\`[Grim AI] Blunder triggered! Expected \${parts[1]}, playing \${finalMove} (PV \${blunderPv})\`);
                 }
               }
             }
@@ -175,12 +177,12 @@ export function useStockfish() {
 
       w.postMessage('ucinewgame');
       // Apply advanced Personality Options
-      w.postMessage(`setoption name Skill Level value ${bot.skillLevel}`);
-      w.postMessage(`setoption name Contempt value ${bot.contempt}`);
-      w.postMessage(`setoption name MultiPV value ${bot.multiPv}`);
+      w.postMessage(\`setoption name Skill Level value \${bot.skillLevel}\`);
+      w.postMessage(\`setoption name Contempt value \${bot.contempt}\`);
+      w.postMessage(\`setoption name MultiPV value \${bot.multiPv}\`);
       
-      w.postMessage(`position fen ${fen}`);
-      w.postMessage(`go depth ${bot.depth} movetime ${bot.moveTime}`);
+      w.postMessage(\`position fen \${fen}\`);
+      w.postMessage(\`go depth \${bot.depth} movetime \${bot.moveTime}\`);
 
       timeoutRef.current = setTimeout(() => {
         console.warn('Stockfish timeout, using random move fallback');
@@ -201,3 +203,6 @@ export function useStockfish() {
 
   return { isReady, isThinking, getBestMove, engineError };
 }
+`;
+
+fs.writeFileSync('src/ai/useStockfish.ts', content);
