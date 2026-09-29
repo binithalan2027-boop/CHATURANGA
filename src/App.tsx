@@ -6,9 +6,10 @@ import OfflineGameView from './OfflineGameView';
 import PolicyPage from './PolicyPage';
 import LearnPage from './LearnPage';
 import AboutPage from './AboutPage';
+import ProfilePage from './ProfilePage';
 import './index.css';
 
-type Screen = 'landing' | 'auth' | 'bot_select' | 'playing' | 'policy' | 'learn' | 'about';
+type Screen = 'landing' | 'auth' | 'bot_select' | 'playing' | 'policy' | 'learn' | 'about' | 'profile';
 
 interface User {
   name: string;
@@ -143,6 +144,16 @@ function App() {
     );
   }
 
+  // --- PROFILE ---
+  if (screen === 'profile') {
+    return (
+      <ProfilePage
+        user={user}
+        onBack={() => setScreen('landing')}
+      />
+    );
+  }
+
   // --- LANDING ---
   return (
     <LandingPage
@@ -153,6 +164,7 @@ function App() {
       onOpenPolicy={() => setScreen('policy')}
       onOpenLearn={() => setScreen('learn')}
       onOpenAbout={() => setScreen('about')}
+      onOpenProfile={() => setScreen('profile')}
     />
   );
 }

@@ -8,6 +8,7 @@ interface LandingPageProps {
   onOpenPolicy?: () => void;
   onOpenLearn?: () => void;
   onOpenAbout?: () => void;
+  onOpenProfile?: () => void;
 }
 
 export default function LandingPage({
@@ -18,6 +19,7 @@ export default function LandingPage({
   onOpenPolicy,
   onOpenLearn,
   onOpenAbout,
+  onOpenProfile,
 }: LandingPageProps) {
   const [timeControl, setTimeControl] = useState('10');
   const [isQueued, setIsQueued] = useState(false);
@@ -84,9 +86,9 @@ export default function LandingPage({
             <button className="hidden sm:inline-flex items-center justify-center bg-primary-container hover:bg-crimson-glow text-on-primary-container hover:text-on-surface font-headline-md text-headline-md px-space-lg py-space-xs rounded tracking-wider uppercase transition-all duration-150 active:scale-95 shadow-lg" onClick={onPlay}>
               {user ? 'FIGHT NOW' : 'FIGHT FREE'}
             </button>
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
-            </div>
+            <button onClick={onOpenProfile} className="w-8 h-8 rounded-full bg-primary hover:bg-white flex items-center justify-center cursor-pointer transition-colors shadow-[0_0_15px_rgba(var(--color-primary),0.5)]">
+              <span className="material-symbols-outlined text-on-primary hover:text-black text-[18px]">person</span>
+            </button>
           </div>
         </div>
       </header>
