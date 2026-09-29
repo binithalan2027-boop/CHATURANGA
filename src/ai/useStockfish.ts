@@ -15,30 +15,30 @@ export interface BotConfig {
 export const BOTS: Record<BotPersonality, BotConfig> = {
   martin: {
     id: 'martin',
-    name: 'Martin (Novice)',
-    avatar: '👶',
+    name: 'Cursed Thrall',
+    avatar: '💀',
     skillLevel: 0,
     depth: 1,
     moveTime: 50,
-    description: 'Barely knows how the pieces move. Drops pieces constantly.'
+    description: 'A mindless vessel of the dark arts. Sacrifices pieces without reason.'
   },
   nelson: {
     id: 'nelson',
-    name: 'Nelson (Intermediate)',
-    avatar: '🤠',
+    name: 'Blood Mage',
+    avatar: '🧛',
     skillLevel: 5,
     depth: 5,
     moveTime: 500,
-    description: 'Aggressive. Will try to checkmate you as fast as possible.'
+    description: 'Highly aggressive and predatory. Strikes fast, seeking early decimation.'
   },
   mittens: {
     id: 'mittens',
-    name: 'Mittens (Boss)',
-    avatar: '🐱',
+    name: 'The Voidweaver',
+    avatar: '👁️',
     skillLevel: 20,
     depth: 15,
     moveTime: 1500,
-    description: 'A ruthless, calculating machine. Abandon all hope.'
+    description: 'An ancient tactical intelligence from the abyss. Resistance is futile.'
   }
 };
 

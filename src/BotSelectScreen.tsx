@@ -28,10 +28,10 @@ const BOT_ELO: Record<BotPersonality, string> = {
 };
 
 const GAME_MODES = [
-  { id: 'standard', icon: '♟️', name: 'Standard', desc: 'Classic 8×8 chess' },
-  { id: 'chess960', icon: '🎲', name: 'Chess960', desc: 'Randomized back rank' },
-  { id: 'fog', icon: '🌫️', name: 'Fog of War', desc: 'Limited visibility' },
-  { id: 'atomic', icon: '💥', name: 'Atomic', desc: 'Explosive captures' },
+  { id: 'standard', icon: '⚔️', name: 'Ranked Classic', desc: 'True tactical combat' },
+  { id: 'chess960', icon: '🔮', name: 'Fischer Chaos', desc: 'Randomized back rank' },
+  { id: 'fog', icon: '🌑', name: 'Stealth Ambush', desc: 'Pitch-black visibility' },
+  { id: 'atomic', icon: '☠️', name: 'Cursed Blast', desc: 'Explosive sacrifices' },
 ];
 
 const BOT_KEYS: BotPersonality[] = ['martin', 'nelson', 'mittens'];
