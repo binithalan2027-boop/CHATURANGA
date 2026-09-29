@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from \'react\';
 
 interface ProfilePageProps {
   onBack: () => void;
@@ -64,13 +64,13 @@ export default function ProfilePage({ onBack, user }: ProfilePageProps) {
           </div>
 
           <div className="bg-surface-card border border-surface-container-high rounded-xl flex flex-col overflow-hidden">
-            <button onClick={() => setActiveTab('profile')} className={\`p-4 text-left font-headline-sm uppercase tracking-wider border-l-4 transition-colors \${activeTab === 'profile' ? 'border-primary bg-surface-container-high text-white' : 'border-transparent text-on-surface-variant hover:bg-surface-container-low'}\`}>
+            <button onClick={() => setActiveTab('profile')} className={`p-4 text-left font-headline-sm uppercase tracking-wider border-l-4 transition-colors ${activeTab === 'profile' ? 'border-primary bg-surface-container-high text-white' : 'border-transparent text-on-surface-variant hover:bg-surface-container-low'}`}>
               Profile Details
             </button>
-            <button onClick={() => setActiveTab('friends')} className={\`p-4 text-left font-headline-sm uppercase tracking-wider border-l-4 transition-colors \${activeTab === 'friends' ? 'border-secondary bg-surface-container-high text-white' : 'border-transparent text-on-surface-variant hover:bg-surface-container-low'}\`}>
+            <button onClick={() => setActiveTab('friends')} className={`p-4 text-left font-headline-sm uppercase tracking-wider border-l-4 transition-colors ${activeTab === 'friends' ? 'border-secondary bg-surface-container-high text-white' : 'border-transparent text-on-surface-variant hover:bg-surface-container-low'}`}>
               Friends & Invites
             </button>
-            <button onClick={() => setActiveTab('verification')} className={\`p-4 text-left font-headline-sm uppercase tracking-wider border-l-4 transition-colors \${activeTab === 'verification' ? 'border-tertiary bg-surface-container-high text-white' : 'border-transparent text-on-surface-variant hover:bg-surface-container-low'}\`}>
+            <button onClick={() => setActiveTab('verification')} className={`p-4 text-left font-headline-sm uppercase tracking-wider border-l-4 transition-colors ${activeTab === 'verification' ? 'border-tertiary bg-surface-container-high text-white' : 'border-transparent text-on-surface-variant hover:bg-surface-container-low'}`}>
               FIDE Title Verification
             </button>
           </div>
@@ -126,7 +126,7 @@ export default function ProfilePage({ onBack, user }: ProfilePageProps) {
                 {friends.map((friend, i) => (
                   <div key={i} className="flex items-center justify-between bg-surface-container-low border border-surface-container rounded p-4">
                     <div className="flex items-center gap-4">
-                      <div className={\`w-3 h-3 rounded-full \${friend.status === 'online' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-surface-container-highest'}\`}></div>
+                      <div className={`w-3 h-3 rounded-full ${friend.status === 'online' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-surface-container-highest'}`}></div>
                       <div className="flex flex-col">
                         <span className="font-headline-sm uppercase">{friend.name}</span>
                         <span className="font-mono text-xs text-on-surface-variant">{friend.code}</span>
