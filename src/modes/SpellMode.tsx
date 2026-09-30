@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Chess, Square, Move } from 'chess.js';
+import { Chess, Square, Move, Piece } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
 import ChessBoard from '../components/ChessBoard';
 import PlayerBar from '../components/PlayerBar';
@@ -30,10 +30,11 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
   // SPELL SYSTEM STATE
   const [spellCooldown, setSpellCooldown] = useState(0);
   const [freezeCharges, setFreezeCharges] = useState(5);
-  const [swapCharges, setSwapCharges] = useState(2);
-  const [activeSpell, setActiveSpell] = useState<'freeze' | 'swap' | null>(null);
-  const [swapTarget, setSwapTarget] = useState<string | null>(null);
+  const [jumpCharges, setJumpCharges] = useState(2);
+  const [activeSpell, setActiveSpell] = useState<'freeze' | 'jump' | null>(null);
+  
   const [frozenSquares, setFrozenSquares] = useState<Set<string>>(new Set());
+  const [jumpedPiece, setJumpedPiece] = useState<{ square: string, piece: Piece } | null>(null);
 
   const legalMoves = useMemo(() => {
     if (!selectedSquare || winner) return new Set<string>();
@@ -41,18 +42,31 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
 
     try {
       const moves = chess.moves({ square: selectedSquare as Square, verbose: true });
-      return new Set(moves.map((m: Move) => m.to));
+      const valid = moves.filter(m => !jumpedPiece || m.to !== jumpedPiece.square);
+      return new Set(valid.map((m: Move) => m.to));
     } catch(e) {
       return new Set<string>();
     }
-  }, [selectedSquare, fen, chess, winner, frozenSquares]);
+  }, [selectedSquare, fen, chess, winner, frozenSquares, jumpedPiece]);
+
+  const displayBoard = useMemo(() => {
+    const b = chess.board();
+    if (jumpedPiece) {
+      const f = FILES.indexOf(jumpedPiece.square[0]);
+      const r = RANKS.indexOf(jumpedPiece.square[1]);
+      if (b[r] && f >= 0) {
+        b[r][f] = { ...jumpedPiece.piece, square: jumpedPiece.square as Square };
+      }
+    }
+    return b;
+  }, [fen, chess, jumpedPiece]);
 
   const checkSquare = useMemo(() => {
     if (winner) return null;
     try {
       if (!chess.isCheck()) return null;
       const turn = chess.turn();
-      const board = chess.board();
+      const board = displayBoard;
       for (let r = 0; r < 8; r++) {
         for (let f = 0; f < 8; f++) {
           const piece = board[r][f];
@@ -63,7 +77,7 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
       }
     } catch(e) {}
     return null;
-  }, [fen, chess, winner]);
+  }, [fen, chess, winner, displayBoard]);
 
   const materialAdvantage = useMemo(() => {
     const whiteScore = capturedByWhite.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
@@ -101,23 +115,17 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
     setActiveSpell(null);
   };
 
-  const castSwap = (sq1: string, sq2: string) => {
-    const p1 = chess.get(sq1 as Square);
-    const p2 = chess.get(sq2 as Square);
-    if (!p1 || !p2 || p1.color !== 'w' || p2.color !== 'w' || p1.type === 'k' || p2.type === 'k') {
-      return; // Invalid swap
-    }
-
-    chess.remove(sq1 as Square);
-    chess.remove(sq2 as Square);
-    chess.put(p2, sq1 as Square);
-    chess.put(p1, sq2 as Square);
+  const castJump = (sq: string) => {
+    const piece = chess.get(sq as Square);
+    if (!piece || piece.type === 'k') return; // Cannot jump empty squares or kings
     
+    setJumpedPiece({ square: sq, piece });
+    chess.remove(sq as Square);
     setFen(chess.fen());
-    setSwapCharges(c => c - 1);
+    
+    setJumpCharges(c => c - 1);
     setSpellCooldown(3);
     setActiveSpell(null);
-    setSwapTarget(null);
   };
 
   const handleSquareClick = (sq: string) => {
@@ -128,15 +136,8 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
       return;
     }
 
-    if (activeSpell === 'swap') {
-      if (!swapTarget) {
-        const piece = chess.get(sq as Square);
-        if (piece && piece.color === 'w' && piece.type !== 'k') {
-          setSwapTarget(sq);
-        }
-      } else {
-        castSwap(swapTarget, sq);
-      }
+    if (activeSpell === 'jump') {
+      castJump(sq);
       return;
     }
 
@@ -144,13 +145,17 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
       if (legalMoves.has(sq)) {
         try {
           const move = chess.move({ from: selectedSquare, to: sq, promotion: 'q' });
+          if (jumpedPiece) {
+            chess.put(jumpedPiece.piece, jumpedPiece.square as Square);
+            setJumpedPiece(null);
+          }
+
           recordCapture(move);
           setFen(chess.fen());
           setLastMove({ from: selectedSquare, to: sq });
           setSelectedSquare(null);
           
           if (spellCooldown > 0) setSpellCooldown(c => c - 1);
-          setFrozenSquares(new Set()); // Player frozen squares melt after their turn
 
           if (chess.isGameOver()) {
             if (chess.isCheckmate()) setWinner('w');
@@ -159,7 +164,7 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
           setSelectedSquare(null);
         }
       } else {
-        const piece = chess.get(sq as Square);
+        const piece = displayBoard[RANKS.indexOf(sq[1])][FILES.indexOf(sq[0])];
         if (piece && piece.color === 'w') {
           setSelectedSquare(sq);
         } else {
@@ -167,7 +172,7 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
         }
       }
     } else {
-      const piece = chess.get(sq as Square);
+      const piece = displayBoard[RANKS.indexOf(sq[1])][FILES.indexOf(sq[0])];
       if (piece && piece.color === 'w') {
         setSelectedSquare(sq);
       }
@@ -183,17 +188,29 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
       if (!isActive || !moveStr) return;
 
       try {
-        const from = moveStr.slice(0, 2);
-        const to = moveStr.slice(2, 4);
-        const promotion = moveStr.length > 4 ? moveStr[4] : undefined;
+        let finalMoveStr = moveStr;
+        const from = finalMoveStr.slice(0, 2);
         
-        // Before bot moves, frozen squares expire
+        // If bot tried to move a frozen piece, override with a random legal move
+        if (frozenSquares.has(from)) {
+          const validMoves = chess.moves({ verbose: true }).filter(m => !frozenSquares.has(m.from));
+          if (validMoves.length > 0) {
+            const m = validMoves[Math.floor(Math.random() * validMoves.length)];
+            finalMoveStr = m.from + m.to + (m.promotion || '');
+          }
+        }
+
+        // Before bot moves, player's frozen squares expire for the next turn
         setFrozenSquares(new Set());
 
-        const move = chess.move({ from, to, promotion });
+        const moveFrom = finalMoveStr.slice(0, 2);
+        const moveTo = finalMoveStr.slice(2, 4);
+        const promotion = finalMoveStr.length > 4 ? finalMoveStr[4] : undefined;
+
+        const move = chess.move({ from: moveFrom, to: moveTo, promotion });
         recordCapture(move);
         setFen(chess.fen());
-        setLastMove({ from, to });
+        setLastMove({ from: moveFrom, to: moveTo });
         
         if (chess.isGameOver()) {
           if (chess.isCheckmate()) setWinner('b');
@@ -205,7 +222,7 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
     playBotMove();
 
     return () => { isActive = false; };
-  }, [fen, chess, getBestMove, currentBot, winner]);
+  }, [fen, chess, getBestMove, currentBot, winner, frozenSquares]);
 
   const handleNewGame = () => {
     const newChess = new Chess();
@@ -217,61 +234,63 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
     setCapturedByBlack([]);
     setWinner(null);
     setFreezeCharges(5);
-    setSwapCharges(2);
+    setJumpCharges(2);
     setSpellCooldown(0);
     setActiveSpell(null);
     setFrozenSquares(new Set());
+    setJumpedPiece(null);
   };
 
   const customSquareStyles: Record<string, string> = {};
-  if (activeSpell === 'freeze') {
-    // Hovering logic can't be purely done via state here without mouse tracking,
-    // so we'll just indicate active mode.
-  }
-  if (activeSpell === 'swap' && swapTarget) {
-    customSquareStyles[swapTarget] = 'bg-tertiary-container/80 animate-pulse border-2 border-tertiary shadow-[0_0_15px_rgba(163,80,240,0.8)]';
-  }
   frozenSquares.forEach(sq => {
-    customSquareStyles[sq] = 'bg-cyan-900/50 border border-cyan-400/30';
+    customSquareStyles[sq] = 'bg-cyan-500/40 border border-cyan-300 shadow-[inset_0_0_15px_rgba(34,211,238,0.5)]';
   });
+  if (jumpedPiece) {
+    customSquareStyles[jumpedPiece.square] = 'bg-green-500/30 border border-green-400 border-dashed opacity-50 shadow-[0_0_15px_rgba(74,222,128,0.5)]';
+  }
 
   return (
     <div className="min-h-screen bg-void-black flex flex-col lg:flex-row items-center justify-center p-space-md gap-gutter w-full text-bone-ivory font-body-md">
       
       {/* GRIMOIRE (SPELLBOOK) PANEL */}
-      <div className="w-full lg:w-64 bg-surface-card border border-tertiary-container rounded-xl p-space-md flex flex-col gap-4 shadow-[0_0_30px_rgba(110,40,200,0.15)] order-last lg:order-first">
-        <h3 className="font-display-md text-tertiary uppercase tracking-wider text-center border-b border-tertiary/20 pb-2">Grimoire</h3>
+      <div className="w-full lg:w-64 bg-surface-card border border-surface-container-high rounded-xl p-space-md flex flex-col gap-4 shadow-[0_0_40px_rgba(34,211,238,0.1)] order-last lg:order-first">
+        <h3 className="font-display-md text-cyan-400 uppercase tracking-wider text-center border-b border-surface-container pb-2">SPELL DECK</h3>
         
-        <div className="flex flex-col gap-2">
-          <div className="text-xs text-on-surface-variant font-mono uppercase text-center mb-2">
+        <div className="flex flex-col gap-3">
+          <div className="text-xs text-on-surface-variant font-mono uppercase text-center">
             {spellCooldown > 0 ? `Cooldown: ${spellCooldown} turns` : 'Spells Ready'}
           </div>
           
           <button 
             disabled={spellCooldown > 0 || freezeCharges === 0}
             onClick={() => setActiveSpell(activeSpell === 'freeze' ? null : 'freeze')}
-            className={`p-3 rounded border transition-all ${activeSpell === 'freeze' ? 'bg-tertiary text-white border-tertiary-container scale-105' : 'bg-surface-container-low border-surface-container hover:bg-surface-container'} ${(spellCooldown > 0 || freezeCharges === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 overflow-hidden ${activeSpell === 'freeze' ? 'bg-cyan-900 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.6)] scale-105' : 'bg-surface-container-low border-surface-container hover:bg-surface-container'} ${(spellCooldown > 0 || freezeCharges === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-headline-sm uppercase tracking-wide">Void Freeze</span>
-              <span className="font-mono text-tertiary">{freezeCharges}</span>
+            {activeSpell === 'freeze' && <div className="absolute inset-0 bg-cyan-400/20 animate-pulse"></div>}
+            <div className="relative w-16 h-16 rounded-lg bg-black flex items-center justify-center border border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+              <img src="/spells/freeze.jpg" alt="Freeze" className="w-full h-full object-cover rounded-lg mix-blend-screen" />
+              <div className="absolute -top-2 -right-2 bg-cyan-500 text-black font-bold font-mono text-xs w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-black">x{freezeCharges}</div>
             </div>
-            <div className="text-[10px] text-on-surface-variant text-left leading-tight">Freezes a 3x3 area. Trapped units cannot move.</div>
+            <div className="text-center z-10">
+              <span className="font-headline-sm uppercase tracking-wide text-cyan-300 block leading-tight">Freeze Spell</span>
+              <span className="text-[10px] text-cyan-100/70 font-mono">Freezes a 3x3 area</span>
+            </div>
           </button>
           
           <button 
-            disabled={spellCooldown > 0 || swapCharges === 0}
-            onClick={() => {
-              setActiveSpell(activeSpell === 'swap' ? null : 'swap');
-              setSwapTarget(null);
-            }}
-            className={`p-3 rounded border transition-all ${activeSpell === 'swap' ? 'bg-tertiary text-white border-tertiary-container scale-105' : 'bg-surface-container-low border-surface-container hover:bg-surface-container'} ${(spellCooldown > 0 || swapCharges === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={spellCooldown > 0 || jumpCharges === 0}
+            onClick={() => setActiveSpell(activeSpell === 'jump' ? null : 'jump')}
+            className={`relative p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 overflow-hidden ${activeSpell === 'jump' ? 'bg-green-900 border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.6)] scale-105' : 'bg-surface-container-low border-surface-container hover:bg-surface-container'} ${(spellCooldown > 0 || jumpCharges === 0) ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-headline-sm uppercase tracking-wide">Shadow Swap</span>
-              <span className="font-mono text-tertiary">{swapCharges}</span>
+            {activeSpell === 'jump' && <div className="absolute inset-0 bg-green-400/20 animate-pulse"></div>}
+            <div className="relative w-16 h-16 rounded-lg bg-black flex items-center justify-center border border-green-500/50 shadow-[0_0_15px_rgba(74,222,128,0.3)]">
+              <img src="/spells/jump.jpg" alt="Jump" className="w-full h-full object-cover rounded-lg mix-blend-screen" />
+              <div className="absolute -top-2 -right-2 bg-green-500 text-black font-bold font-mono text-xs w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-black">x{jumpCharges}</div>
             </div>
-            <div className="text-[10px] text-on-surface-variant text-left leading-tight">Select two of your non-royal pieces to instantly swap their positions.</div>
+            <div className="text-center z-10">
+              <span className="font-headline-sm uppercase tracking-wide text-green-300 block leading-tight">Jump Spell</span>
+              <span className="text-[10px] text-green-100/70 font-mono">Jump over one piece</span>
+            </div>
           </button>
         </div>
       </div>
@@ -281,7 +300,7 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
         <div className="flex items-center justify-between bg-surface-card p-3 rounded-lg border border-surface-container-high shadow-xl">
           <div className="flex items-center gap-2">
             <span className={`w-3 h-3 rounded-full ${isReady ? (engineError ? 'bg-yellow-400' : 'bg-green-500') : 'bg-red-500'}`}></span>
-            <span className="font-headline-sm uppercase tracking-wide text-tertiary">Spell Chess</span>
+            <span className="font-headline-sm uppercase tracking-wide text-bone-ivory">Spell Chess</span>
           </div>
           <div className="flex items-center gap-2">
             <button className="px-3 py-1 bg-surface-container-high hover:bg-surface-container-highest rounded text-sm transition-colors uppercase tracking-wider" onClick={handleNewGame}>New Game</button>
@@ -301,9 +320,9 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
         />
 
         {/* CHESS BOARD */}
-        <div className={`relative ${activeSpell ? 'cursor-crosshair ring-4 ring-tertiary rounded shadow-[0_0_30px_rgba(110,40,200,0.5)] transition-all' : ''}`}>
+        <div className={`relative ${activeSpell === 'freeze' ? 'cursor-crosshair ring-4 ring-cyan-400 rounded shadow-[0_0_40px_rgba(34,211,238,0.5)] transition-all' : activeSpell === 'jump' ? 'cursor-crosshair ring-4 ring-green-400 rounded shadow-[0_0_40px_rgba(74,222,128,0.5)] transition-all' : ''}`}>
           <ChessBoard
-            board={chess.board()}
+            board={displayBoard}
             selectedSquare={selectedSquare}
             legalMoves={legalMoves}
             lastMove={lastMove}
@@ -313,7 +332,7 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
           />
           {winner && (
             <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
-              <h2 className="font-display-lg text-6xl text-tertiary uppercase tracking-tighter mb-4 animate-pulse drop-shadow-[0_0_20px_rgba(110,40,200,0.5)]">
+              <h2 className="font-display-lg text-6xl text-cyan-400 uppercase tracking-tighter mb-4 animate-pulse drop-shadow-[0_0_30px_rgba(34,211,238,0.8)]">
                 {winner === 'w' ? 'VICTORY' : 'DEFEATED'}
               </h2>
               <button className="px-6 py-2 bg-bone-ivory text-void-black font-bold uppercase tracking-widest rounded hover:bg-white transition-colors" onClick={handleNewGame}>
