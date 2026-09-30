@@ -69,11 +69,8 @@ function App() {
   }, [matchStatus, match]);
 
   const triggerPlay = () => {
-    if (user) {
-      setScreen('bot_select');
-    } else {
-      setScreen('auth');
-    }
+    // Login is NOT mandatory - guests can play immediately
+    setScreen('bot_select');
   };
 
   const handleLogout = async () => {

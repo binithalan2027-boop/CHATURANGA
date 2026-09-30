@@ -3,10 +3,23 @@
 @tailwind utilities;
 
 @layer base {
-  html, body { margin: 0; padding: 0; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #09090D;
+    color: #E8DDC8;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    image-rendering: -webkit-optimize-contrast;
+  }
   body { overscroll-behavior: none; }
   main > :first-child { margin-top: 0 !important; }
   main > :last-child { margin-bottom: 0 !important; }
+  img, svg {
+    image-rendering: high-quality;
+    backface-visibility: hidden;
+  }
 }
 ::-webkit-scrollbar { display: none; }
 
