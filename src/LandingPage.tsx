@@ -13,6 +13,7 @@ interface LandingPageProps {
   onOpenLearn?: () => void;
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
+  onOpenFriendsSanctum?: () => void;
   matchStatus: 'idle' | 'searching' | 'found';
   onSearchMatch: () => void;
   onCancelMatch: () => void;
@@ -30,6 +31,7 @@ export default function LandingPage(props: LandingPageProps) {
             matchStatus={props.matchStatus}
             onSearchMatch={props.onSearchMatch}
             onCancelMatch={props.onCancelMatch}
+            onOpenFriendsSanctum={props.onOpenFriendsSanctum}
           />
           <ModesSection />
         </div>

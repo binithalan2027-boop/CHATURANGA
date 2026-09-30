@@ -6,9 +6,10 @@ interface HeroSectionProps {
   onSearchMatch: () => void;
   onCancelMatch: () => void;
   matchStatus: 'idle' | 'searching' | 'found';
+  onOpenFriendsSanctum?: () => void;
 }
 
-export default function HeroSection({ onPlay, onSearchMatch, onCancelMatch, matchStatus }: HeroSectionProps) {
+export default function HeroSection({ onPlay, onSearchMatch, onCancelMatch, matchStatus, onOpenFriendsSanctum }: HeroSectionProps) {
   const [timeControl, setTimeControl] = useState('10');
 
   const handleMatchmaking = () => {
@@ -117,7 +118,7 @@ export default function HeroSection({ onPlay, onSearchMatch, onCancelMatch, matc
                   Grim AI Arena
                 </button>
                 <span className="text-surface-container-highest">|</span>
-                <button className="text-on-surface-variant hover:text-white font-label-sm uppercase tracking-widest transition-colors flex items-center gap-1">
+                <button onClick={onOpenFriendsSanctum} className="text-on-surface-variant hover:text-white font-label-sm uppercase tracking-widest transition-colors flex items-center gap-1">
                   <span className="material-symbols-outlined text-[16px]">group</span>
                   Friends Sanctum
                 </button>
