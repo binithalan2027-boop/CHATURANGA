@@ -116,7 +116,7 @@ function App() {
     const playerInfo = {
       name: user?.name || 'Vanguard Commander',
       avatar: '👑',
-      elo: 1500,
+      elo: selectedElo,
       title: 'FM',
       fideRating: 2310
     };
@@ -160,7 +160,7 @@ function App() {
       <OfflineGameView
         botElo={selectedElo}
         timeMinutes={timeMinutes}
-        gameMode={gameMode as any}
+        gameMode={gameMode as 'standard' | 'chess960' | 'fog' | 'atomic' | 'spell' | 'math' | 'matiks'}
         onExit={() => setScreen('bot_select')}
       />
     );

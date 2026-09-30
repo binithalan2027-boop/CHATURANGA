@@ -97,10 +97,11 @@ export default function AtomicMode({ onExit, botElo }: GameModeProps) {
     setTimeout(() => setExplodingSquares(new Set()), 500);
   };
 
-  const recordCapture = (moveResult: any) => {
-    if (moveResult.captured) {
-      if (moveResult.color === 'w') setCapturedByWhite(prev => [...prev, moveResult.captured]);
-      else setCapturedByBlack(prev => [...prev, moveResult.captured]);
+  const recordCapture = (moveResult: Move) => {
+    const captured = moveResult.captured;
+    if (captured) {
+      if (moveResult.color === 'w') setCapturedByWhite(prev => [...prev, captured]);
+      else setCapturedByBlack(prev => [...prev, captured]);
       applyAtomicExplosion(moveResult.to);
     }
   };

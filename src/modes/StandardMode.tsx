@@ -62,12 +62,13 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
     return whiteScore - blackScore;
   }, [capturedByWhite, capturedByBlack]);
 
-  const recordCapture = (moveResult: any) => {
-    if (moveResult.captured) {
+  const recordCapture = (moveResult: Move) => {
+    const captured = moveResult.captured;
+    if (captured) {
       if (moveResult.color === 'w') {
-        setCapturedByWhite(prev => [...prev, moveResult.captured]);
+        setCapturedByWhite(prev => [...prev, captured]);
       } else {
-        setCapturedByBlack(prev => [...prev, moveResult.captured]);
+        setCapturedByBlack(prev => [...prev, captured]);
       }
       setBurstMeter(b => Math.min(100, b + 15));
     }
@@ -181,7 +182,7 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
           ].map((view) => (
             <button
               key={view.id}
-              onClick={() => setPerspectiveMode(view.id as any)}
+              onClick={() => setPerspectiveMode(view.id as typeof perspectiveMode)}
               className={`px-2 py-1 font-label-sm text-[10px] uppercase tracking-wider transition-colors ${
                 perspectiveMode === view.id
                   ? 'bg-blood-crimson text-bone-ivory font-bold shadow-[0_0_10px_rgba(163,19,43,0.5)]'
@@ -212,15 +213,15 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
           <div className="bg-void-surface border border-void-border p-space-md flex flex-col gap-space-xs shadow-md">
             <div className="flex items-center justify-between font-label-sm text-xs">
               <span className="text-bone-ivory font-bold uppercase tracking-wider">SOUL DOMINANCE</span>
-              <span className="text-pumpkin-orange font-mono font-bold">+1.4 CP</span>
+              <span className="text-pumpkin-orange font-mono font-bold">{materialAdvantage >= 0 ? '+' : ''}{(materialAdvantage * 0.9).toFixed(1)} CP</span>
             </div>
             <div className="w-full h-2.5 bg-ink-black border border-void-border flex overflow-hidden">
-              <div className="h-full bg-blood-crimson" style={{ width: '58%' }} />
-              <div className="h-full bg-cursed-violet" style={{ width: '42%' }} />
+              <div className="h-full bg-blood-crimson transition-all duration-300" style={{ width: `${Math.max(10, Math.min(90, 50 + materialAdvantage * 5))}%` }} />
+              <div className="h-full bg-cursed-violet transition-all duration-300" style={{ width: `${Math.max(10, Math.min(90, 50 - materialAdvantage * 5))}%` }} />
             </div>
             <div className="flex items-center justify-between font-mono text-[10px] text-bone-ivory-dim">
-              <span>CARNIVAL (58%)</span>
-              <span>SWARM (42%)</span>
+              <span>CARNIVAL ({Math.max(10, Math.min(90, 50 + materialAdvantage * 5))}%)</span>
+              <span>SWARM ({Math.max(10, Math.min(90, 50 - materialAdvantage * 5))}%)</span>
             </div>
           </div>
 
@@ -268,7 +269,7 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
           <div className="bg-void-surface border border-void-border p-space-md flex flex-col gap-space-xs shadow-md">
             <div className="flex items-center justify-between border-b border-void-border pb-space-xs">
               <span className="font-headline-sm text-xs uppercase tracking-wider text-bone-ivory">SOUL GRAVEYARD</span>
-              <span className="font-mono text-[10px] text-blood-crimson font-bold">11 PIECES SLAIN</span>
+              <span className="font-mono text-[10px] text-blood-crimson font-bold">{capturedByWhite.length + capturedByBlack.length} PIECES SLAIN</span>
             </div>
 
             <div className="flex flex-col gap-2 mt-1 font-mono text-xs">
@@ -297,7 +298,7 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
               <span className="w-2 h-2 bg-blood-crimson animate-ping" />
               <span className="font-mono text-xs text-bone-ivory font-bold">TACTICAL MATRIX 8X8 // TICK #{chess.history().length}</span>
             </div>
-            <span className="font-mono text-xs text-red-400 font-bold uppercase">PUPPET THREAT DETECTED</span>
+            <span className="font-mono text-xs text-red-400 font-bold uppercase">{checkSquare ? 'CHECK DETECTED — KING UNDER SIEGE' : isThinking ? 'ENGINE CALCULATING...' : 'AWAITING TACTICAL INPUT'}</span>
           </div>
 
           {/* Volumetric 3D Board Viewport */}
@@ -400,7 +401,7 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
           {/* Spectator Telemetry */}
           <div className="bg-void-surface border border-void-border p-space-sm flex items-center justify-between font-mono text-[10px] text-bone-ivory-dim shadow-md">
             <span>🎶 SFX: ANIME ORCHESTRA</span>
-            <span className="text-green-400 font-bold">👁️ 3,194 WATCHING</span>
+            <span className="text-green-400 font-bold">👁️ {(1200 + chess.history().length * 47).toLocaleString()} WATCHING</span>
           </div>
         </div>
 

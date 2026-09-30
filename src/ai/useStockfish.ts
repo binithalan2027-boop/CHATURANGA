@@ -33,7 +33,7 @@ export function getBotByElo(elo: number): BotConfig {
   const moveTime = Math.max(50, Math.min(2000, Math.floor((elo / 3500) * 2000)));
 
   return {
-    id: tier.id as any,
+    id: tier.id,
     name: tier.name,
     avatar: tier.avatar,
     description: tier.desc,
@@ -153,10 +153,10 @@ export function useStockfish() {
         setTimeout(() => {
           import('chess.js').then(({ Chess }) => {
             const game = new Chess(fen);
-            const moves = game.moves();
+            const moves = game.moves({ verbose: true });
             if (moves.length > 0) {
-              const randomMove = moves[Math.floor(Math.random() * moves.length)];
-              resolve(randomMove);
+              const m = moves[Math.floor(Math.random() * moves.length)];
+              resolve(m.from + m.to + (m.promotion || ''));
             } else {
               resolve('');
             }
@@ -188,9 +188,10 @@ export function useStockfish() {
         setIsThinking(false);
         import('chess.js').then(({ Chess }) => {
           const game = new Chess(fen);
-          const moves = game.moves();
+          const moves = game.moves({ verbose: true });
           if (moves.length > 0) {
-            resolve(moves[Math.floor(Math.random() * moves.length)]);
+            const m = moves[Math.floor(Math.random() * moves.length)];
+            resolve(m.from + m.to + (m.promotion || ''));
           } else {
             resolve('');
           }

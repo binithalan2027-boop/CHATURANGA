@@ -58,8 +58,24 @@ export default function OnlineGameMode({
         }
       })
       .on('broadcast', { event: 'chess_move' }, (payload) => {
-        const moveData = payload.payload.move;
+        const moveData = payload.payload?.move;
+        if (!moveData || typeof moveData.from !== 'string' || typeof moveData.to !== 'string') {
+          console.error('Received malformed move payload, ignoring');
+          return;
+        }
         
+        // Validate move is legal before executing
+        const legalMovesForValidation = chess.moves({ verbose: true });
+        const isLegal = legalMovesForValidation.some(
+          (m: { from: string; to: string; promotion?: string }) =>
+            m.from === moveData.from && m.to === moveData.to
+        );
+
+        if (!isLegal) {
+          console.error('Opponent sent illegal move, rejecting:', moveData);
+          return;
+        }
+
         try {
           const result = chess.move(moveData);
           if (result.captured) {
@@ -74,7 +90,7 @@ export default function OnlineGameMode({
             if (chess.isCheckmate()) setWinner(chess.turn() === 'w' ? 'b' : 'w');
           }
         } catch (e) {
-          console.error("Opponent sent invalid move", e);
+          console.error('Failed to execute validated move', e);
         }
       })
       .subscribe(async (status) => {

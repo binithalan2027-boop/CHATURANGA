@@ -51,8 +51,9 @@ export default function AuthPage({ onAuth, onBack }: AuthPageProps) {
           email: data.user?.email || ''
         });
       }
-    } catch (err: any) {
-      if (err.message === 'Failed to fetch') {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message === 'Failed to fetch') {
         setError('DATABASE OFFLINE: Local guest access active.');
         // Fallback to local session
         onAuth({
@@ -61,7 +62,7 @@ export default function AuthPage({ onAuth, onBack }: AuthPageProps) {
           email: email || 'guest@chaturanga.io'
         });
       } else {
-        setError(err.message || 'Authentication failed');
+        setError(message || 'Authentication failed');
       }
     } finally {
       setLoading(false);

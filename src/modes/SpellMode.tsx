@@ -71,12 +71,13 @@ export default function SpellMode({ onExit, botElo }: GameModeProps) {
     return whiteScore - blackScore;
   }, [capturedByWhite, capturedByBlack]);
 
-  const recordCapture = (moveResult: any) => {
-    if (moveResult.captured) {
+  const recordCapture = (moveResult: Move) => {
+    const captured = moveResult.captured;
+    if (captured) {
       if (moveResult.color === 'w') {
-        setCapturedByWhite(prev => [...prev, moveResult.captured]);
+        setCapturedByWhite(prev => [...prev, captured]);
       } else {
-        setCapturedByBlack(prev => [...prev, moveResult.captured]);
+        setCapturedByBlack(prev => [...prev, captured]);
       }
     }
   };

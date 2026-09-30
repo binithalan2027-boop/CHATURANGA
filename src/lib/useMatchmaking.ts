@@ -37,7 +37,7 @@ export function useMatchmaking(user: { id: string; name: string } | null) {
         
         // Look for opponents
         for (const [, presences] of Object.entries(state)) {
-          const opponent = presences[0] as any;
+          const opponent = presences[0] as unknown as { userId: string; name: string; status: string };
           
           if (opponent.userId !== user.id && opponent.status === 'searching') {
             // We found someone! 
