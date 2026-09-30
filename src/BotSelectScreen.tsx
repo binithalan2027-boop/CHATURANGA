@@ -165,6 +165,7 @@ export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProp
                   </div>
                   <div className="flex flex-col gap-space-xs">
                     {[
+                      { id: 'math', name: 'Chess MM // Matiks', desc: 'Mental math per move & speed math power-up showdowns.', badge: 'MOAT SYSTEM', chaos: '+200% INTELLECTUAL' },
                       { id: 'standard', name: 'Standard Chess', desc: '64 squares, absolute tactical calculation.', badge: 'FIDE APPROVED', chaos: '+0% CHAOS' },
                       { id: 'chess960', name: 'Fischer Void 960', desc: 'Chaotic back-rank transposition.', badge: 'RANDOM ROYALS', chaos: '+40% UNPREDICTABLE' },
                       { id: 'spell', name: 'Power-Up Arena', desc: 'Cursed Relics & instant blood spells.', badge: 'ANIME SPELLS', chaos: '+100% VISCERAL' },
