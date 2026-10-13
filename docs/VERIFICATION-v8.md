@@ -28,5 +28,13 @@
 - Play/PWA: TWA manifest referenced icons that did not exist - rendered 512px and maskable-512 PNGs from the brand mark (pixel-inspected), added /manifest.webmanifest linked from index.html; manifest and both icons return 200 through the dev server. Data-safety draft cross-checked against server code (added optional country/timezone fields).
 - Honesty sweep of user-facing copy: no matchmaking/tournament/anti-cheat overclaims; landing "Find a classic opponent" navigates to the private-room lobby (an unreachable dead cancel button remains, cosmetic).
 
+## Third block (21:22): post-hardening re-run
+After the retention, deletion and store-cache changes, the full suite was
+re-run against the final tree: 168/168 unit tests, both typechecks,
+online-smoke, v8-fog-browser, v7-browser (axe-clean on all four screens) and
+v7-mantra-browser - all green. Account deletion verified live end to end:
+after /api/delete, entitlement, profile and session rows are all zero and
+opponent history stays intact (games finished unrated, names scrubbed).
+
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.
