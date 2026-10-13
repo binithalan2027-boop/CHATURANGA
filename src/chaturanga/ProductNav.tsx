@@ -5,6 +5,7 @@ export default function ProductNav({
   onBots,
   onLearn,
   onStudy,
+  onTournaments,
   onProfile,
   active,
 }: {
@@ -13,6 +14,7 @@ export default function ProductNav({
   onBots: () => void;
   onLearn: () => void;
   onStudy: () => void;
+  onTournaments: () => void;
   onProfile: () => void;
   active: string;
 }) {
@@ -37,13 +39,26 @@ export default function ProductNav({
         >
           ♜<span>Bots</span>
         </button>
-        <button aria-label="Study" className={active === "study" ? "active" : ""} onClick={onStudy}>▦<span>Study</span></button>
+        <button
+          aria-label="Study"
+          className={active === "study" ? "active" : ""}
+          onClick={onStudy}
+        >
+          ▦<span>Study</span>
+        </button>
         <button
           aria-label="Learn"
           className={active === "learn" ? "active" : ""}
           onClick={onLearn}
         >
           ▤<span>Learn</span>
+        </button>
+        <button
+          aria-label="Tournaments"
+          className={active === "tournaments" ? "active" : ""}
+          onClick={onTournaments}
+        >
+          ♛<span>Tournaments</span>
         </button>
         <button
           aria-label="Profile"

@@ -72,9 +72,7 @@ export default function ChaturangaMode({
   const [botThinking, setBotThinking] = useState(false);
   const storage = initialMode === "classic" ? STORAGE + "-bots" : STORAGE;
   const [game, setGame] = useState<State | null>(() => saved(storage));
-  useEffect(() => {
-    setGame(saved(storage));
-  }, [storage]);
+
   const [mode, setMode] = useState<Settings["mode"]>(initialMode);
   const [difficulty, setDifficulty] =
     useState<Settings["difficulty"]>("medium");
@@ -102,11 +100,35 @@ export default function ChaturangaMode({
   const vsBot = !!game?.settings.opponent && game.settings.opponent !== "local";
   const humanTurn = !vsBot || chess.turn() === "w";
   const actor = chess.turn();
+  const material = chess
+    .board()
+    .flat()
+    .reduce(
+      (score, p) =>
+        score +
+        (p
+          ? (p.color === "w" ? 1 : -1) *
+            { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }[p.type]
+          : 0),
+      0,
+    );
   useEffect(() => {
     const worker = new Worker(new URL("./bot.worker.ts", import.meta.url), {
       type: "module",
     });
     botWorker.current = worker;
+    worker.onerror = () => {
+      setBotThinking(false);
+      setGame((s) =>
+        s
+          ? {
+              ...s,
+              notice:
+                "Computer engine failed. Reload to retry; your local game is saved.",
+            }
+          : s,
+      );
+    };
     worker.onmessage = (e) => {
       setBotThinking(false);
       const current = stateRef.current;
@@ -229,7 +251,7 @@ export default function ChaturangaMode({
         /* local save unavailable; gameplay stays usable */
       }
     }
-  }, [game]);
+  }, [game, storage]);
   useEffect(() => {
     input.current?.focus();
   }, [game?.phase, game?.gate.id, game?.duel?.index]);
@@ -413,8 +435,11 @@ export default function ChaturangaMode({
           </div>
           <div className="setup-controls">
             <label>
-              Maths difficulty
+              {mode === "classic"
+                ? "Maths (not used in Classic)"
+                : "Maths difficulty"}
               <select
+                disabled={mode === "classic"}
                 value={difficulty}
                 onChange={(e) =>
                   setDifficulty(e.target.value as Settings["difficulty"])
@@ -431,6 +456,14 @@ export default function ChaturangaMode({
                 value={control}
                 onChange={(e) => setControl(e.target.value)}
               >
+                {mode === "classic" && (
+                  <>
+                    <option>1+0</option>
+                    <option>2+1</option>
+                    <option>3+2</option>
+                    <option>30+0</option>
+                  </>
+                )}
                 <option>5+3</option>
                 <option>10+5</option>
                 <option>15+10</option>
@@ -445,14 +478,18 @@ export default function ChaturangaMode({
           </div>
           <div className="local-note">
             <strong>
-              {mode === "mind"
-                ? "Local hot-seat play"
-                : "Sequential local demo"}
+              {mode === "mantra"
+                ? "Sequential local demo"
+                : opponent === "local"
+                  ? "Local hot-seat play"
+                  : "Local computer play"}
             </strong>
             <p>
-              {mode === "mind"
-                ? "Share one device. Wrong answers and skips cost 3 seconds, except in untimed practice."
-                : "Share one device with hidden handoff screens and separate equal-format sets. This is not a simultaneous or fair online race. Chess clocks pause during maths."}
+              {mode === "mantra"
+                ? "Share one device with hidden handoff screens and separate equal-format sets. This is not a simultaneous or fair online race. Chess clocks pause during maths."
+                : mode === "mind"
+                  ? "Wrong answers and skips cost 3 seconds, except in untimed practice. Against a computer, you play White."
+                  : "Standard chess, no maths gates or spells. Against a computer, you play White. Timers include one increment per completed turn."}
             </p>
             <p>
               Online Chaturanga requires a secure room controller. It is not
@@ -626,11 +663,22 @@ export default function ChaturangaMode({
                 </strong>
               </div>
             ))}
+            <div className="material-strip">
+              Board material:{" "}
+              {material === 0
+                ? "equal"
+                : `${material > 0 ? "White" : "Black"} +${Math.abs(material)}`}{" "}
+              · promotion effects included
+            </div>
             <div className="board-tools">
               <button
                 onClick={() => {
-                  if (window.confirm(`${sideName(actor)} resigns?`))
-                    send({ type: "resign" });
+                  if (
+                    window.confirm(
+                      `${vsBot ? "White" : sideName(actor)} resigns?`,
+                    )
+                  )
+                    send({ type: "resign", actor: vsBot ? "w" : actor });
                 }}
               >
                 Resign

@@ -24,3 +24,8 @@ it("replays sourced historical game legally through all 136 plies", () => {
   expect(game.headers.Result).toBe("0-1");
   expect(game.sans[game.sans.length - 1]).toBe("Kd5");
 });
+import { OPENINGS } from "./openings";
+it("opening starter lines all produce legal boards", () => {
+  for (const o of OPENINGS)
+    expect(parsePgn(o.moves).sans.length).toBeGreaterThan(0);
+});

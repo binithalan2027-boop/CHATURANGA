@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { PreferenceProvider } from "./chaturanga/preferences";
 import ProductNav from "./chaturanga/ProductNav";
+import TournamentPage from "./chaturanga/TournamentPage";
+import TrainingPage from "./chaturanga/TrainingPage";
 import StudyBoard from "./chaturanga/StudyBoard";
 import ChaturangaMode from "./chaturanga/ChaturangaMode";
 import LandingPage from "./LandingPage";
@@ -17,6 +19,8 @@ import LoadingVersusScreen from "./components/LoadingVersusScreen";
 import "./index.css";
 
 type Screen =
+  | "tournaments"
+  | "training"
   | "study"
   | "bots"
   | "chaturanga"
@@ -121,6 +125,10 @@ function AppContent() {
   };
 
   const renderScreen = () => {
+    if (screen === "tournaments")
+      return <TournamentPage onExit={() => setScreen("landing")} />;
+    if (screen === "training")
+      return <TrainingPage onExit={() => setScreen("landing")} />;
     if (screen === "study")
       return <StudyBoard onExit={() => setScreen("landing")} />;
     if (screen === "auth") {
@@ -144,7 +152,9 @@ function AppContent() {
       );
 
     if (screen === "chaturanga")
-      return <ChaturangaMode onExit={() => setScreen("landing")} />;
+      return (
+        <ChaturangaMode key="chaturanga" onExit={() => setScreen("landing")} />
+      );
 
     if (screen === "bot_select") {
       return (
@@ -290,21 +300,26 @@ function AppContent() {
     <>
       <ProductNav
         active={
-          screen === "study"
-            ? "study"
-            : screen === "bots"
-              ? "bots"
-              : screen === "learn"
-                ? "learn"
-                : screen === "profile"
-                  ? "profile"
-                  : "play"
+          screen === "tournaments"
+            ? "tournaments"
+            : screen === "training"
+              ? "learn"
+              : screen === "study"
+                ? "study"
+                : screen === "bots"
+                  ? "bots"
+                  : screen === "learn"
+                    ? "learn"
+                    : screen === "profile"
+                      ? "profile"
+                      : "play"
         }
         onHome={() => setScreen("landing")}
         onPlay={() => setScreen("chaturanga")}
         onBots={() => setScreen("bots")}
+        onTournaments={() => setScreen("tournaments")}
         onStudy={() => setScreen("study")}
-        onLearn={() => setScreen("learn")}
+        onLearn={() => setScreen("training")}
         onProfile={() => setScreen(user ? "profile" : "auth")}
       />
       <div className="product-content">{renderScreen()}</div>

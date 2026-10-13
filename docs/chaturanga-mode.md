@@ -66,3 +66,49 @@ This is a reversible local first stage, not a production release of the full spe
 - Choose and deploy the authoritative backend within the project's current hosting plan; no hosting purchase is authorized by this change.
 - Implement online commands/persistence, then run adversarial policy tests and two-client reconnect/deadline convergence checks.
 - Add full replay player and complete accessibility/regression verification before declaring the specification release-ready.
+
+## Iteration record and expanded local toolkit
+
+The user's later steering selected a familiar dark chess workspace with original code/assets, premium clean layout, theme/play settings, named personality bots and a larger chess toolkit. The work was separated into component loops and checked after integration:
+
+1. Core chess rules and maths gate, then duel scheduler and seven-power adapter. Tests and local board flow were checked before styling.
+2. Persistent `preferences.tsx` and `ProductNav.tsx`: Dark/Light, four board palettes, outline/solid glyph pieces, coordinates, move dots, last-move highlight, click/drag method, move sound, reduced motion. Preferences persist on this device. Settings apply to the new toolkit; legacy board renderers retain their original settings.
+3. `bot.ts` and `bot.worker.ts`: original material/position alpha-beta search, bounded node work, three strengths/style biases. Famous-player labels were requested: Magnus Carlsen, Hikaru Nakamura and Viswanathan Anand. They are visibly unofficial/unaffiliated practice profiles, not actual-player simulations or endorsements. No portraits, voices or proprietary personality scripts are included. Name/endorsement/licensing review remains necessary before public release. Classic local computer chess and Mind Before Move vs computer are supported; Mantra stays sequential hot-seat, not bot or online duel.
+4. `study.ts`, `PositionBoard.tsx` and `StudyBoard.tsx`: legal PGN/FEN load, main-line export, position replay, branch from current view, independent Stockfish analysis using the repository's existing engine. This is isolated from live variant matches; no live hints. Stockfish was verified returning a depth-8 score and best move. The bundled legacy version is from 2019, not a claim to use a current Stockfish release. Material heuristic is labeled separately. Nested PGN variation preservation and full automatic move-quality review remain unfinished.
+5. `library.ts`: a sourced starter game, Lasker vs Capablanca, Havana 1921 game 10, all 136 plies replay legally. Only the historical factual score was transcribed, without source annotations. It is not an exhaustive tournament library. Source: https://www.chessgames.com/perl/printgame?gid=1241504 .
+6. `openings.ts`: three starter opening lines with source links, legal loading and exploration in the study board, not database win-rate statistics. Sources:
+   - https://lichess.org/opening/Italian_Game/e4_e5_Nf3_Nc6_Bc4
+   - https://lichess.org/opening/Sicilian_Defense
+   - https://lichess.org/opening/Queens_Gambit
+7. `training.ts` and `TrainingPage.tsx`: three original mate-in-one compositions; any legal mate is accepted, hints/reset, device-local progress, and 3-minute repeated-bank practice sprint with three-mistake stop. The UI discloses the small bank and no rated Puzzle Rush/Battle claim.
+8. `tournament.ts` and `TournamentPage.tsx`: local round-robin creation for 2–16 unique players, add players before results start, pairings, manual result entry, points/standings, device persistence and JSON export. No player identity, invitations, verified outcomes, live rooms or official tiebreak/rating claims. Pairing tests cover even and odd rosters with no duplicate pair or double booking.
+
+Latest checks: 49 deterministic tests across engine, bot, study, training and tournament modules; TypeScript/build pass; local browser flows verify bot replies, saved themes, PGN/FEN replay, real engine score, historical game, opening loading, puzzles, tournament results and restore. Screenshots inspect laptop and narrow layouts. Automated axe checks on the tested core play and settings states show no WCAG A/AA violations after correcting button contrast; broader accessibility audit remains necessary.
+
+The earlier limitations section should be read with this update: persistent preferences and local position-journal review now work, and training has a new UI. Full event replay/import, modern engine update, all-variant migration, all auxiliary-page redesign and competitive services are still incomplete.
+
+## Expanded program beyond this milestone
+
+- Competitive online: serialized durable room service, private question answers, invitations, reconnect rules, permissions/adversarial tests, two-client convergence, and deployment.
+- Variants: validate and adapt 3-check, King of the Hill, Crazyhouse and coordinated Bughouse, plus the original freeze/jump Spell Chess rules. Existing Spell route is preserved, not claimed as a fully audited clone.
+- Play cadences: Classic supports short/long local presets and untimed play. Durable daily/correspondence chess requires persistent server workflow.
+- Games/training data: choose lawful maintained sources for large tournament PGN, puzzle and opening collections; add search, filters, review and documented coverage. Never claim all matches from every tournament.
+- Product polish: restyle auth/profile/policy/friend lobby and old game interiors, use a shared board component across all engines, complete capture panels and full accessibility/keyboard/focus audits.
+- Community competition: online tournament registration, pairing variants, game integration, official tiebreak rules, moderation and security.
+
+## Review-only handoff and safety
+
+All changes are on a local feature branch. GitHub main is unchanged; no remote branch, pull request or public deployment was made. The user's no-push instruction controls publication. A public tunnel or hosted preview requires explicit audience permission; no preview has been exposed by this work.
+
+Apply the patch to a clean local checkout without pushing:
+
+```
+git switch -c review/chaturanga-local
+git am /path/to/Chaturanga-local-review.patch
+npm ci
+npm test
+npm run build
+npm run dev
+```
+
+A git bundle is also supplied as a review backup; it contains feature-branch commits and requires the original base commit. Reconcile conflicts rather than force-applying over unrelated work.

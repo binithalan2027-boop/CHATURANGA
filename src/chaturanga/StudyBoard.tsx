@@ -1,24 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import PositionBoard from "./PositionBoard";
 import { Chess, Square } from "chess.js";
 import { parsePgn, fromFen, studyMove, materialEval, StudyLine } from "./study";
+import { OPENINGS } from "./openings";
 import { LIBRARY } from "./library";
 import { usePreferences } from "./preferences";
-const symbols: Record<string, string> = {
-  wk: "♔",
-  wq: "♕",
-  wr: "♖",
-  wb: "♗",
-  wn: "♘",
-  wp: "♙",
-  bk: "♚",
-  bq: "♛",
-  br: "♜",
-  bb: "♝",
-  bn: "♞",
-  bp: "♟",
-};
 export default function StudyBoard({ onExit }: { onExit: () => void }) {
-  const { prefs, open } = usePreferences();
+  const { open } = usePreferences();
   const [line, setLine] = useState<StudyLine>(() => parsePgn("")),
     [index, setIndex] = useState(0),
     [selected, setSelected] = useState<Square | null>(null),
@@ -35,10 +23,15 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
       ? chess.moves({ square: selected, verbose: true }).map((m) => m.to)
       : [];
   useEffect(() => {
-    if (!engine) return;
+    setBest("");
+    if (!engine) {
+      setEvaluation("Engine off");
+      return;
+    }
     const w = new Worker("/stockfish.js");
     worker.current = w;
-    let ready = false;
+    let ready = false,
+      scored = false;
     setEvaluation("Starting engine…");
     w.onmessage = (e) => {
       const s = String(e.data);
@@ -51,6 +44,7 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
         mate = s.match(/score mate (-?\d+)/),
         depth = s.match(/depth (\d+)/);
       if (cp || mate) {
+        scored = true;
         const sign = new Chess(fen).turn() === "w" ? 1 : -1;
         setEvaluation(
           mate
@@ -64,9 +58,9 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
       setEvaluation("Engine unavailable. Material balance is still shown.");
     w.postMessage("uci");
     const timer = setTimeout(() => {
-      if (!ready) {
+      if (!ready || !scored) {
         setEvaluation(
-          "Engine did not initialize. Try again or use material balance.",
+          "Engine did not return a score. Try again or use material balance.",
         );
         w.terminate();
       }
@@ -158,44 +152,13 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
                 : `${chess.turn() === "w" ? "White" : "Black"} to move`}{" "}
             · ply {index}/{line.sans.length}
           </div>
-          <div className="court-board" role="group" aria-label="Analysis board">
-            {(flip
-              ? [1, 2, 3, 4, 5, 6, 7, 8]
-              : [8, 7, 6, 5, 4, 3, 2, 1]
-            ).flatMap((rank, r) =>
-              (flip ? [..."hgfedcba"] : [..."abcdefgh"]).map((file, f) => {
-                const sq = `${file}${rank}` as Square,
-                  p = chess.get(sq);
-                return (
-                  <button
-                    className={`square ${(r + f) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""}`}
-                    key={sq}
-                    aria-label={`${sq}, ${p ? p.color + " " + p.type : "empty"}`}
-                    onClick={() => move(sq)}
-                  >
-                    {prefs.coordinates && f === 0 && (
-                      <small className="rank">{rank}</small>
-                    )}
-                    {prefs.coordinates && r === 7 && (
-                      <small className="file">{file}</small>
-                    )}
-                    {p && (
-                      <span className={`piece ${p.color}`}>
-                        {
-                          symbols[
-                            (prefs.pieces === "solid" ? "b" : p.color) + p.type
-                          ]
-                        }
-                      </span>
-                    )}
-                    {prefs.legalDots && legal.includes(sq) && (
-                      <i className="move-dot" />
-                    )}
-                  </button>
-                );
-              }),
-            )}
-          </div>
+          <PositionBoard
+            fen={fen}
+            selected={selected}
+            legal={legal}
+            onSquare={move}
+            flip={flip}
+          />
           <div className="replay-bar">
             <button
               onClick={() => {
@@ -339,6 +302,31 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
                 </button>
                 <a href={g.source} target="_blank" rel="noreferrer">
                   Game-score source ↗
+                </a>
+              </div>
+            ))}
+          </section>
+          <section className="court-panel">
+            <h2>Opening starter explorer</h2>
+            <p>
+              Three source-checked starting lines. No database statistics or
+              exhaustive repertoire claim.
+            </p>
+            {OPENINGS.map((o) => (
+              <div className="library-card" key={o.name}>
+                <button
+                  onClick={() => {
+                    const next = parsePgn(o.moves);
+                    setLine(next);
+                    setIndex(next.sans.length);
+                    setSelected(null);
+                  }}
+                >
+                  <strong>{o.name}</strong>
+                  <small>{o.moves.replace(" *", "")}</small>
+                </button>
+                <a href={o.source} target="_blank" rel="noreferrer">
+                  Opening source ↗
                 </a>
               </div>
             ))}

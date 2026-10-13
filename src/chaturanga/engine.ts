@@ -141,7 +141,7 @@ export type Command =
   | { type: "ready" }
   | { type: "reward"; power: Power; replace?: Power }
   | { type: "endTurn" }
-  | { type: "resign" }
+  | { type: "resign"; actor?: Color }
   | { type: "agreeDraw" }
   | { type: "claimDraw" };
 const other = (c: Color): Color => (c === "w" ? "b" : "w");
@@ -764,7 +764,7 @@ export function command(
       finish(
         s,
         now,
-        `${sideName(other(new Chess(s.fen).turn()))} wins by resignation.`,
+        `${sideName(other(cmd.actor || new Chess(s.fen).turn()))} wins by resignation.`,
       );
     else if (cmd.type === "agreeDraw")
       finish(

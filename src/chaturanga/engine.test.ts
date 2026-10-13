@@ -414,3 +414,18 @@ describe("rule edge cases", () => {
     expect(s.result).toContain("checkmate");
   });
 });
+describe("classic computer policy", () => {
+  it("classic chess starts unlocked and no duels trigger", () => {
+    let s = newGame({ ...settings, mode: "classic" }, 0);
+    expect(s.phase).toBe("play");
+    s = tick(s, 90000);
+    expect(s.duel).toBeNull();
+    expect(s.clocks.w).toBe(510000);
+  });
+  it("human may resign on computers turn without awarding human win", () => {
+    let s = newGame({ ...settings, mode: "classic", opponent: "tara" }, 0);
+    s = mv(s, "e2", "e4");
+    s = send(s, { type: "resign", actor: "w" });
+    expect(s.result).toContain("Black wins by resignation");
+  });
+});
