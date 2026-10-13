@@ -8,6 +8,7 @@ const ChaturangaMode = lazy(() => import("./chaturanga/ChaturangaMode"));
 import LandingPage from "./LandingPage";
 const AuthPage = lazy(() => import("./AuthPage"));
 const BotSelectScreen = lazy(() => import("./BotSelectScreen"));
+const DrillsPage = lazy(() => import("./chaturanga/DrillsPage"));
 const OfflineGameView = lazy(() => import("./OfflineGameView"));
 const OnlineGameMode = lazy(() => import("./modes/OnlineGameMode"));
 const PolicyPage = lazy(() => import("./PolicyPage"));
@@ -24,6 +25,7 @@ import "./index.css";
 
 const VariantPage = lazy(() => import("./chaturanga/VariantPage"));
 type Screen =
+  | "drills"
   | "rule_variants"
   | "tournaments"
   | "training"
@@ -134,6 +136,8 @@ function AppContent() {
   const renderScreen = () => {
     if (screen === "rule_variants")
       return <VariantPage onExit={() => setScreen("landing")} />;
+    if (screen === "drills")
+      return <DrillsPage onExit={() => setScreen("landing")} />;
     if (screen === "tournaments")
       return <TournamentPage onExit={() => setScreen("landing")} />;
     if (screen === "training")
@@ -320,8 +324,10 @@ function AppContent() {
     <>
       <ProductNav
         active={
-          screen === "tournaments"
-            ? "tournaments"
+          screen === "drills"
+            ? "drills"
+            : screen === "tournaments"
+              ? "tournaments"
             : screen === "training"
               ? "learn"
               : screen === "study"
@@ -340,6 +346,7 @@ function AppContent() {
         onTournaments={() => setScreen("tournaments")}
         onStudy={() => setScreen("study")}
         onLearn={() => setScreen("training")}
+        onDrills={() => setScreen("drills")}
         onProfile={() => setScreen(user ? "profile" : "auth")}
       />
       <div className="product-content">

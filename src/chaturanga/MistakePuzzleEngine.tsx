@@ -3,8 +3,10 @@ import { StudyLine } from "./study";
 import { analyzePosition } from "./engineAnalysis";
 import { detectMistake, MistakePuzzle } from "./mistakeDetector";
 import MistakePuzzlePractice from "./MistakePuzzlePractice";
+import { addPuzzles, loadStore, saveStore } from "./drills";
 export default function MistakePuzzleEngine({ line }: { line: StudyLine }) {
   const [puzzles, setPuzzles] = useState<MistakePuzzle[]>([]),
+    [saved, setSaved] = useState(0),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
   const controller = useRef<AbortController | null>(null);
@@ -71,6 +73,21 @@ export default function MistakePuzzleEngine({ line }: { line: StudyLine }) {
         </button>
       )}
       <p role="status">{notice}</p>
+      {puzzles.length > 0 && (
+        <button
+          onClick={() => {
+            const store = loadStore();
+            const n = addPuzzles(store, puzzles, "study scan");
+            saveStore(store);
+            setSaved(n);
+          }}
+        >
+          Save {puzzles.length} as daily drills
+        </button>
+      )}
+      {saved > 0 && (
+        <p role="status">Saved {saved} new drills. Open Drills from the navigation.</p>
+      )}
       {puzzles.map((p) => (
         <MistakePuzzlePractice key={p.ply + p.fen} puzzle={p} />
       ))}

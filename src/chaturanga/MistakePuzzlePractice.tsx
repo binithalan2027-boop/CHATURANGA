@@ -5,8 +5,10 @@ import PositionBoard from "./PositionBoard";
 import { readableSuggestion } from "./AnalysisCoach";
 export default function MistakePuzzlePractice({
   puzzle,
+  onResult,
 }: {
   puzzle: MistakePuzzle;
+  onResult?: (solved: boolean) => void;
 }) {
   const [selected, setSelected] = useState<Square | null>(null),
     [notice, setNotice] = useState(""),
@@ -29,11 +31,13 @@ export default function MistakePuzzlePractice({
         legal={legal}
         onSquare={(sq) => {
           if (selected && legal.includes(sq)) {
+            const ok = selected + sq === puzzle.best.slice(0, 4);
             setNotice(
-              selected + sq === puzzle.best.slice(0, 4)
+              ok
                 ? "That matches the stored candidate."
                 : "Legal move, but not the stored candidate. Alternatives have not been graded.",
             );
+            if (onResult) onResult(ok);
             setSelected(null);
           } else setSelected(c.get(sq)?.color === c.turn() ? sq : null);
         }}

@@ -7,6 +7,7 @@ export default function ProductNav({
   onStudy,
   onTournaments,
   onProfile,
+  onDrills,
   active,
 }: {
   onHome: () => void;
@@ -16,6 +17,7 @@ export default function ProductNav({
   onStudy: () => void;
   onTournaments: () => void;
   onProfile: () => void;
+  onDrills?: () => void;
   active: string;
 }) {
   const { open } = usePreferences();
@@ -53,6 +55,15 @@ export default function ProductNav({
         >
           ▤<span>Learn</span>
         </button>
+        {onDrills && (
+          <button
+            aria-label="Drills"
+            className={active === "drills" ? "active" : ""}
+            onClick={onDrills}
+          >
+            ♗<span>Drills</span>
+          </button>
+        )}
         <button
           aria-label="Tournaments"
           className={active === "tournaments" ? "active" : ""}
