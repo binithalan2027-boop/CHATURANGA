@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Rules, Role } from "chessops/types";
+import { fairyBotMove } from "./fairyStockfish";
 import { makeSquare, parseUci } from "chessops/util";
 import {
   variantPosition,
@@ -18,7 +19,12 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
     [drop, setDrop] = useState<Role | null>(null),
     [history, setHistory] = useState<string[]>([]),
     [notice, setNotice] = useState(""),
-    [promotion, setPromotion] = useState<string[]>([]);
+    [promotion, setPromotion] = useState<string[]>([]),
+    [botSide, setBotSide] = useState<"white" | "black" | null>(null),
+    [botDepth, setBotDepth] = useState(4),
+    [thinking, setThinking] = useState(false);
+  const botCtl = useRef<AbortController | null>(null),
+    lastBotFen = useRef("");
   const legal = variantMoves(pos),
     outcome = pos.outcome(),
     catalog = RULE_VARIANTS.find((v) => v.id === rule)!;
@@ -38,6 +44,34 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
         : selected !== null && u.startsWith(makeSquare(selected)),
     )
     .map((u) => parseUci(u)!.to);
+  useEffect(() => () => botCtl.current?.abort(), []);
+  useEffect(() => {
+    if (!botSide || outcome || pos.turn !== botSide || thinking) return;
+    const fen = variantFen(pos);
+    if (lastBotFen.current === fen) return;
+    lastBotFen.current = fen;
+    const ctl = new AbortController();
+    botCtl.current = ctl;
+    setThinking(true);
+    fairyBotMove(rule, fen, { depth: botDepth, signal: ctl.signal })
+      .then((r) => {
+        if (ctl.signal.aborted) return;
+        const next = variantPlay(pos, r.best);
+        setPos(next.pos);
+        setHistory((h) => [...h, next.san]);
+      })
+      .catch((e) => {
+        if (!ctl.signal.aborted)
+          setNotice(
+            `Computer move failed (${e instanceof Error ? e.message : e}). You can keep playing two-player.`,
+          );
+      })
+      .finally(() => {
+        if (!ctl.signal.aborted) setThinking(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pos, rule, botSide, botDepth]);
+
   const move = (uci: string) => {
     try {
       const next = variantPlay(pos, uci);
@@ -52,6 +86,7 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
     }
   };
   const choose = (sq: number) => {
+    if (thinking || (botSide && pos.turn === botSide)) return;
     const prefix = drop
       ? {
           pawn: "P",
@@ -144,9 +179,9 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
             </section>
           )}
           <p className="local-note">
-            Untimed local hot-seat only. No variant computer, online match,
-            rewind or verified tournament service here yet. For castling, select
-            the king then its rook square.
+            Untimed local play, two-player or against the computer. No online
+            match, rewind or verified tournament service here yet. For castling,
+            select the king then its rook square.
           </p>
         </section>
         <aside className="court-sidebar">
@@ -187,6 +222,47 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
               Reset this variant
             </button>
             <p role="status">{notice}</p>
+          </section>
+          <section className="court-panel">
+            <h2>Play the computer</h2>
+            <label>
+              Computer plays
+              <select
+                aria-label="Computer side"
+                value={botSide ?? "off"}
+                onChange={(e) => {
+                  botCtl.current?.abort();
+                  lastBotFen.current = "";
+                  setThinking(false);
+                  const v = e.target.value;
+                  setBotSide(v === "off" ? null : (v as "white" | "black"));
+                }}
+              >
+                <option value="off">Off - two players</option>
+                <option value="white">White</option>
+                <option value="black">Black</option>
+              </select>
+            </label>
+            <label>
+              Strength
+              <select
+                aria-label="Computer strength"
+                value={botDepth}
+                disabled={!botSide}
+                onChange={(e) => setBotDepth(Number(e.target.value))}
+              >
+                <option value={2}>Casual</option>
+                <option value={4}>Club</option>
+                <option value={8}>Strong</option>
+              </select>
+            </label>
+            <p role="status">
+              {thinking
+                ? "Fairy-Stockfish is thinking on this device..."
+                : botSide
+                  ? "Fairy-Stockfish 1.1.12, WASM, runs locally."
+                  : "Engine: Fairy-Stockfish 1.1.12 (GPLv3)."}
+            </p>
           </section>
           <section className="court-panel">
             <h2>Move list</h2>
