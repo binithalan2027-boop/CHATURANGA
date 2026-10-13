@@ -60,3 +60,22 @@ Harness note: the scripted game line has 20 plies. Moves-per-player is
 clamped to 10 so a game never replays the opening; earlier "errors" at 12
 moves were illegal replayed moves plus cascading Not-your-turn responses,
 not server failures.
+
+## Rate-limit interactions (harness note)
+
+Back-to-back runs from a single loopback IP can trip the production per-IP
+HTTP ceiling (120/min x RATE_LIMIT_SCALE). A 60-player run makes roughly
+2,850 requests/minute, so with RATE_LIMIT_SCALE=20 (2,400/min) a run that
+starts inside the previous run's limiter window sees "Too many requests"
+rejections. These are the production protection working, not game failures:
+the same run a minute later is clean. Wait 60s between runs or raise
+RATE_LIMIT_SCALE. Never raise it in production.
+
+## Memory (store cache)
+
+Server RSS with the record cache warm: ~111 MB before a run, ~121 MB after
+two 60-player runs on an already-populated database - growth tracks retained
+data, not a leak. The cache holds all retained records in memory; finished
+games are kept for GAME_RETENTION_DAYS (default 180). Sizing: thousands of
+retained rooms is comfortable; hundreds of thousands is not - lower the
+retention window or move to a proper database first (see DEPLOYMENT.md).

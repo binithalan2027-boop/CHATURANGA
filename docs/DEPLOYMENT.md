@@ -161,8 +161,11 @@ from before the update still work (schema is additive only).
   purge.
 - Rate limits: 120 HTTP req/min/IP, 30 WS connects/min/IP, 20 concurrent
   sockets/IP, 240 game actions/min/player, 15 local signups/min/IP.
-- Scale: single process, in-memory room index + SQLite. Comfortable for
-  hundreds of concurrent players. Beyond that: move state to a proper DB and
+- Scale: single process, in-memory record cache + SQLite. Comfortable for
+  hundreds of concurrent players. Memory tracks retained data: the cache
+  holds all records kept within GAME_RETENTION_DAYS (default 180) - size the
+  retention window to your traffic (thousands of retained rooms is fine,
+  hundreds of thousands is not). Beyond that: move state to a proper DB and
   run multiple nodes behind sticky sessions (future work, not built).
 - The 1-second push tick recomputes state only for connected players, once per
   player regardless of open tabs.
