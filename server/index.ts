@@ -335,6 +335,7 @@ const server = createServer(async (req, res) => {
         service.join(id, data.room);
       }
       else if (path === "/api/delete") {
+        entitlements.revoke(id);
         custom.delete(id);
         service.deleteUser(id);
         for (const s of store.all<Session>("session"))
