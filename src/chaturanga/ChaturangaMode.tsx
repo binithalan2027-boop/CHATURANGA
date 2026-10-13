@@ -1,3 +1,4 @@
+import { beginnerProbability } from "./engineStrength";
 import { stockfishAnalyze } from "./stockfishAdapter";
 import { useEffect, useRef, useState } from "react";
 import { Chess, Square, PieceSymbol } from "chess.js";
@@ -74,6 +75,7 @@ export default function ChaturangaMode({
   const stateRef = useRef<State | null>(null);
   const botWorker = useRef<Worker | null>(null);
   const [botThinking, setBotThinking] = useState(false);
+  const [khivinElo, setKhivinElo] = useState<number | null>(1800);
   const [khivinLevel, setKhivinLevel] = useState<BotLevel>("club");
   const storage = initialMode === "classic" ? STORAGE + "-bots" : STORAGE;
   const [game, setGame] = useState<State | null>(
@@ -232,7 +234,11 @@ export default function ChaturangaMode({
           return;
         setBotThinking(true);
         if (id === "khivin" && game.settings.mode === "classic") {
-          stockfishAnalyze(request, { depth: { beginner: 4, club: 10, master: 14 }[khivinLevel], signal: ctl.signal })
+          stockfishAnalyze(request, {
+            depth: 14,
+            elo: khivinElo === null ? null : Math.max(1320, khivinElo),
+            signal: ctl.signal,
+          })
             .then((result) => {
               const current = stateRef.current;
               if (
@@ -245,6 +251,12 @@ export default function ChaturangaMode({
               const legal = legalMoves(current).map(
                 (m) => m.from + m.to + (m.promotion || ""),
               );
+              if (
+                khivinElo !== null &&
+                khivinElo < 1320 &&
+                Math.random() < beginnerProbability(khivinElo)
+              )
+                result.best = legal[Math.floor(Math.random() * legal.length)];
               if (!legal.includes(result.best))
                 throw Error("Engine candidate is not legal under game rules.");
               setBotThinking(false);
@@ -444,8 +456,8 @@ export default function ChaturangaMode({
             <section className="court-panel demo-coach" role="note">
               <h2>60-second demo</h2>
               <p>
-                1. We set it up for you: Mind Before Move, easy maths, Khivin
-                at beginner.
+                1. We set it up for you: Mind Before Move, easy maths, Khivin at
+                beginner.
               </p>
               <p>2. Press Start. Each move asks one quick question first.</p>
               <p>
@@ -509,7 +521,46 @@ export default function ChaturangaMode({
                 ))}
               </select>
             </label>
-            {opponent === "khivin" && (
+            {opponent === "khivin" && mode === "classic" && (
+              <label>
+                Khivin practice strength
+                <select
+                  aria-label="Khivin strength mode"
+                  value={khivinElo === null ? "full" : "target"}
+                  onChange={(e) =>
+                    setKhivinElo(e.target.value === "full" ? null : 1800)
+                  }
+                >
+                  <option value="target">Target / beginner assistance</option>
+                  <option value="full">Full strength (device-limited)</option>
+                </select>
+                {khivinElo !== null && (
+                  <input
+                    aria-label="Khivin target Elo"
+                    type="number"
+                    min={1}
+                    max={3190}
+                    value={khivinElo}
+                    onChange={(e) =>
+                      setKhivinElo(
+                        Math.max(
+                          1,
+                          Math.min(3190, Number(e.target.value) || 1),
+                        ),
+                      )
+                    }
+                  />
+                )}
+                <small>
+                  {khivinElo === null
+                    ? "No Elo limit; Stockfish search still has a depth/time budget."
+                    : khivinElo < 1320
+                      ? "Beginner assistance: uncalibrated practice level, NOT a Stockfish or FIDE Elo."
+                      : "Stockfish target 1320-3190. Engine-pool estimate, NOT FIDE. Actual strength depends on device and time."}
+                </small>
+              </label>
+            )}
+            {opponent === "khivin" && mode !== "classic" && (
               <label>
                 Khivin difficulty
                 <select
@@ -534,9 +585,9 @@ export default function ChaturangaMode({
                   <strong>{BOTS.find((b) => b.id === opponent)?.name}</strong>
                   <p>{BOTS.find((b) => b.id === opponent)?.description}</p>
                   <small>
-                    Unofficial, unaffiliated practice bots. Original local
-                    engine; not measured Elo or actual player strength. You play
-                    White.
+                    Unofficial, unaffiliated practice bots. Stockfish for
+                    classic; local engine for custom modes. Targets are
+                    estimates, not measured FIDE ratings. You play White.
                   </small>
                 </div>
               </div>
@@ -631,6 +682,7 @@ export default function ChaturangaMode({
                     : "Room for a good move."}
                 </h1>
               </div>
+              {game.settings.opponent === 'khivin' && game.settings.mode === 'classic' && <small>Khivin: {khivinElo === null ? 'Full strength (search-budget limited)' : khivinElo < 1320 ? `Beginner assistance ${khivinElo} (uncalibrated)` : `Engine target ${khivinElo}, not FIDE`}</small>}
               <button onClick={() => setFlip(!flip)} aria-label="Rotate board">
                 ↻ Rotate
               </button>

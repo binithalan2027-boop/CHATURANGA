@@ -24,17 +24,21 @@ export default function VariantBoard({
   selected,
   dests,
   onSquare,
+  flip = false,
 }: {
   pos: Position;
   selected: number | null;
   dests: number[];
   onSquare: (sq: number) => void;
+  flip?: boolean;
 }) {
   const { prefs } = usePreferences();
   return (
     <div className="court-board" role="group" aria-label="Variant chess board">
       {Array.from({ length: 64 }, (_, i) => {
-        const sq = (7 - Math.floor(i / 8)) * 8 + (i % 8),
+        const sq = flip
+            ? Math.floor(i / 8) * 8 + 7 - (i % 8)
+            : (7 - Math.floor(i / 8)) * 8 + (i % 8),
           p = pos.board.get(sq),
           name = makeSquare(sq);
         return (
@@ -60,7 +64,7 @@ export default function VariantBoard({
           >
             {prefs.coordinates && i % 8 === 0 && (
               <small className="rank" aria-hidden="true">
-                {8 - Math.floor(i / 8)}
+                {flip ? Math.floor(i / 8) + 1 : 8 - Math.floor(i / 8)}
               </small>
             )}
             {prefs.coordinates && i >= 56 && (

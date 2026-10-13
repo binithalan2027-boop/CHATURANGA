@@ -10,21 +10,17 @@ const AuthPage = lazy(() => import("./AuthPage"));
 const BotSelectScreen = lazy(() => import("./BotSelectScreen"));
 const DrillsPage = lazy(() => import("./chaturanga/DrillsPage"));
 const OfflineGameView = lazy(() => import("./OfflineGameView"));
-const OnlineGameMode = lazy(() => import("./modes/OnlineGameMode"));
+const OnlinePage = lazy(() => import("./online/OnlinePage"));
 const PolicyPage = lazy(() => import("./PolicyPage"));
 const LearnPage = lazy(() => import("./LearnPage"));
 const AboutPage = lazy(() => import("./AboutPage"));
-const ProfilePage = lazy(() => import("./ProfilePage"));
-const FriendsSanctumModal = lazy(
-  () => import("./components/FriendsSanctumModal"),
-);
-const LoadingVersusScreen = lazy(
-  () => import("./components/LoadingVersusScreen"),
-);
+
 import "./index.css";
 
 const VariantPage = lazy(() => import("./chaturanga/VariantPage"));
 type Screen =
+  | "online"
+  | "friends"
   | "drills"
   | "rule_variants"
   | "tournaments"
@@ -51,7 +47,7 @@ interface User {
 }
 
 import { supabase } from "./lib/supabase";
-import { useMatchmaking } from "./lib/useMatchmaking";
+import { authConfigured } from "./lib/supabase";
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>("landing");
@@ -60,20 +56,8 @@ function AppContent() {
   const [timeMinutes, setTimeMinutes] = useState<number>(10);
   const [gameMode, setGameMode] = useState<string>("standard");
 
-  const [showSanctum, setShowSanctum] = useState<boolean>(false);
-  const [privateMatch, setPrivateMatch] = useState<{
-    roomCode: string;
-    mode: "host" | "guest";
-  } | null>(null);
-
-  const {
-    status: matchStatus,
-    match,
-    startSearch,
-    stopSearch,
-  } = useMatchmaking(user);
-
   useEffect(() => {
+    if (!authConfigured) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
@@ -107,13 +91,6 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (matchStatus === "found" && match) {
-      setGameMode("online_match");
-      setScreen("versus");
-    }
-  }, [matchStatus, match]);
-
   const triggerPlay = () => {
     // Login is NOT mandatory - guests can play immediately
     setScreen("bot_select");
@@ -124,17 +101,20 @@ function AppContent() {
     setUser(null);
   };
 
-  const handleStartPrivateMatch = (
-    roomCode: string,
-    mode: "host" | "guest",
-  ) => {
-    setShowSanctum(false);
-    setPrivateMatch({ roomCode, mode });
-    setGameMode("online_match");
-    setScreen("versus");
-  };
-
   const renderScreen = () => {
+    if (screen === "online" || screen === "friends" || screen === "profile")
+      return (
+        <OnlinePage
+          onExit={() => setScreen("landing")}
+          initialTab={
+            screen === "friends"
+              ? "friends"
+              : screen === "profile"
+                ? "profile"
+                : "play"
+          }
+        />
+      );
     if (screen === "rule_variants")
       return <VariantPage onExit={() => setScreen("landing")} />;
     if (screen === "drills")
@@ -200,64 +180,7 @@ function AppContent() {
       );
     }
 
-    if (screen === "versus") {
-      const isOnline = gameMode === "online_match";
-      const playerInfo = {
-        name: user?.name || "You",
-        avatar: "👑",
-        elo: selectedElo,
-        title: "FM",
-        fideRating: 2310,
-      };
-      const opponentInfo = isOnline
-        ? {
-            name:
-              match?.opponentName ||
-              (privateMatch
-                ? `Room Opponent (${privateMatch.roomCode.slice(0, 4)})`
-                : "Friend"),
-            avatar: "♜",
-            elo: 1650,
-            title: "IM",
-            fideRating: 2420,
-          }
-        : {
-            name: `Chess AI (${selectedElo})`,
-            avatar: "♟",
-            elo: selectedElo,
-            title: selectedElo >= 2800 ? "GM" : "BOT",
-          };
-
-      return (
-        <LoadingVersusScreen
-          player={playerInfo}
-          opponent={opponentInfo}
-          onComplete={() => setScreen("playing")}
-        />
-      );
-    }
-
     if (screen === "playing") {
-      if (gameMode === "online_match") {
-        return (
-          <OnlineGameMode
-            matchId={
-              match?.matchId ||
-              (privateMatch ? `room-${privateMatch.roomCode}` : "demo-online")
-            }
-            color={match?.color || (privateMatch?.mode === "host" ? "w" : "b")}
-            opponentName={match?.opponentName || "Friend"}
-            playerName={user?.name || "Player"}
-            timeMinutes={timeMinutes}
-            onExit={() => {
-              stopSearch();
-              setPrivateMatch(null);
-              setScreen("landing");
-            }}
-          />
-        );
-      }
-
       return (
         <OfflineGameView
           botElo={selectedElo}
@@ -293,10 +216,6 @@ function AppContent() {
       );
     }
 
-    if (screen === "profile") {
-      return <ProfilePage user={user} onBack={() => setScreen("landing")} />;
-    }
-
     // --- LANDING ---
     return (
       <>
@@ -315,18 +234,11 @@ function AppContent() {
           onOpenLearn={() => setScreen("learn")}
           onOpenAbout={() => setScreen("about")}
           onOpenProfile={() => setScreen("profile")}
-          onOpenFriendsSanctum={() => setShowSanctum(true)}
-          matchStatus={matchStatus}
-          onSearchMatch={startSearch}
-          onCancelMatch={stopSearch}
+          onOpenFriendsSanctum={() => setScreen("friends")}
+          matchStatus="idle"
+          onSearchMatch={() => setScreen("online")}
+          onCancelMatch={() => {}}
         />
-        {showSanctum && (
-          <FriendsSanctumModal
-            user={user}
-            onClose={() => setShowSanctum(false)}
-            onStartPrivateMatch={handleStartPrivateMatch}
-          />
-        )}
       </>
     );
   };
@@ -338,17 +250,17 @@ function AppContent() {
             ? "drills"
             : screen === "tournaments"
               ? "tournaments"
-            : screen === "training"
-              ? "learn"
-              : screen === "study"
-                ? "study"
-                : screen === "bots"
-                  ? "bots"
-                  : screen === "learn"
-                    ? "learn"
-                    : screen === "profile"
-                      ? "profile"
-                      : "play"
+              : screen === "training"
+                ? "learn"
+                : screen === "study"
+                  ? "study"
+                  : screen === "bots"
+                    ? "bots"
+                    : screen === "learn"
+                      ? "learn"
+                      : screen === "profile"
+                        ? "profile"
+                        : "play"
         }
         onHome={() => setScreen("landing")}
         onPlay={() => setScreen("chaturanga")}
@@ -357,7 +269,8 @@ function AppContent() {
         onStudy={() => setScreen("study")}
         onLearn={() => setScreen("training")}
         onDrills={() => setScreen("drills")}
-        onProfile={() => setScreen(user ? "profile" : "auth")}
+        onProfile={() => setScreen("profile")}
+        onOnline={() => setScreen("online")}
       />
       <div className="product-content">
         <Suspense

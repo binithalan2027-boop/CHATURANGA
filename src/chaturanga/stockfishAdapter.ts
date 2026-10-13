@@ -1,3 +1,4 @@
+import { strengthOptions } from "./engineStrength";
 import { Chess } from "chess.js";
 import { EngineInfo, parseEngineInfo } from "./stockfishProtocol";
 export const STOCKFISH_PATH =
@@ -10,10 +11,12 @@ export function stockfishAnalyze(
   fen: string,
   {
     depth = 10,
+    elo,
     signal,
     onInfo,
   }: {
     depth?: number;
+    elo?: number | null;
     signal?: AbortSignal;
     onInfo?: (info: EngineInfo) => void;
   } = {},
@@ -52,6 +55,14 @@ export function stockfishAnalyze(
       const text = String(e.data);
       if (text.includes("uciok")) {
         worker.postMessage("setoption name Hash value 16");
+        if (elo !== undefined) {
+          try {
+            strengthOptions(elo).forEach((cmd) => worker.postMessage(cmd));
+          } catch (e) {
+            finish(e instanceof Error ? e : Error(String(e)));
+            return;
+          }
+        }
         worker.postMessage("isready");
       }
       if (text.includes("readyok")) {

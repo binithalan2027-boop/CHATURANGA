@@ -8,6 +8,7 @@ export default function ProductNav({
   onTournaments,
   onProfile,
   onDrills,
+  onOnline,
   active,
 }: {
   onHome: () => void;
@@ -18,6 +19,7 @@ export default function ProductNav({
   onTournaments: () => void;
   onProfile: () => void;
   onDrills?: () => void;
+  onOnline?: () => void;
   active: string;
 }) {
   const { open } = usePreferences();
@@ -27,6 +29,11 @@ export default function ProductNav({
         ♞<span>Chaturanga</span>
       </button>
       <div className="product-nav-links">
+        {onOnline && (
+          <button aria-label="Online PvP" onClick={onOnline}>
+            ♙<span>Online</span>
+          </button>
+        )}
         <button
           aria-label="Play"
           className={active === "play" ? "active" : ""}

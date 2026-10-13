@@ -2020,3 +2020,87 @@
     line-height: 1.5;
   }
 }
+/* Strength controls need real width; don't squeeze the bot explanation to one word. */
+.setup-controls {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.setup-controls > label {
+  min-width: 200px;
+  flex: 1 1 230px;
+}
+.setup-controls > .bot-card {
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+.setup-controls > button {
+  align-self: flex-end;
+}
+.setup-controls input[type="number"] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-top: 8px;
+  background: #111b12;
+  color: #eee;
+}
+.setup-controls label > small {
+  display: block;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.setup-controls .bot-card small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 360px) {
+  .setup-controls > label,
+  .setup-controls > .bot-card {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+}
+.bot-setup {
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+}
+.bot-setup > label {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+.bot-setup > .bot-card {
+  flex: 1 1 300px;
+  min-width: 260px;
+}
+.bot-setup input[type="number"] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-top: 8px;
+  background: #111b12;
+  color: #eee;
+}
+.bot-setup label > small {
+  display: block;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.bot-setup .bot-card small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 360px) {
+  .bot-setup > label,
+  .bot-setup > .bot-card {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+}
