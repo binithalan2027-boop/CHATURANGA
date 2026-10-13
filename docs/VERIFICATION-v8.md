@@ -1,5 +1,5 @@
 # Chaturanga v8 verification record
-13 October 2026, loopback only. All steps run against a fresh clone: clean base 34410f9 + the full 27-commit v8 series applied with `git am` (two trailing-whitespace warnings inside an OFL font license text block, harmless). Result tree compared to the working tree: `git diff` empty (identical).
+13 October 2026, loopback only. All steps run against a fresh clone: clean base 34410f9 + the full 57-commit v8 series applied with `git am` (two trailing-whitespace warnings inside an OFL font license text block, harmless). Result tree compared to the working tree: `git diff` empty (identical).
 
 ## Automated
 - `npm ci`: clean.
@@ -40,6 +40,13 @@ online-smoke, v8-fog-browser, v7-browser (axe-clean on all four screens) and
 v7-mantra-browser - all green. Account deletion verified live end to end:
 after /api/delete, entitlement, profile and session rows are all zero and
 opponent history stays intact (games finished unrated, names scrubbed).
+
+## Fourth block (23:20): security pass 3 re-runs
+After the WebSocket cap, fog export, abandoned-game retention, cache
+passthrough and deletion-copy fixes: 173/173 unit tests, both typechecks,
+online-smoke, v8-fog-browser and v7-mantra-browser re-run green at 22:02,
+v7-browser re-run green at 22:41. API malformed-input fuzz and the live
+trial-mode / moderation / export probes above all ran against this tree.
 
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.
