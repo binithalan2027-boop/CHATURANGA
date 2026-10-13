@@ -15,7 +15,10 @@
 
 ## Operations
 - Backup: `npm run backup -- /tmp/backups` against the running server produced a timestamped SQLite file that opens read-only with the records table intact (27 rows after the regression runs). Restore = copy back per docs/DEPLOYMENT.md.
-- Load (fresh tree): 40 players, moves p50/p95/p99 = -/263/333ms, state reads p95 236ms, 10,080 WS pushes, 0 errors. Earlier full run recorded in docs/LOAD-TEST.md: 100 players, p95 436ms, 16,720 pushes, 0 errors.
+- Load (fresh tree): 40 players, moves p95 263ms, state reads p95 236ms, 10,080 WS pushes, 0 errors.
+- Soak (fresh tree, accumulated DB): two back-to-back 100-player runs, moves p95 315ms then 303ms, reads p95 263/258ms, 25k pushes each, 0 errors. This pass found the store read-scaling bug (fixed in the same series) and a load-test harness artifact (scripted opening replay), both documented in docs/LOAD-TEST.md.
+- Restore: a timestamped backup was copied to a fresh path and booted as a second server; a restored session token authenticated and the restored rooms served correctly (finished games kept their results).
+- Entitlements (trial mode, live server): free-game counter decrements, create blocks at the limit with honest copy, operator grant CLI unlocks and play resumes.
 - Pixel inspection of regenerated screenshots: courtyard desktop/mobile, four-player cross-board desktop/mobile, maths desktop, policy desktop, fog white/black. Layouts clean, no overflow, honest copy (modes listed separately; fog described as house rules).
 
 ## Caveats

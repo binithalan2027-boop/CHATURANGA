@@ -43,3 +43,20 @@ failed actions. The 1-second state broadcast reached every connected player.
   game outgrows that.
 - Not covered: hostile-traffic simulation, TLS termination cost (handled by
   the proxy), and real cross-country network behaviour.
+
+## Second pass (2026-10-13 evening, after store cache)
+
+Back-to-back 100-player soaks (10 moves each, 45s soak) on an ACCUMULATED
+database (several prior runs of rooms/players present):
+
+- Run A: moves p50 163ms / p95 315ms / p99 419ms; reads p95 263ms; 25,140 pushes; 0 errors.
+- Run B: moves p50 148ms / p95 303ms; reads p95 258ms; 0 errors.
+
+Latency is now flat across runs. Before the store cache, the same grown
+database read p95 1588ms and degraded every run - every /api/state call
+re-queried and re-parsed every room record.
+
+Harness note: the scripted game line has 20 plies. Moves-per-player is
+clamped to 10 so a game never replays the opening; earlier "errors" at 12
+moves were illegal replayed moves plus cascading Not-your-turn responses,
+not server failures.
