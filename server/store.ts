@@ -9,13 +9,18 @@ export class Store {
    * loaded kind's map is authoritative. Rollback drops the whole cache. */
   private kinds = new Map<string, Map<string, unknown>>();
   private loaded = new Set<string>();
+  /** Cold kinds that operator CLIs also write (moderation decisions,
+   * entitlement grants). Never cached: a second process must be able to
+   * update them without restarting the server. Volume is low, so the
+   * read-through cost is irrelevant. */
+  private static readonly PASSTHROUGH = new Set(["report", "entitlement"]);
   constructor(path = ":memory:") {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
       CREATE TABLE IF NOT EXISTS records (kind TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(kind,id));`);
   }
   get<T>(kind: string, id: string): T | undefined {
-    if (this.loaded.has(kind))
+    if (!Store.PASSTHROUGH.has(kind) && this.loaded.has(kind))
       return this.kinds.get(kind)?.get(id) as T | undefined;
     const row = this.db
       .prepare("SELECT data FROM records WHERE kind=? AND id=?")
@@ -23,6 +28,12 @@ export class Store {
     return row ? JSON.parse(row.data) : undefined;
   }
   all<T>(kind: string): T[] {
+    if (Store.PASSTHROUGH.has(kind))
+      return (
+        this.db
+          .prepare("SELECT data FROM records WHERE kind=?")
+          .all(kind) as { data: string }[]
+      ).map((r) => JSON.parse(r.data)) as T[];
     if (!this.loaded.has(kind)) {
       const m = new Map<string, unknown>();
       for (const r of this.db
@@ -41,7 +52,8 @@ export class Store {
       )
       .run(kind, id, JSON.stringify(data));
     // structuredClone so later caller mutation cannot diverge cache from DB.
-    this.kinds.get(kind)?.set(id, structuredClone(data));
+    if (!Store.PASSTHROUGH.has(kind))
+      this.kinds.get(kind)?.set(id, structuredClone(data));
   }
   delete(kind: string, id: string) {
     this.db.prepare("DELETE FROM records WHERE kind=? AND id=?").run(kind, id);
