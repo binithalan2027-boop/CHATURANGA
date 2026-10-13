@@ -3,12 +3,13 @@
 
 ## Automated
 - `npm ci`: clean.
-- Unit: 21 files, 171 tests, all pass. Includes server auth/rate-limit/store/backup/custom/fog/maintenance suites and client engine/drills/fogRules suites.
+- Unit: 21 files, 172 tests, all pass. Includes server auth/rate-limit/store/backup/custom/fog/maintenance suites and client engine/drills/fogRules suites.
 - Typechecks: `tsc -b` green (client + server). Build: `tsc && vite build` green.
 - `npm audit`: 0 vulnerabilities (v7's twelve dev advisories resolved by the toolchain upgrade).
 
 ## Real-browser (system Chrome via Playwright, fresh dev servers)
 - scripts/online-smoke.cjs: two-browser PvP room create/join/move, reload restore, draw agreement. PASS.
+- Data export verified live for fog privacy: an unfinished fog game exports as the player's safe projection (hidden army absent, opponent moves "?"); the full record appears only after the game finishes. Earlier the raw room leaked the whole position through /api/export - fixed, with a unit regression.
 - WebSocket per-IP cap verified live: 20 held connections + a 50-connection refused flood + 5 post-flood probes; every excess connection refused (earlier, refused attempts silently decremented the counter and would have eroded the cap - fixed, with unit regression tests).
 - scripts/v8-fog-browser.cjs: fog room create/join; per-player projection (own back rank visible, enemy squares "fog"); masked move list shows "?" to the opponent; reveal-on-sight (black pawn appears on d5 exactly when white's e4 pawn attacks it); capture of the revealed piece by both players; flipped board for Black; 320px mobile viewport with no horizontal overflow and a usable Variant select; zero page errors. Screenshots: v8-fog-white.png, v8-fog-black.png, v8-fog-mobile.png (pixel-inspected).
 - scripts/v7-browser.cjs: four-player cross-board round with four separate players (illegal straight capture correctly rejected), three-player room, Mind Before Move maths unlock + move with opponent question privacy, reload restore, report flow, no 320px mobile overflow, zero page errors, axe-core: zero violations on cross4, mind, policy and home screens. PASS.
@@ -31,7 +32,7 @@
 
 ## Third block (21:22): post-hardening re-run
 After the retention, deletion and store-cache changes, the full suite was
-re-run against the final tree: 171/171 unit tests, both typechecks,
+re-run against the final tree: 172/172 unit tests, both typechecks,
 online-smoke, v8-fog-browser, v7-browser (axe-clean on all four screens) and
 v7-mantra-browser - all green. Account deletion verified live end to end:
 after /api/delete, entitlement, profile and session rows are all zero and
