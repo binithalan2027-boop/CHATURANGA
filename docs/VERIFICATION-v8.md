@@ -63,7 +63,9 @@ a request without Origin then crashed the server outright
 treats a missing Origin as same-origin/non-browser; CORS headers only set
 when Origin is present). Verified live: built client boots error-free on
 port 8787, two players create/join a room, and a move travels over the
-same-port WebSocket. Evil origins still 403.
+same-port WebSocket. Evil origins still 403. After the origin-gate changes the full browser
+suite was re-run against this tree on the dev topology: online-smoke,
+v8-fog-browser, v7-browser, v7-mantra-browser - all green.
 
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.
