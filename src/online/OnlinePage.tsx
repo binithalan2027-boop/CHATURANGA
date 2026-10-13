@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
+import FogBoard from "../chaturanga/FogBoard";
+import { colorOf, fogFromFen } from "../online/fogRules";
+const fogState = fogFromFen;
 import { variantPosition, variantMoves } from "../chaturanga/variantRules";
 import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
 import {
@@ -92,8 +95,9 @@ export default function OnlinePage({
     }
   };
   const room = state?.rooms.find((r) => r.id === selectedRoom);
-  const pos = room ? variantPosition(room.rule, room.fen) : null,
-    legal = pos ? variantMoves(pos) : [];
+  const isFog = room?.rule === "fog";
+  const pos = room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null,
+    legal = isFog ? (room?.fogMoves ?? []) : pos ? variantMoves(pos) : [];
   const active =
     room?.status === "active" &&
     room.yourColor === room.turn &&
@@ -128,7 +132,16 @@ export default function OnlinePage({
       doMove(moves[0]);
       return;
     }
-    setSelected(pos?.board.get(sq)?.color === room?.yourColor ? sq : null);
+    if (isFog && room) {
+      const p = fogState(room.fen).board[sq];
+      setSelected(
+        p && colorOf(p) === (room.yourColor === "white" ? "w" : "b")
+          ? sq
+          : null,
+      );
+    } else {
+      setSelected(pos?.board.get(sq)?.color === room?.yourColor ? sq : null);
+    }
     setDrop("");
   }
   const dests = legal
@@ -586,6 +599,9 @@ export default function OnlinePage({
                       value={rule}
                       onChange={(e) => setRule(e.target.value as Rule)}
                     >
+                      <option value="fog">
+                        Fog of War (house rules: capture the king)
+                      </option>
                       {RULE_VARIANTS.map((v) => (
                         <option key={v.id} value={v.id}>
                           {v.name}
@@ -683,14 +699,32 @@ export default function OnlinePage({
                       <span>White {clock(room.whiteMs)}</span>
                       <span>Black {clock(room.blackMs)}</span>
                     </div>
-                    <VariantBoard
-                      flip={room.yourColor === "black"}
-                      pos={pos}
-                      selected={selected}
-                      dests={active ? dests : []}
-                      onSquare={square}
-                    />
-                    {room.rule === "crazyhouse" && pos.pockets && (
+                    {isFog ? (
+                      <FogBoard
+                        fen={room.fen}
+                        fogSquares={room.fogSquares ?? []}
+                        flip={room.yourColor === "black"}
+                        selected={selected}
+                        dests={active ? dests : []}
+                        onSquare={square}
+                      />
+                    ) : (
+                      <VariantBoard
+                        flip={room.yourColor === "black"}
+                        pos={pos}
+                        selected={selected}
+                        dests={active ? dests : []}
+                        onSquare={square}
+                      />
+                    )}
+                    {isFog && (
+                      <p className="fine-print">
+                        Fog of War house rules: capture the king to win - there
+                        is no check or checkmate. Enemy pieces stay hidden
+                        unless your pieces can see their square.
+                      </p>
+                    )}
+                    {room.rule === "crazyhouse" && pos && pos.pockets && (
                       <label>
                         Drop from your pocket
                         <select

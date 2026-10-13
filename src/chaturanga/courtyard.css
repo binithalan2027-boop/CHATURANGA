@@ -2104,3 +2104,13 @@
     flex-basis: 100%;
   }
 }
+
+/* Fog of War: hidden squares are dimmed and non-interactive-looking. */
+.square.fogged {
+  filter: brightness(0.55) saturate(0.6);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(20, 24, 16, 0.18) 0 6px,
+    rgba(20, 24, 16, 0.3) 6px 12px
+  );
+}
