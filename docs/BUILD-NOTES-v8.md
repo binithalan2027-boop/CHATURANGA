@@ -27,5 +27,10 @@ Node >=22.13. `npm ci`; `npm run server`; separately `npm run dev`. Loopback loc
 7. Legal operator identity, grievance staffing and child-data route per docs/LEGAL-HANDBOOK-v7.md.
 8. Rules for combined maths/spells + cross-board if wanted (see docs/ROADMAP.md).
 
+## Known low-severity notes (accepted for launch)
+1. Supabase token cache prunes only expired entries once it exceeds 5000; an attacker holding many distinct valid tokens could grow memory. Requires stolen tokens; bounded by the 60-second entry lifetime in practice.
+2. API error messages are forwarded verbatim. They are deliberate user-facing strings by design; a rare unexpected internal error (for example a database failure) would leak minor technical detail, never credentials.
+3. Static serving does not resolve symlinks; the dist folder is build output and contains none.
+
 ## Honestly not done
 No deployed HTTPS/WSS round trip, no real OAuth round trip, no public matchmaking, no rated custom games, no online tournaments, no anti-cheat, no staffed moderation, no child-consent system, no payment rails, no penetration test. Private-match Elo can be farmed and is not FIDE. Standard draws use automatic threefold/50-move settlement as a beta simplification.
