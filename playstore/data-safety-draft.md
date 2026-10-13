@@ -6,7 +6,7 @@ matches the current server code.
 | Question | Draft answer | Evidence in code |
 |----------|--------------|------------------|
 | Collect email? | Only if Supabase OAuth collects it (provider account) | server/index.ts auth via Supabase |
-| Collect name? | Display name + username (user-chosen) | service.ts profile() |
+| Collect name? | Display name + username (user-chosen); optional country + timezone fields | service.ts profile() |
 | Collect location? | No | - |
 | Collect precise device identifiers? | No advertising/analytics IDs | no SDKs |
 | Game activity (games, moves, ratings)? | Yes, stored on server | store.ts records |
