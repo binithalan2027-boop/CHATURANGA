@@ -81,14 +81,18 @@ export function originAllowed(
   host: string | undefined,
   allowed: string[],
 ): boolean {
-  if (origin && host) {
+  // No Origin header: same-origin browser request (GETs omit it) or a
+  // non-browser client. Cross-site browser requests always send Origin, so
+  // only a present header can be hostile.
+  if (!origin) return true;
+  if (host) {
     try {
       if (new URL(origin).host === host) return true;
     } catch {
       /* fall through to the allowlist */
     }
   }
-  return allowed.includes(origin ?? "");
+  return allowed.includes(origin);
 }
 
 /** Security headers applied to every API response. */

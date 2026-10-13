@@ -87,8 +87,11 @@ describe("originAllowed", () => {
     const allowed = ["http://localhost:5173"];
     expect(originAllowed("http://localhost:5173", "127.0.0.1:8787", allowed)).toBe(true);
     expect(originAllowed("https://evil.example", "127.0.0.1:8787", allowed)).toBe(false);
-    expect(originAllowed(undefined, "127.0.0.1:8787", allowed)).toBe(false);
     expect(originAllowed("not a url", "127.0.0.1:8787", allowed)).toBe(false);
+    expect(originAllowed("null", "127.0.0.1:8787", allowed)).toBe(false);
+  });
+  it("allows missing Origin (same-origin browser GETs and non-browser clients)", () => {
+    expect(originAllowed(undefined, "127.0.0.1:8787", [])).toBe(true);
   });
 });
 
