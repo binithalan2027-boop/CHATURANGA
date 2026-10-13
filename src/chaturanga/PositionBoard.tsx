@@ -40,7 +40,7 @@ export default function PositionBoard({
               <button
                 key={sq}
                 className={`square ${(r + f) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""}`}
-                aria-label={`${sq}, ${p ? (p.color === "w" ? "White" : "Black") + " " + p.type : "empty"}`}
+                aria-label={`${sq}, ${p ? (p.color === "w" ? "White" : "Black") + " " + p.type : "empty"} ${prefs.coordinates && f === 0 ? rank : ""}${prefs.coordinates && r === 7 ? file : ""} ${p ? symbols[(prefs.pieces === "solid" ? "b" : p.color) + p.type] : ""}`}
                 onClick={() => onSquare(sq)}
                 onKeyDown={(e) => {
                   const shifts: Record<string, number> = {
@@ -62,13 +62,17 @@ export default function PositionBoard({
                 }}
               >
                 {prefs.coordinates && f === 0 && (
-                  <small className="rank">{rank}</small>
+                  <small aria-hidden="true" className="rank">
+                    {rank}
+                  </small>
                 )}
                 {prefs.coordinates && r === 7 && (
-                  <small className="file">{file}</small>
+                  <small aria-hidden="true" className="file">
+                    {file}
+                  </small>
                 )}
                 {p && (
-                  <span className={`piece ${p.color}`}>
+                  <span aria-hidden="true" className={`piece ${p.color}`}>
                     {
                       symbols[
                         (prefs.pieces === "solid" ? "b" : p.color) + p.type

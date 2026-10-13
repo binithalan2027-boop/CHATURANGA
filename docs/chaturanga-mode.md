@@ -112,3 +112,21 @@ npm run dev
 ```
 
 A git bundle is also supplied as a review backup; it contains feature-branch commits and requires the original base commit. Reconcile conflicts rather than force-applying over unrelated work.
+
+## UX direction, next local loop
+The home board is interactive immediately, without account or setup. It is a small untimed two-person board and queen-only promotion, not online matchmaking. One-click quiet computer practice/resume uses the existing saved local game and skips setup; legacy offline variant starts no longer force a three-second versus screen. Home practice suggestions use actual per-composition attempts on this device; they do not infer a player's overall chess weaknesses. Study position notes explain legal captures, check/mate and material in plain English without claiming a full engine review or move-quality diagnosis. Hide-rating/difficulty-number preference is device-persisted. Mock online friends have been removed; live social presence is not connected. No ads, upsell gates or forced gamification were added.
+
+Worldwide variants remain a phased rules-engine roadmap, not shipped cards: Crazyhouse, Bughouse, King of the Hill, 3-Check, Antichess, Horde, Racing Kings, Duck Chess and historical Indian Chaturanga. Existing Chess960, Atomic, Fog and original Spell rules need independent rules-fidelity checks. Historical Chaturanga has multiple reconstructed rulesets and must name a source/ruleset rather than claim one definitive implementation. Every new engine needs legality, terminal-state, bot compatibility and two-client tests where appropriate.
+
+### Independent feature modules and tested boundaries
+- ZenModeToggle: persists hiding rating/difficulty numbers in the new settings and wired legacy player bars/variant selector. Not a full hide-streaks/results mode; legacy profile internals are not audited.
+- RematchSettings / rematchPolicy: persisted choice and tested decision helper. No rematch protocol exists yet in the online service, so this is preparation, not functional online auto-decline.
+- OpeningExplorer / openingLookup / data/eco.json: 3,865 named lines with legal position index, search and loaded-line classification. Database is lazy-loaded with Study, not the home bundle. No frequency/win-rate statistics.
+- AnalysisCoach / positionNotes: rules facts, material balance, SAN translation of a real engine candidate. Does not fabricate causal strategy or full conversational review.
+- MistakePuzzleEngine / engineAnalysis / mistakeDetector / MistakePuzzlePractice: real browser-only opt-in depth-8 scan, first 20 imported plies, skips mate-score/promotions, 1.5-pawn loss threshold, cancellable worker, candidate-practice board. One stored candidate, no unique-solution or equal-alternative certification. Imported lines and scans are not uploaded; results are session-only. Cross-device game history and a robust graded bank remain future work.
+- Puzzle auto-advance outside sprint is independently optional and defaults off. No new payment gate was added.
+- Khivin: original signature house bot with existing bounded search. No book training, world-knowledge or Stockfish-strength claim.
+
+Lighthouse 13.5.0, local Vite production preview, default simulated mobile, home screen: first UX run 96/100/96/82, final repeat 98/100/100/100 (Performance/Accessibility/Best Practices/SEO). Fixes: missing favicon, meta description and valid robots.txt; non-home pages lazy-loaded; board visible labels corrected. Lab scores vary and do not establish public hosting, real-device speed, all-page certification or superiority to another website. Remaining unused CSS/JS and render-blocking legacy font resources are optimization work.
+
+Opening dataset commit: a6189a30dc273ccb21fc2536a9a2fefd5592a67a

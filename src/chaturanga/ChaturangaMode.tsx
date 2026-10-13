@@ -58,20 +58,37 @@ function time(ms: number) {
 export default function ChaturangaMode({
   onExit,
   initialMode = "mind",
+  quickStart = false,
 }: {
   onExit: () => void;
   initialMode?: Settings["mode"];
+  quickStart?: boolean;
 }) {
   const { prefs, update, open } = usePreferences();
-  const [opponent, setOpponent] = useState<"local" | BotId>(
-    initialMode === "classic" ? "tara" : "local",
-  );
+  const [opponent, setOpponent] = useState<"local" | BotId>("khivin");
   const [replayIndex, setReplayIndex] = useState<number | null>(null);
   const stateRef = useRef<State | null>(null);
   const botWorker = useRef<Worker | null>(null);
   const [botThinking, setBotThinking] = useState(false);
   const storage = initialMode === "classic" ? STORAGE + "-bots" : STORAGE;
-  const [game, setGame] = useState<State | null>(() => saved(storage));
+  const [game, setGame] = useState<State | null>(
+    () =>
+      saved(storage) ||
+      (quickStart
+        ? newGame(
+            {
+              mode: "classic",
+              opponent: "khivin",
+              difficulty: "medium",
+              initialMs: 600000,
+              incrementMs: 0,
+              untimed: true,
+              seed: Math.floor(Math.random() * 1000000),
+            },
+            Date.now(),
+          )
+        : null),
+  );
 
   const [mode, setMode] = useState<Settings["mode"]>(initialMode);
   const [difficulty, setDifficulty] =

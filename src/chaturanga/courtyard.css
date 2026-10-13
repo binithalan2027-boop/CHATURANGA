@@ -1948,3 +1948,75 @@
 .product-shell input[type="checkbox"] {
   accent-color: #719b46;
 }
+.home-board-live {
+  width: 100%;
+  max-width: 460px;
+  justify-self: end;
+}
+.home-board-live .section-line {
+  margin-bottom: 12px;
+  gap: 8px;
+}
+.home-board-live .court-board {
+  width: 100%;
+  max-width: none;
+}
+.home-board-live p {
+  margin: 10px 0;
+}
+.home-board-live small {
+  display: block;
+  line-height: 1.5;
+  color: var(--court-muted);
+}
+.home-practice {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  justify-content: space-between;
+  margin: 28px 0;
+}
+.home-practice h2 {
+  margin: 8px 0;
+}
+.home-practice p {
+  margin: 8px 0;
+}
+.home-practice small {
+  line-height: 1.5;
+  display: block;
+}
+.home-practice button {
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .home-board-live {
+    justify-self: center;
+  }
+  .home-practice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .home-hero {
+    gap: 30px;
+  }
+}
+@media (max-width: 760px) {
+  .home-hero {
+    display: flex;
+    flex-direction: column;
+  }
+  .home-board-live {
+    order: -1;
+    max-width: 390px;
+  }
+  .home-hero h1 {
+    font-size: 38px;
+    line-height: 1.06;
+  }
+  .settings-toggles small {
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}

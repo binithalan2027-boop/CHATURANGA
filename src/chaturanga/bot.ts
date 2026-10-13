@@ -1,6 +1,18 @@
 import { Chess, Move } from "chess.js";
 export const BOTS = [
   {
+    id: "khivin",
+    name: "Khivin",
+    level: "House bot · local practice",
+    description:
+      "Your original house opponent. Bounded local search, not book-trained, master-strength or all-knowing.",
+    depth: 3,
+    noise: 5,
+    accuracy: 0.94,
+    capture: 1,
+    center: 1.2,
+  },
+  {
     id: "aarav",
     name: "Magnus Carlsen",
     level: "Positional · approachable",

@@ -1,7 +1,15 @@
+import HomeBoard from "./chaturanga/HomeBoard";
+import {
+  PUZZLES,
+  practiceSuggestion,
+  emptyProgress,
+} from "./chaturanga/training";
 import "./chaturanga/courtyard.css";
 interface LandingPageProps {
   user: { name: string; email: string } | null;
   onPlay: () => void;
+  onQuick: () => void;
+  onTraining: () => void;
   onLogin: () => void;
   onLogout: () => void;
   onChaturanga: () => void;
@@ -16,6 +24,16 @@ interface LandingPageProps {
   onCancelMatch: () => void;
 }
 export default function LandingPage(props: LandingPageProps) {
+  let progress = emptyProgress;
+  try {
+    progress =
+      JSON.parse(localStorage.getItem("chaturanga-training-v1") || "null") ||
+      emptyProgress;
+  } catch {
+    /* no invented history */
+  }
+  const suggestion = practiceSuggestion(progress);
+  const puzzle = PUZZLES.find((p) => p.id === suggestion.id)!;
   return (
     <div className="courtyard home-courtyard">
       <header className="court-header">
@@ -38,50 +56,47 @@ export default function LandingPage(props: LandingPageProps) {
           <div>
             <div className="eyebrow">FROM THE COURTYARD, TO YOUR NEXT MOVE</div>
             <h1>
-              Chess feels
+              Your next move.
               <br />
-              better at home.
+              Nothing in the way.
             </h1>
             <p>
-              A familiar board. Fresh ways to play.
+              Move a piece now. No sign-in, menu or countdown.
               <br />
-              Settle in for a game that makes you think.
+              Or settle into a quiet game with a computer.
             </p>
             <div className="home-actions">
-              <button className="primary" onClick={props.onChaturanga}>
-                Play Chaturanga ↗
+              <button className="primary" onClick={props.onQuick}>
+                Play or resume quiet practice ↗
               </button>
               <button onClick={props.onPlay}>Explore classic variants</button>
-              <button onClick={props.onBots}>Play a computer</button>
+              <button onClick={props.onChaturanga}>Mind & magic</button>
             </div>
             <span className="home-footnote">
               No account needed for local play. Your board is ready.
             </span>
           </div>
-          <div className="courtyard-art" aria-hidden="true">
-            <div className="arch">
-              <div className="window-lines" />
-            </div>
-            <div className="plant">
-              <span>⌇</span>
-              <i />
-            </div>
-            <div className="art-board">
-              {Array.from({ length: 64 }, (_, i) => (
-                <span
-                  key={i}
-                  className={
-                    (Math.floor(i / 8) + (i % 8)) % 2
-                      ? "wood-dark"
-                      : "wood-light"
-                  }
-                >
-                  {i === 27 ? "♞" : i === 36 ? "♔" : ""}
-                </span>
-              ))}
-            </div>
-            <div className="art-caption">A quiet corner. An open board.</div>
+          <HomeBoard />
+        </section>
+        <section className="home-practice court-panel">
+          <div>
+            <div className="eyebrow">YOUR NEXT SMALL STEP</div>
+            <h2>{puzzle.name}</h2>
+            <p>{suggestion.reason}</p>
+            <small>
+              Based only on attempts stored on this device, not a chess-strength
+              diagnosis.
+            </small>
           </div>
+          <button
+            className="primary"
+            onClick={() => {
+              localStorage.setItem("chaturanga-next-puzzle", suggestion.id);
+              props.onTraining();
+            }}
+          >
+            Practice this pattern
+          </button>
         </section>
         <section className="home-modes">
           <div className="section-line">

@@ -10,9 +10,15 @@ import {
 import PositionBoard from "./PositionBoard";
 import { usePreferences } from "./preferences";
 export default function TrainingPage({ onExit }: { onExit: () => void }) {
-  const { open } = usePreferences();
-  const [index, setIndex] = useState(0),
-    [fen, setFen] = useState(PUZZLES[0].fen),
+  const { open, prefs } = usePreferences();
+  const startIndex = Math.max(
+    0,
+    PUZZLES.findIndex(
+      (p) => p.id === localStorage.getItem("chaturanga-next-puzzle"),
+    ),
+  );
+  const [index, setIndex] = useState(startIndex),
+    [fen, setFen] = useState(PUZZLES[startIndex].fen),
     [selected, setSelected] = useState<Square | null>(null),
     [notice, setNotice] = useState(""),
     [solved, setSolved] = useState(false),
@@ -81,8 +87,8 @@ export default function TrainingPage({ onExit }: { onExit: () => void }) {
         setFen(c.fen());
         setSolved(true);
         setNotice("Checkmate. Nicely seen.");
-        if (rush) {
-          setScore((s) => s + 1);
+        if (rush) setScore((s) => s + 1);
+        if (rush || prefs.puzzleAutoAdvance) {
           nextTimer.current = setTimeout(
             () => choose((index + 1) % PUZZLES.length),
             600,

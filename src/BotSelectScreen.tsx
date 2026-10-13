@@ -1,3 +1,4 @@
+import { usePreferences } from "./chaturanga/preferences";
 import { useState } from "react";
 import "./chaturanga/courtyard.css";
 export interface BotSelectScreenProps {
@@ -40,6 +41,7 @@ export default function BotSelectScreen({
   onStart,
   onBack,
 }: BotSelectScreenProps) {
+  const { prefs } = usePreferences();
   const [elo, setElo] = useState(1300),
     [minutes, setMinutes] = useState(10),
     [mode, setMode] = useState("standard");
@@ -84,11 +86,21 @@ export default function BotSelectScreen({
               value={elo}
               onChange={(e) => setElo(Number(e.target.value))}
             >
-              <option value={450}>Beginner · 450</option>
-              <option value={1300}>Intermediate · 1300</option>
-              <option value={1850}>Advanced · 1850</option>
-              <option value={2400}>Expert · 2400</option>
-              <option value={3200}>Maximum · 3200</option>
+              <option value={450}>
+                {prefs.hideRatings ? "Beginner" : "Beginner · 450"}
+              </option>
+              <option value={1300}>
+                {prefs.hideRatings ? "Intermediate" : "Intermediate · 1300"}
+              </option>
+              <option value={1850}>
+                {prefs.hideRatings ? "Advanced" : "Advanced · 1850"}
+              </option>
+              <option value={2400}>
+                {prefs.hideRatings ? "Expert" : "Expert · 2400"}
+              </option>
+              <option value={3200}>
+                {prefs.hideRatings ? "Maximum" : "Maximum · 3200"}
+              </option>
             </select>
           </label>
           <label>

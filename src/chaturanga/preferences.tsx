@@ -1,3 +1,5 @@
+import ZenModeToggle from "./ZenModeToggle";
+import RematchSettings from "./RematchSettings";
 import {
   createContext,
   useContext,
@@ -9,6 +11,9 @@ export interface Preferences {
   theme: "dark" | "light";
   board: "teak" | "sage" | "slate" | "contrast";
   pieces: "classic" | "solid";
+  hideRatings: boolean;
+  autoDeclineRematch: boolean;
+  puzzleAutoAdvance: boolean;
   sound: boolean;
   motion: boolean;
   coordinates: boolean;
@@ -20,6 +25,9 @@ const defaults: Preferences = {
   theme: "dark",
   board: "sage",
   pieces: "classic",
+  hideRatings: false,
+  autoDeclineRematch: false,
+  puzzleAutoAdvance: false,
   sound: false,
   motion: false,
   coordinates: true,
@@ -157,8 +165,14 @@ export function PreferenceProvider({ children }: { children: ReactNode }) {
                 </label>
               </div>
               <div className="settings-toggles">
+                <ZenModeToggle />
+                <RematchSettings />
                 {(
                   [
+                    [
+                      "puzzleAutoAdvance",
+                      "Auto-advance untimed puzzles after solving",
+                    ],
                     ["sound", "Move sounds"],
                     ["motion", "Reduced motion"],
                     ["coordinates", "Coordinates"],

@@ -36,6 +36,7 @@ export function isPuzzleMate(fen: string, from: Square, to: Square): boolean {
   }
 }
 export interface TrainingProgress {
+  byPuzzle?: Record<string, { attempts: number; correct: number }>;
   solved: string[];
   attempts: number;
   correct: number;
@@ -54,10 +55,43 @@ export function recordAttempt(
 ): TrainingProgress {
   return {
     ...progress,
+    byPuzzle: {
+      ...progress.byPuzzle,
+      [id]: {
+        attempts: (progress.byPuzzle?.[id]?.attempts || 0) + 1,
+        correct: (progress.byPuzzle?.[id]?.correct || 0) + (correct ? 1 : 0),
+      },
+    },
     attempts: progress.attempts + 1,
     correct: progress.correct + (correct ? 1 : 0),
     solved: correct
       ? Array.from(new Set([...progress.solved, id]))
       : progress.solved,
+  };
+}
+
+export function practiceSuggestion(progress: TrainingProgress): {
+  id: string;
+  reason: string;
+} {
+  const missed = PUZZLES.map((p) => ({ p, stats: progress.byPuzzle?.[p.id] }))
+    .filter((x) => x.stats && x.stats.attempts > x.stats.correct)
+    .sort(
+      (a, b) =>
+        b.stats!.attempts -
+        b.stats!.correct -
+        (a.stats!.attempts - a.stats!.correct),
+    );
+  if (missed.length)
+    return {
+      id: missed[0].p.id,
+      reason: `${missed[0].stats!.attempts - missed[0].stats!.correct} unsuccessful attempts on this device. Revisit the pattern without a timer.`,
+    };
+  const next = PUZZLES.find((p) => !progress.solved.includes(p.id));
+  return {
+    id: (next || PUZZLES[0]).id,
+    reason: next
+      ? "An unsolved composition from your local practice bank."
+      : "You have solved this starter bank. Repeat for practice, not a new rating.",
   };
 }

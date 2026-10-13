@@ -1,27 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { PreferenceProvider } from "./chaturanga/preferences";
 import ProductNav from "./chaturanga/ProductNav";
-import TournamentPage from "./chaturanga/TournamentPage";
-import TrainingPage from "./chaturanga/TrainingPage";
-import StudyBoard from "./chaturanga/StudyBoard";
-import ChaturangaMode from "./chaturanga/ChaturangaMode";
+const TournamentPage = lazy(() => import("./chaturanga/TournamentPage"));
+const TrainingPage = lazy(() => import("./chaturanga/TrainingPage"));
+const StudyBoard = lazy(() => import("./chaturanga/StudyBoard"));
+const ChaturangaMode = lazy(() => import("./chaturanga/ChaturangaMode"));
 import LandingPage from "./LandingPage";
-import AuthPage from "./AuthPage";
-import BotSelectScreen from "./BotSelectScreen";
-import OfflineGameView from "./OfflineGameView";
-import OnlineGameMode from "./modes/OnlineGameMode";
-import PolicyPage from "./PolicyPage";
-import LearnPage from "./LearnPage";
-import AboutPage from "./AboutPage";
-import ProfilePage from "./ProfilePage";
-import FriendsSanctumModal from "./components/FriendsSanctumModal";
-import LoadingVersusScreen from "./components/LoadingVersusScreen";
+const AuthPage = lazy(() => import("./AuthPage"));
+const BotSelectScreen = lazy(() => import("./BotSelectScreen"));
+const OfflineGameView = lazy(() => import("./OfflineGameView"));
+const OnlineGameMode = lazy(() => import("./modes/OnlineGameMode"));
+const PolicyPage = lazy(() => import("./PolicyPage"));
+const LearnPage = lazy(() => import("./LearnPage"));
+const AboutPage = lazy(() => import("./AboutPage"));
+const ProfilePage = lazy(() => import("./ProfilePage"));
+const FriendsSanctumModal = lazy(
+  () => import("./components/FriendsSanctumModal"),
+);
+const LoadingVersusScreen = lazy(
+  () => import("./components/LoadingVersusScreen"),
+);
 import "./index.css";
 
 type Screen =
   | "tournaments"
   | "training"
   | "study"
+  | "quick"
   | "bots"
   | "chaturanga"
   | "landing"
@@ -143,6 +148,14 @@ function AppContent() {
       );
     }
 
+    if (screen === "quick")
+      return (
+        <ChaturangaMode
+          initialMode="classic"
+          quickStart
+          onExit={() => setScreen("landing")}
+        />
+      );
     if (screen === "bots")
       return (
         <ChaturangaMode
@@ -163,7 +176,7 @@ function AppContent() {
             setSelectedElo(elo);
             setTimeMinutes(time);
             setGameMode(mode);
-            setScreen("versus");
+            setScreen("playing");
           }}
           onBack={() => setScreen("landing")}
         />
@@ -271,6 +284,8 @@ function AppContent() {
     return (
       <>
         <LandingPage
+          onQuick={() => setScreen("quick")}
+          onTraining={() => setScreen("training")}
           onChaturanga={() => setScreen("chaturanga")}
           onBots={() => setScreen("bots")}
           user={user}
@@ -322,7 +337,17 @@ function AppContent() {
         onLearn={() => setScreen("training")}
         onProfile={() => setScreen(user ? "profile" : "auth")}
       />
-      <div className="product-content">{renderScreen()}</div>
+      <div className="product-content">
+        <Suspense
+          fallback={
+            <div className="courtyard court-setup" role="status">
+              Opening your board…
+            </div>
+          }
+        >
+          {renderScreen()}
+        </Suspense>
+      </div>
     </>
   );
 }

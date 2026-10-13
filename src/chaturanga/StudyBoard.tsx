@@ -1,7 +1,10 @@
+import MistakePuzzleEngine from "./MistakePuzzleEngine";
 import { useState, useEffect, useRef } from "react";
 import PositionBoard from "./PositionBoard";
 import { Chess, Square } from "chess.js";
 import { parsePgn, fromFen, studyMove, materialEval, StudyLine } from "./study";
+import AnalysisCoach from "./AnalysisCoach";
+import OpeningExplorer from "./OpeningExplorer";
 import { OPENINGS } from "./openings";
 import { LIBRARY } from "./library";
 import { usePreferences } from "./preferences";
@@ -201,6 +204,22 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
           </p>
         </section>
         <aside className="court-sidebar">
+          <AnalysisCoach
+            fen={fen}
+            previousFen={index ? line.fens[index - 1] : undefined}
+            san={index ? line.sans[index - 1] : undefined}
+            best={best}
+            evaluation={evaluation}
+          />
+          <OpeningExplorer
+            line={line}
+            index={index}
+            onLoad={(next) => {
+              setLine(next);
+              setIndex(next.sans.length);
+              setSelected(null);
+            }}
+          />
           <section className="court-panel">
             <div className="eyebrow">YOUR OWN WORKBENCH</div>
             <h2>Position & evaluation</h2>
@@ -280,6 +299,7 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
               ))}
             </div>
           </section>
+          <MistakePuzzleEngine line={line} />
           <section className="court-panel">
             <h2>Games library</h2>
             <p>

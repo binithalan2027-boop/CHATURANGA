@@ -10,3 +10,5 @@ This branch introduces no runtime dependencies or copied proprietary artwork.
 - Historical move score: Lasker-Capablanca 1921 game 10, factual moves transcribed from https://www.chessgames.com/perl/printgame?gid=1241504 . No commentary, analysis or page artwork was copied. This one game is not an archive license for bulk scraping.
 - Opening starter factual lines have source links in `openings.ts`; no source descriptions/statistics/artwork were copied.
 - Famous-player bot labels are requested unofficial name-inspired labels only. No real player photos/voices or endorsement claims. Public-release rights review remains outstanding.
+
+Opening name database: lichess-org/chess-openings, CC0/public-domain dedication. Imported from https://github.com/lichess-org/chess-openings (a.tsv through e.tsv); each PGN replayed legally using chess.js before generating the local position index. Names/classification only, no popularity, master win rates or opening recommendation statistics. The upstream commit is recorded in the UX build notes.
