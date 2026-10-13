@@ -91,6 +91,8 @@ const csp = clientCsp(extraConnect);
 const cspReportOnly = process.env.CSP_REPORT_ONLY === "1";
 
 const limiter = new RateLimiter(60_000);
+/** Multiplies every rate limit. For load testing and capacity tuning only. */
+const LIMIT_SCALE = Math.max(1, Number(process.env.RATE_LIMIT_SCALE ?? 1));
 interface Session {
   id: string;
   user: string;
@@ -105,7 +107,7 @@ const WS_REAUTH_MS = 5 * 60_000;
 
 async function auth(token: unknown, ip: string) {
   if (typeof token !== "string" || token.length > 4096) {
-    limiter.check(`authfail:${ip}`, 30, "Too many failed sign-ins.");
+    limiter.check(`authfail:${ip}`, 30 * LIMIT_SCALE, "Too many failed sign-ins.");
     throw Error("Sign in required.");
   }
   if (supabase) {
@@ -113,7 +115,7 @@ async function auth(token: unknown, ip: string) {
     if (cached && cached.expires > Date.now()) return cached.user;
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data.user) {
-      limiter.check(`authfail:${ip}`, 30, "Too many failed sign-ins.");
+      limiter.check(`authfail:${ip}`, 30 * LIMIT_SCALE, "Too many failed sign-ins.");
       throw Error("Sign in expired.");
     }
     service.ensureUser(data.user.id);
@@ -128,7 +130,7 @@ async function auth(token: unknown, ip: string) {
   }
   const session = store.get<Session>("session", token);
   if (!session || session.expires < Date.now()) {
-    limiter.check(`authfail:${ip}`, 30, "Too many failed sign-ins.");
+    limiter.check(`authfail:${ip}`, 30 * LIMIT_SCALE, "Too many failed sign-ins.");
     throw Error("Local session expired.");
   }
   service.requireUser(session.user);
@@ -249,7 +251,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   try {
-    limiter.check(`http:${ip}`, 120);
+    limiter.check(`http:${ip}`, 120 * LIMIT_SCALE);
     if (path === "/api/config") {
       reply(res, 200, {
         mode,
@@ -261,7 +263,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "POST" && path === "/api/local-session") {
       if (mode !== "local") throw Error("Local sign-in is disabled.");
-      limiter.check(`signup:${ip}`, 15);
+      limiter.check(`signup:${ip}`, 15 * LIMIT_SCALE);
       const token = randomBytes(32).toString("hex"),
         id = randomBytes(16).toString("hex");
       service.ensureUser(id);
@@ -287,7 +289,7 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (req.method !== "POST") throw Error("Unsupported request.");
-    limiter.check(`act:${id}`, 240);
+    limiter.check(`act:${id}`, 240 * LIMIT_SCALE);
     const data = await body(req);
     let result: unknown = { ok: true };
     if (path === "/api/custom-action") {
@@ -349,7 +351,7 @@ const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 server.on("upgrade", (req, socket, head) => {
   const ip = clientIp(req, trustProxy);
   try {
-    limiter.check(`ws:${ip}`, 30);
+    limiter.check(`ws:${ip}`, 30 * LIMIT_SCALE);
   } catch {
     socket.destroy();
     return;
