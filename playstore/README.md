@@ -15,12 +15,15 @@ later need native APIs (push notifications, Play Billing for the unlock).
 
 1. Install Bubblewrap: `npm install -g @bubblewrap/cli` (needs JDK 17+ and
    Android SDK; `bubblewrap doctor` checks).
-2. Put real icons at `public/icons/` (512px + maskable 512px) and rebuild, so
-   the deployed site serves them.
+2. Icons are done: `public/icons/icon-512.png` and `icon-maskable-512.png`
+   ship with the app, and the site serves `/manifest.webmanifest` (verified
+   200 locally along with both icons).
 3. Edit `playstore/twa-manifest.json`: replace YOUR-DOMAIN with the real
    domain (host + iconUrl).
-4. `bubblewrap init --manifest https://YOUR-DOMAIN/playstore/twa-manifest.json`
-   (or point at a local copy), then `bubblewrap build`.
+4. `bubblewrap init --manifest https://YOUR-DOMAIN/manifest.webmanifest` -
+   Bubblewrap reads the SITE web manifest and generates its own
+   twa-manifest.json; merge the packageId/signingKey values from
+   playstore/twa-manifest.json - then `bubblewrap build`.
 5. Create the release keystore when asked (or
    `keytool -genkey -v -keystore android.keystore -alias chaturanga -keyalg RSA -keysize 2048 -validity 10000`).
    Back it up: losing it means never updating the app again.
