@@ -114,7 +114,7 @@ The database is one SQLite file. Online-safe backup (works while running):
 # Docker:
 docker exec chaturanga npm run backup -- /app/data/backups
 docker cp chaturanga:/app/data/backups ./backups
-# Bare metal:
+# Bare metal (first time: sudo -u chaturanga mkdir -p /opt/chaturanga/backups):
 cd /opt/chaturanga/app && sudo -u chaturanga npm run backup -- /opt/chaturanga/backups
 ```
 
