@@ -217,6 +217,14 @@ async function deleteAuthIdentity(
 const server = createServer(async (req, res) => {
   const ip = clientIp(req, trustProxy);
   const path = (req.url ?? "").split("?")[0];
+  if (
+    (path === "/healthz" || path === "/api/healthz") &&
+    req.method === "GET"
+  ) {
+    apiSecurityHeaders(res);
+    reply(res, 200, { ok: true });
+    return;
+  }
   if (!path.startsWith("/api/")) {
     if (staticHandler) {
       staticSecurityHeaders(res, { csp, behindTls, reportOnly: cspReportOnly });

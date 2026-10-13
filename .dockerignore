@@ -1,0 +1,8 @@
+.git
+node_modules
+dist
+data
+*.log
+/downloads
+/docs/*.png
+.env

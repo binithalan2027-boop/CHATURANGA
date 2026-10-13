@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "server": "tsx server/index.ts",
     "typecheck:server": "tsc -p tsconfig.server.json",
-    "test:online:browser": "node scripts/online-smoke.cjs"
+    "test:online:browser": "node scripts/online-smoke.cjs",
+    "start": "node --import tsx server/index.ts",
+    "backup": "tsx scripts/backup.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
@@ -19,7 +21,8 @@
     "chessops": "0.15.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "ws": "^8.22.0"
+    "ws": "^8.22.0",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -33,7 +36,6 @@
     "autoprefixer": "^10.6.1",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.4"

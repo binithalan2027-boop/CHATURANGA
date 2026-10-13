@@ -1,0 +1,9 @@
+# Caddy terminates TLS (automatic Let's Encrypt) and proxies HTTP + WebSocket.
+# Install: https://caddyserver.com/docs/install (apt install caddy on Ubuntu).
+# Place at /etc/caddy/Caddyfile, then: sudo systemctl reload caddy
+
+{$DOMAIN:chaturanga.example.com} {
+	# Security headers are set by the app; Caddy adds TLS + compression.
+	reverse_proxy 127.0.0.1:8787
+	encode zstd gzip
+}

@@ -1,0 +1,26 @@
+# Bare-metal alternative to Docker. Place at /etc/systemd/system/chaturanga.service
+# sudo systemctl daemon-reload && sudo systemctl enable --now chaturanga
+[Unit]
+Description=Chaturanga game server (Node + WebSocket + SQLite)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chaturanga
+Group=chaturanga
+WorkingDirectory=/opt/chaturanga
+EnvironmentFile=/opt/chaturanga/.env
+ExecStart=/usr/bin/node --import tsx server/index.ts
+Restart=on-failure
+RestartSec=3
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/chaturanga/data
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
