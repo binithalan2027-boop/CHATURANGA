@@ -24,6 +24,11 @@
 - Soak (fresh tree, accumulated DB): two back-to-back 100-player runs, moves p95 315ms then 303ms, reads p95 263/258ms, 25k pushes each, 0 errors. This pass found the store read-scaling bug (fixed in the same series) and a load-test harness artifact (scripted opening replay), both documented in docs/LOAD-TEST.md.
 - Restore: a timestamped backup was copied to a fresh path and booted as a second server; a restored session token authenticated and the restored rooms served correctly (finished games kept their results).
 - Entitlements (trial mode, live server): free-game counter decrements, create blocks at the limit with honest copy, operator grant CLI unlocks and play resumes.
+- Mobile fullPage screenshots show the bottom navigation bar floating
+  mid-page: that is a stitching artifact of fullPage capture with a
+  position:fixed bottom bar, not a layout bug. A real 320x820 viewport
+  capture shows the bar correctly pinned to the bottom; the mobile overflow
+  checks assert the real layout.
 - Pixel inspection of regenerated screenshots: courtyard desktop/mobile, four-player cross-board desktop/mobile, maths desktop, policy desktop, fog white/black. Layouts clean, no overflow, honest copy (modes listed separately; fog described as house rules).
 
 ## Second block (21:15): hardening review + artifact validation
