@@ -16,6 +16,16 @@
 - Security pass 3 (post-verification review) found and fixed four more real issues: refused WebSocket connections eroded the per-IP connection cap; /api/export leaked the full Fog of War position mid-game (unfinished fog rooms now export as the player's safe projection); games abandoned mid-play stayed "active" forever (the hourly sweep now closes them unrated after 7 days); and operator CLI writes (moderation decisions, entitlement grants) were invisible to the running server until restart (report/entitlement records now bypass the cache). The account-deletion dialog also claimed the sign-in account survives; the copy now matches the actual auth-identity removal and surfaces manual-step outcomes.
 - docs/ROADMAP.md: combined maths/spells + three/four-player cross-board is DEFERRED (rules design is an owner decision; merging two verified engines days before launch is a weakest-link risk) with a concrete build sketch and the three owner decisions it needs.
 
+## Apply this patch
+```
+git clone <your repo> chaturanga-v8 && cd chaturanga-v8
+git checkout 34410f9
+git am < Chaturanga-v8-final-*.txt   # the whole series lands in order
+npm ci && npx vitest run && npm run build
+```
+Every shipped revision was artifact-tested this exact way and the resulting
+tree compared byte-identical to the verified tree.
+
 ## Run
 Node >=22.13. `npm ci`; `npm run server`; separately `npm run dev`. Loopback local authentication only. Deployment is `docker compose up` or the systemd path in docs/DEPLOYMENT.md. No hosting cost incurred.
 
