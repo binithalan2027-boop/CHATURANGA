@@ -1,43 +1,158 @@
-
-import Navbar from './components/layout/Navbar';
-import Footer from './components/layout/Footer';
-import HeroSection from './components/landing/HeroSection';
-import ModesSection from './components/landing/ModesSection';
-
+import "./chaturanga/courtyard.css";
 interface LandingPageProps {
   user: { name: string; email: string } | null;
   onPlay: () => void;
   onLogin: () => void;
   onLogout: () => void;
+  onChaturanga: () => void;
+  onBots: () => void;
   onOpenPolicy?: () => void;
   onOpenLearn?: () => void;
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
   onOpenFriendsSanctum?: () => void;
-  matchStatus: 'idle' | 'searching' | 'found';
+  matchStatus: "idle" | "searching" | "found";
   onSearchMatch: () => void;
   onCancelMatch: () => void;
 }
-
 export default function LandingPage(props: LandingPageProps) {
   return (
-    <div className="flex flex-col w-full min-h-screen">
-      <Navbar {...props} />
-      
-      <main className="w-full pt-20 bg-void-black flex-1">
-        <div className="flex flex-col w-full">
-          <HeroSection 
-            onPlay={props.onPlay}
-            matchStatus={props.matchStatus}
-            onSearchMatch={props.onSearchMatch}
-            onCancelMatch={props.onCancelMatch}
-            onOpenFriendsSanctum={props.onOpenFriendsSanctum}
-          />
-          <ModesSection />
+    <div className="courtyard home-courtyard">
+      <header className="court-header">
+        <div className="court-brand">
+          ♞{" "}
+          <span>
+            Chaturanga<small>Come for chess. Stay for the company.</small>
+          </span>
         </div>
+        <nav className="court-header-actions">
+          <button onClick={props.onOpenLearn}>Learn</button>
+          <button onClick={props.user ? props.onOpenProfile : props.onLogin}>
+            {props.user ? props.user.name : "Sign in"}
+          </button>
+          {props.user && <button onClick={props.onLogout}>Sign out</button>}
+        </nav>
+      </header>
+      <main className="court-home">
+        <section className="home-hero">
+          <div>
+            <div className="eyebrow">FROM THE COURTYARD, TO YOUR NEXT MOVE</div>
+            <h1>
+              Chess feels
+              <br />
+              better at home.
+            </h1>
+            <p>
+              A familiar board. Fresh ways to play.
+              <br />
+              Settle in for a game that makes you think.
+            </p>
+            <div className="home-actions">
+              <button className="primary" onClick={props.onChaturanga}>
+                Play Chaturanga ↗
+              </button>
+              <button onClick={props.onPlay}>Explore classic variants</button>
+              <button onClick={props.onBots}>Play a computer</button>
+            </div>
+            <span className="home-footnote">
+              No account needed for local play. Your board is ready.
+            </span>
+          </div>
+          <div className="courtyard-art" aria-hidden="true">
+            <div className="arch">
+              <div className="window-lines" />
+            </div>
+            <div className="plant">
+              <span>⌇</span>
+              <i />
+            </div>
+            <div className="art-board">
+              {Array.from({ length: 64 }, (_, i) => (
+                <span
+                  key={i}
+                  className={
+                    (Math.floor(i / 8) + (i % 8)) % 2
+                      ? "wood-dark"
+                      : "wood-light"
+                  }
+                >
+                  {i === 27 ? "♞" : i === 36 ? "♔" : ""}
+                </span>
+              ))}
+            </div>
+            <div className="art-caption">A quiet corner. An open board.</div>
+          </div>
+        </section>
+        <section className="home-modes">
+          <div className="section-line">
+            <div>
+              <div className="eyebrow">FIND YOUR RHYTHM</div>
+              <h2>More than one way to think.</h2>
+            </div>
+            <span>CHOOSE YOUR NEXT GAME</span>
+          </div>
+          <div className="home-mode-grid">
+            <button onClick={props.onChaturanga}>
+              <span className="mode-number">01 / THE NEW COLLECTION</span>
+              <h3>Mind & magic</h3>
+              <p>
+                Mental maths before each move, or a 90-second maths break with
+                seven earned powers.
+              </p>
+              <span className="mode-link">
+                Local hot-seat & sequential demo ↗
+              </span>
+            </button>
+            <button onClick={props.onPlay}>
+              <span className="mode-number">02 / FAMILIAR, REIMAGINED</span>
+              <h3>Classic variants</h3>
+              <p>
+                Standard chess, Chess960, Atomic, Fog and the original Spell
+                mode. Existing games stay available.
+              </p>
+              <span className="mode-link">Choose a board ↗</span>
+            </button>
+            <button onClick={props.onOpenFriendsSanctum}>
+              <span className="mode-number">03 / ACROSS THE TABLE</span>
+              <h3>Play with a friend</h3>
+              <p>
+                Open the existing friend lobby for classic chess. Online maths
+                and powers are not enabled yet.
+              </p>
+              <span className="mode-link">Open friend lobby ↗</span>
+            </button>
+          </div>
+        </section>
+        <section className="home-bottom">
+          <h2>
+            Some games ask you to hurry.
+            <br />
+            This one asks you to notice.
+          </h2>
+          <div>
+            <p>
+              Warm wood. Quiet colours. A good question.
+              <br />A place to enjoy the next move.
+            </p>
+            {props.matchStatus === "searching" ? (
+              <button onClick={props.onCancelMatch}>
+                Cancel classic matchmaking
+              </button>
+            ) : (
+              <button onClick={props.onSearchMatch}>
+                Find a classic opponent
+              </button>
+            )}
+          </div>
+        </section>
       </main>
-
-      <Footer onOpenPolicy={props.onOpenPolicy} />
+      <footer className="court-footer">
+        <span>♞ Chaturanga · Thoughtfully played.</span>
+        <div className="home-footer-links">
+          <button onClick={props.onOpenAbout}>About</button>
+          <button onClick={props.onOpenPolicy}>Privacy & terms</button>
+        </div>
+      </footer>
     </div>
   );
 }
