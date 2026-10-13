@@ -24,8 +24,11 @@ Fonts added in v7, unmodified and self-hosted:
   Source: https://github.com/google/fonts/tree/main/ofl/notosansdevanagari
           https://github.com/google/fonts/tree/main/ofl/notoserifdevanagari
 
-This file is attribution, not a blanket rights clearance. Existing images,
-piece SVGs, celebrity names, third-party videos and game databases require
-provenance/rights review before public distribution. The new courtyard UI
-uses self-hosted licensed fonts and platform chess glyphs, with no new
-third-party images. See docs/LEGAL-HANDBOOK-v7.md.
+This file is attribution, not a blanket rights clearance. v8 update
+(2026-10-13): bot personas are original house names (Khivin, Aarav, Tara,
+Kabir); earlier celebrity display names were removed. Remaining review items
+before public distribution: provenance of inherited piece SVGs and any
+legacy horror-theme art still referenced by old routes, and any third-party
+game databases added later. The new courtyard UI uses self-hosted licensed
+fonts and platform chess glyphs, with no new third-party images.
+See docs/LEGAL-HANDBOOK-v7.md.

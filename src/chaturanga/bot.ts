@@ -14,10 +14,10 @@ export const BOTS = [
   },
   {
     id: "aarav",
-    name: "Magnus Carlsen",
+    name: "Aarav",
     level: "Positional · approachable",
     description:
-      "Unofficial name-inspired positional practice. Not the real player or a strength simulation.",
+      "Positional practice bot. Original house persona, no real-player likeness.",
     depth: 1,
     noise: 160,
     accuracy: 0.65,
@@ -26,10 +26,10 @@ export const BOTS = [
   },
   {
     id: "tara",
-    name: "Hikaru Nakamura",
+    name: "Tara",
     level: "Tactical · intermediate",
     description:
-      "Unofficial name-inspired tactical practice. Not the real player or an endorsed bot.",
+      "Tactical practice bot. Original house persona, no real-player likeness.",
     depth: 2,
     noise: 45,
     accuracy: 0.82,
@@ -38,10 +38,10 @@ export const BOTS = [
   },
   {
     id: "kabir",
-    name: "Viswanathan Anand",
+    name: "Kabir",
     level: "Balanced · challenging",
     description:
-      "Unofficial name-inspired balanced practice. Not the real player or an endorsed bot.",
+      "Balanced practice bot. Original house persona, no real-player likeness.",
     depth: 3,
     noise: 5,
     accuracy: 0.94,
