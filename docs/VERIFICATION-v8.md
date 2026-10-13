@@ -48,5 +48,11 @@ online-smoke, v8-fog-browser and v7-mantra-browser re-run green at 22:02,
 v7-browser re-run green at 22:41. API malformed-input fuzz and the live
 trial-mode / moderation / export probes above all ran against this tree.
 
+## Owner dry-run (23:57)
+The exact shipped patch was applied to a fresh clone of base 34410f9, then
+the full owner flow ran there: `npm ci` clean, 173/173 unit tests, `npm run
+build` green, `npm audit` 0 vulnerabilities. The patch alone reproduces a
+working tree.
+
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.
