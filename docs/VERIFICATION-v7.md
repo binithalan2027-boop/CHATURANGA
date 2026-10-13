@@ -16,3 +16,6 @@
 - Final clean-base patch apply/tree equality and fresh-install checks are reported separately in closeout.
 
 Not tested: real OAuth/provider credentials, HTTPS/WSS production origin/proxy, load/scale/security audit, backup restoration, auth identity deletion, retention enforcement, child consent, store packaging/payments or legal operational compliance. Fog and combined multiplayer maths/spells not built. Some legacy routes/assets still await rights and design audit; no claim that every inherited screen is re-designed.
+
+## Clean-base delivery check
+Complete patch applied with git am to a fresh worktree at original 34410f9. Source tree exactly matched the tested build (38515c33d0602f608b3ad8d765a53655f5f848bd before this verification-only note). Fresh npm ci, both typechecks, 142/142 tests and production build all passed in that worktree. git am warned about two trailing spaces preserved verbatim in upstream OFL licence texts; application still succeeded. Source/code diffs are whitespace-clean; licence text was not edited to silence a cosmetic warning.
