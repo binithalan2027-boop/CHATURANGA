@@ -432,14 +432,25 @@ export default function OnlinePage({
                   onClick={() => {
                     if (
                       confirm(
-                        "Delete your player profile and friendships? Game history is anonymized. This does not delete your external sign-in account.",
+                        "Delete your player profile and friendships? Game history is anonymized and your game sign-in identity is removed. This cannot be undone.",
                       )
                     )
                       void run(async () => {
-                        await api("delete", {});
+                        const r = await api<{ authIdentity?: string }>(
+                          "delete",
+                          {},
+                        );
                         await signOut();
                         setState(null);
                         setProfile(null);
+                        if (r.authIdentity === "manual-step-required")
+                          setNotice(
+                            "Profile deleted. The operator still needs to remove your sign-in identity by hand.",
+                          );
+                        else if (r.authIdentity === "failed")
+                          setNotice(
+                            "Profile deleted. Sign-in identity removal failed; the operator will retry.",
+                          );
                         setRevision((x) => x + 1);
                       });
                   }}
