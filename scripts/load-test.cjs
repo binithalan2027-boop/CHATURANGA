@@ -9,7 +9,10 @@ const { WebSocket } = require("ws");
 const BASE = process.env.GAME_SERVER ?? "http://127.0.0.1:8787";
 const ORIGIN = "http://localhost:5173";
 const PLAYERS = Number(process.argv[2] ?? 50);
-const MOVES = Number(process.argv[3] ?? 10);
+// The scripted line has LINE.length plies; MOVES is clamped so a game never
+// replays the opening: a repeated move is illegal mid-game and would show up
+// as move errors that are harness artifacts, not server failures.
+const MOVES = Math.min(Number(process.argv[3] ?? 10), 10);
 const SOAK_S = Number(process.argv[4] ?? 30);
 const LINE = [
   "e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6",

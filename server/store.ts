@@ -4,23 +4,35 @@ const { DatabaseSync } = createRequire(import.meta.url)(
 ) as typeof import("node:sqlite");
 export class Store {
   db: import("node:sqlite").DatabaseSync;
+  /** Deserialized write-through cache per kind, valid only when the kind has
+   * been fully loaded. Single-process, single-store design: one writer, so a
+   * loaded kind's map is authoritative. Rollback drops the whole cache. */
+  private kinds = new Map<string, Map<string, unknown>>();
+  private loaded = new Set<string>();
   constructor(path = ":memory:") {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
       CREATE TABLE IF NOT EXISTS records (kind TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(kind,id));`);
   }
   get<T>(kind: string, id: string): T | undefined {
+    if (this.loaded.has(kind))
+      return this.kinds.get(kind)?.get(id) as T | undefined;
     const row = this.db
       .prepare("SELECT data FROM records WHERE kind=? AND id=?")
       .get(kind, id) as { data: string } | undefined;
     return row ? JSON.parse(row.data) : undefined;
   }
   all<T>(kind: string): T[] {
-    return (
-      this.db.prepare("SELECT data FROM records WHERE kind=?").all(kind) as {
-        data: string;
-      }[]
-    ).map((r) => JSON.parse(r.data));
+    if (!this.loaded.has(kind)) {
+      const m = new Map<string, unknown>();
+      for (const r of this.db
+        .prepare("SELECT id, data FROM records WHERE kind=?")
+        .all(kind) as { id: string; data: string }[])
+        m.set(r.id, JSON.parse(r.data));
+      this.kinds.set(kind, m);
+      this.loaded.add(kind);
+    }
+    return [...this.kinds.get(kind)!.values()] as T[];
   }
   put(kind: string, id: string, data: unknown) {
     this.db
@@ -28,9 +40,16 @@ export class Store {
         "INSERT INTO records VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET data=excluded.data",
       )
       .run(kind, id, JSON.stringify(data));
+    // structuredClone so later caller mutation cannot diverge cache from DB.
+    this.kinds.get(kind)?.set(id, structuredClone(data));
   }
   delete(kind: string, id: string) {
     this.db.prepare("DELETE FROM records WHERE kind=? AND id=?").run(kind, id);
+    this.kinds.get(kind)?.delete(id);
+  }
+  private dropCache() {
+    this.kinds.clear();
+    this.loaded.clear();
   }
   transaction<T>(fn: () => T): T {
     this.db.exec("BEGIN IMMEDIATE");
@@ -40,6 +59,7 @@ export class Store {
       return result;
     } catch (e) {
       this.db.exec("ROLLBACK");
+      this.dropCache();
       throw e;
     }
   }
