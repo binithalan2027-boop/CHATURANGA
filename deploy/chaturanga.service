@@ -9,8 +9,8 @@ Wants=network-online.target
 Type=simple
 User=chaturanga
 Group=chaturanga
-WorkingDirectory=/opt/chaturanga
-EnvironmentFile=/opt/chaturanga/.env
+WorkingDirectory=/opt/chaturanga/app
+EnvironmentFile=/opt/chaturanga/app/.env
 ExecStart=/usr/bin/node --import tsx server/index.ts
 Restart=on-failure
 RestartSec=3
@@ -19,7 +19,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/chaturanga/data
+ReadWritePaths=/opt/chaturanga/app/data
 LimitNOFILE=65536
 
 [Install]

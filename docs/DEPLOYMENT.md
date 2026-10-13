@@ -64,7 +64,7 @@ sudo -u chaturanga npm ci
 sudo -u chaturanga npm run build
 sudo -u chaturanga cp .env.example .env   # edit it (section 4)
 sudo cp deploy/chaturanga.service /etc/systemd/system/
-# Edit WorkingDirectory in the unit to /opt/chaturanga/app
+# The unit already points at /opt/chaturanga/app (paths match this guide).
 sudo systemctl daemon-reload && sudo systemctl enable --now chaturanga
 journalctl -u chaturanga -f
 ```
