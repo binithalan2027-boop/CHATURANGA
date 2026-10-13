@@ -16,6 +16,7 @@ const LearnPage = lazy(() => import("./LearnPage"));
 const AboutPage = lazy(() => import("./AboutPage"));
 
 import "./index.css";
+import "./design-v7.css";
 
 const VariantPage = lazy(() => import("./chaturanga/VariantPage"));
 type Screen =

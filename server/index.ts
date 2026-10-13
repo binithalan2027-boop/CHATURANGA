@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createClient } from "@supabase/supabase-js";
 import { Store } from "./store";
 import { Service } from "./service";
+import {CustomService} from "./custom";
 import type { Rule } from "../src/online/types";
 const mode = process.env.AUTH_MODE ?? "local";
 if (!["local", "supabase"].includes(mode))
@@ -34,6 +35,8 @@ const supabase =
 mkdirSync("data", { recursive: true });
 const store = new Store(process.env.DB_PATH ?? "data/chaturanga.sqlite"),
   service = new Service(store);
+const custom = new CustomService(store, () => Date.now(), (a,b) => {if(!(service.requireUser(a).adultConfirmed || service.requireUser(a).profileReady))throw Error("Save your test profile first."); if(b && service.blocked(a,b)) throw Error("Player unavailable.");}, id=>service.requireUser(id).displayName);
+if(mode === "supabase" && process.env.PUBLIC_LEGAL_REVIEW !== "approved") throw Error("Public account play requires reviewed audience, child-data safeguards, policies and grievance operations. Local testing remains available.");
 interface Session {
   id: string;
   user: string;
@@ -82,7 +85,7 @@ function publish() {
         ws.send(
           JSON.stringify({
             state: store.transaction(() =>
-              service.state(id, mode as "local" | "supabase"),
+              ({...service.state(id, mode as "local" | "supabase"), customRooms: custom.state(id)}),
             ),
           }),
         );
@@ -158,18 +161,19 @@ const server = createServer(async (req, res) => {
         res,
         200,
         store.transaction(() =>
-          service.state(id, mode as "local" | "supabase"),
+          ({...service.state(id, mode as "local" | "supabase"), customRooms: custom.state(id)}),
         ),
       );
       return;
     }
     if (req.method === "GET" && path === "/api/export") {
-      reply(res, 200, service.export(id));
+      reply(res, 200, {...service.export(id),customGames:custom.export(id)});
       return;
     }
     if (req.method !== "POST") throw Error("Unsupported request.");
     const data = await body(req);
     let result: unknown = { ok: true };
+    if(path === "/api/custom-action") {store.transaction(()=>custom.act(id,data.room,data.version,data));reply(res,200,{ok:true});publish();return;}
     if (path === "/api/game") {
       service.act(id, data.room, data.version, data.action, data.uci);
       reply(res, 200, { ok: true });
@@ -178,7 +182,11 @@ const server = createServer(async (req, res) => {
     }
     // Synchronous transaction prevents simultaneous joins/moves from racing.
     store.transaction(() => {
-      if (path === "/api/profile") result = service.profile(id, data);
+      if(path === "/api/custom-create") result={room:custom.create(id,data.kind,data.minutes)};
+      else if(path === "/api/custom-join") custom.join(id,data.room);
+      else if(path === "/api/report") result=service.report(id,data);
+      else if(path === "/api/reports") result=service.reports(id);
+      else if (path === "/api/profile") result = service.profile(id, data, mode === "local");
       else if (path === "/api/find")
         result = service.lookup(id, String(data.username ?? "").slice(0, 24));
       else if (path === "/api/friend")
@@ -196,6 +204,7 @@ const server = createServer(async (req, res) => {
       else if (path === "/api/game")
         throw Error("Internal game route conflict.");
       else if (path === "/api/delete") {
+        custom.delete(id);
         service.deleteUser(id);
         for (const s of store.all<Session>("session"))
           if (s.user === id) store.delete("session", s.id);

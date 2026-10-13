@@ -17,6 +17,7 @@ export interface PlayerProfile {
   timezone: string;
   discoverable: boolean;
   adultConfirmed: boolean;
+  profileReady?: boolean;
   createdAt: number;
   rating: number;
   ratedGames: number;
@@ -56,5 +57,6 @@ export interface OnlineState {
   profile: PlayerProfile;
   friends: FriendView[];
   rooms: RoomView[];
+  customRooms?: import("./customTypes").CustomView[];
   mode: "local" | "supabase";
 }

@@ -14,7 +14,7 @@ const { chromium, expect } = require("@playwright/test");
     await p.goto("http://127.0.0.1:5173");
     await p.getByRole("button", { name: "Online PvP", exact: true }).click();
     await p.getByRole("button", { name: "Create local test player" }).click();
-    await p.getByRole("button", { name: "Set up profile" }).click();
+    await p.locator(".online-shell").getByRole("button", { name: "Profile", exact: true }).click();
   }
   for (const [p, name] of [
     [a, "alpha"],
@@ -25,7 +25,6 @@ const { chromium, expect } = require("@playwright/test");
       .fill(name + Date.now().toString().slice(-6));
     await p.getByLabel("Display name", { exact: true }).fill(name);
     await p.getByLabel("Allow people").check();
-    await p.getByLabel("I am 18").check();
     await p.getByRole("button", { name: "Save profile", exact: true }).click();
     await p.getByRole("button", { name: "PvP", exact: true }).click();
   }

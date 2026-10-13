@@ -56,7 +56,7 @@ export default function LandingPage(props: LandingPageProps) {
       <main className="court-home">
         <section className="home-hero">
           <div>
-            <div className="eyebrow">FROM THE COURTYARD, TO YOUR NEXT MOVE</div>
+            <div className="brand-origin" lang="hi">चतुरंग · Chaturanga</div><div className="eyebrow">A QUIET COURTYARD FOR CURIOUS MINDS</div>
             <h1>
               Your next move.
               <br />
@@ -122,7 +122,7 @@ export default function LandingPage(props: LandingPageProps) {
                 seven earned powers.
               </p>
               <span className="mode-link">
-                Local hot-seat & vs Khivin ↗
+                Local hot-seat, Khivin & private online rooms ↗
               </span>
             </button>
             <button onClick={props.onPlay}>
@@ -138,8 +138,7 @@ export default function LandingPage(props: LandingPageProps) {
               <span className="mode-number">03 / ACROSS THE TABLE</span>
               <h3>Play with a friend</h3>
               <p>
-                Open the existing friend lobby for classic chess. Online maths
-                and powers are not enabled yet.
+                Private rooms for classic chess, maths and spells, and three- or four-player cross-board house rules.
               </p>
               <span className="mode-link">Open friend lobby ↗</span>
             </button>

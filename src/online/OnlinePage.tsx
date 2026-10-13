@@ -13,6 +13,8 @@ import {
 } from "./client";
 import type { OnlineState, PlayerProfile, Provider, Rule } from "./types";
 import "./online.css";
+import CustomRoomPanel from "./CustomRoomPanel";
+import ReportPanel from "./ReportPanel";
 export default function OnlinePage({
   onExit,
   initialTab = "play",
@@ -277,7 +279,7 @@ export default function OnlinePage({
               Sign out
             </button>
           </div>
-          {!state.profile.adultConfirmed && (
+          {!state.profile.adultConfirmed && state.mode !== "local" && (
             <p className="online-status">
               Complete your profile and confirm you are 18 or older before
               online play or friend requests.{" "}
@@ -391,27 +393,14 @@ export default function OnlinePage({
                   Allow people who know my exact username to find me and send a
                   friend request.
                 </label>
-                <label className="online-check">
-                  <input
-                    type="checkbox"
-                    required
-                    checked={profile.adultConfirmed}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        adultConfirmed: e.target.checked,
-                      })
-                    }
-                  />
-                  I am 18 or older. Adult-only beta.
-                </label>
+                {state.mode !== "local" && <label className="online-check"><input type="checkbox" required checked={profile.adultConfirmed} onChange={e=>setProfile({...profile,adultConfirmed:e.target.checked})}/>I am 18 or older (public beta safeguard pending audience review).</label>}
+                {state.mode === "local" && <p>Local test profile. No age gate; use invented test data, not children's information.</p>}
                 <button disabled={busy}>Save profile</button>
               </form>
               <hr />
               <p>
                 Stored: player ID, username, display name, optional
-                bio/country/FIDE, timezone, discovery choice, adult
-                confirmation, game results, friendships and blocks. Your email
+                bio/country/FIDE, timezone, discovery choice, profile readiness (and age confirmation only if applicable), game results, friendships and blocks. Your email
                 and OAuth credentials are not stored in this game database. Your
                 sign-in provider keeps its own identity record.
               </p>
@@ -577,6 +566,8 @@ export default function OnlinePage({
               </section>
             </div>
           )}
+          <ReportPanel/>
+          {tab === "play" && <CustomRoomPanel rooms={state.customRooms ?? []} run={run} />}
           {tab === "play" && (
             <div className="online-grid">
               <section className="online-card">
@@ -609,7 +600,7 @@ export default function OnlinePage({
                     </select>
                   </label>
                   <button
-                    disabled={busy || !state.profile.adultConfirmed}
+                    disabled={busy || (state.mode !== "local" && !state.profile.adultConfirmed)}
                     onClick={() => challenge()}
                   >
                     Create private room
@@ -811,8 +802,7 @@ export default function OnlinePage({
                     <p>
                       Create a private room or open a game from the list.
                       Standard chess and seven established variants use the
-                      server rule engine. Custom maths, spells, fog and
-                      multiplayer boards remain local-only.
+                      server rule engine. Maths/spells and three/four-player house rules are above. Fog remains local-only.
                     </p>
                   </>
                 )}

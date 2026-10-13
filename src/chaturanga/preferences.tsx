@@ -22,8 +22,8 @@ export interface Preferences {
   input: "both" | "click" | "drag";
 }
 const defaults: Preferences = {
-  theme: "dark",
-  board: "sage",
+  theme: "light",
+  board: "teak",
   pieces: "classic",
   hideRatings: false,
   autoDeclineRematch: false,

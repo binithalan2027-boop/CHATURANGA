@@ -83,7 +83,7 @@ export class Service {
     }
     return p;
   }
-  profile(id: string, input: Record<string, unknown>) {
+  profile(id: string, input: Record<string, unknown>, localTest = false) {
     const p = this.requireUser(id),
       username = clean(input.username, 24).toLowerCase(),
       displayName = clean(input.displayName, 40);
@@ -110,7 +110,7 @@ export class Service {
     }
     if (
       typeof input.discoverable !== "boolean" ||
-      input.adultConfirmed !== true
+      (!localTest && input.adultConfirmed !== true)
     )
       throw Error(
         "This beta is for adults 18+. Confirm before joining online play.",
@@ -131,7 +131,8 @@ export class Service {
       country,
       timezone,
       discoverable: input.discoverable,
-      adultConfirmed: true,
+      adultConfirmed: !localTest && input.adultConfirmed === true,
+      profileReady: true,
     };
     this.store.put("profile", id, next);
     return next;
@@ -156,7 +157,7 @@ export class Service {
         (p) =>
           p.username === username.toLowerCase() &&
           p.discoverable &&
-          p.adultConfirmed &&
+          (p.adultConfirmed || p.profileReady) &&
           p.id !== id &&
           !this.blocked(id, p.id),
       );
@@ -215,8 +216,8 @@ export class Service {
     if (this.blocked(id, target)) throw Error("Player unavailable.");
     if (action === "request") {
       if (
-        !this.requireUser(id).adultConfirmed ||
-        !this.requireUser(target).adultConfirmed ||
+        !(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady) ||
+        !(this.requireUser(target).adultConfirmed || this.requireUser(target).profileReady) ||
         !this.requireUser(target).discoverable
       )
         throw Error("Player unavailable.");
@@ -244,7 +245,7 @@ export class Service {
     throw Error("Unknown friend action.");
   }
   create(id: string, rule: Rule, minutes: number, invitee?: string) {
-    if (!this.requireUser(id).adultConfirmed)
+    if (!(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady))
       throw Error("Complete your player profile first.");
     if (
       !RULE_VARIANTS.some((v) => v.id === rule) ||
@@ -282,7 +283,7 @@ export class Service {
     return r.id;
   }
   join(id: string, code: string) {
-    if (!this.requireUser(id).adultConfirmed)
+    if (!(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady))
       throw Error("Complete your player profile first.");
     const r = this.getRoom(code);
     if (r.white === id || r.black === id) return;
@@ -495,9 +496,24 @@ export class Service {
       invitee: id,
     };
   }
+  report(id: string, input: Record<string, unknown>) {
+    this.requireUser(id);
+    const category=String(input.category ?? "");
+    if(!["harassment","cheating","privacy","copyright","child-safety","other"].includes(category))throw Error("Choose a report category.");
+    const details=clean(input.details,2000);
+    if(details.length<10)throw Error("Describe the issue without passwords or sensitive documents.");
+    const target=clean(input.target ?? "",100);
+    const recent=this.store.all<{reporter:string;at:number}>("report").filter(r=>r.reporter===id && this.now()-r.at<86400000);
+    if(recent.length>=10)throw Error("Daily report limit reached. Contact support for urgent safety concerns.");
+    const ticket=randomBytes(12).toString("hex");
+    this.store.put("report",ticket,{id:ticket,reporter:id,category,details,target,at:this.now(),status:"received",updatedAt:this.now(),decision:""});
+    return {ticket,status:"received",message:"Stored in the local review queue. No email or staffed response is implied."};
+  }
+  reports(id:string) {return this.store.all<{id:string;reporter:string;category:string;at:number;status:string;decision:string}>("report").filter(r=>r.reporter===id).map(r=>({id:r.id,category:r.category,at:r.at,status:r.status,decision:r.decision}));}
   export(id: string) {
     return {
       profile: this.requireUser(id),
+      reports: this.reports(id),
       friends: this.friends(id),
       games: this.store
         .all<Room>("room")
@@ -505,6 +521,8 @@ export class Service {
     };
   }
   deleteUser(id: string) {
+    for(const r of this.store.all<{id:string;reporter:string;details:string;target:string}>("report")) if(r.reporter===id){r.reporter="deleted";r.details="Removed with profile deletion";r.target="";this.store.put("report",r.id,r);}
+
     for (const r of this.store.all<Room>("room"))
       if (r.white === id || r.black === id) {
         if (r.status === "active")

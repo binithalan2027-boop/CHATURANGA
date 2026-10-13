@@ -16,3 +16,16 @@ Framework: React (MIT), Vite (MIT).
 Consequence of the GPL components: if Chaturanga is published, its complete
 corresponding source must be published under GPL-compatible terms. This was an
 explicit product decision (2026-10-10). See docs/OPEN-SOURCE-CHECKLIST.md.
+
+Fonts added in v7, unmodified and self-hosted:
+- Noto Sans Devanagari and Noto Serif Devanagari
+  Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)
+  SIL Open Font License 1.1. Full texts: public/fonts/OFL-*.txt.
+  Source: https://github.com/google/fonts/tree/main/ofl/notosansdevanagari
+          https://github.com/google/fonts/tree/main/ofl/notoserifdevanagari
+
+This file is attribution, not a blanket rights clearance. Existing images,
+piece SVGs, celebrity names, third-party videos and game databases require
+provenance/rights review before public distribution. The new courtyard UI
+uses self-hosted licensed fonts and platform chess glyphs, with no new
+third-party images. See docs/LEGAL-HANDBOOK-v7.md.
