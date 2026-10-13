@@ -34,8 +34,26 @@ describe("retention sweep", () => {
     });
     store.put("report", "stale", { id: "stale", updatedAt: now - 500 * DAY });
     store.put("report", "fresh", { id: "fresh", updatedAt: now - 5 * DAY });
+    store.put("room", "staleWaiting", {
+      id: "staleWaiting",
+      status: "waiting",
+      updatedAt: now - 10 * DAY,
+    });
+    store.put("custom", "staleCustomWaiting", {
+      id: "staleCustomWaiting",
+      status: "waiting",
+      createdAt: now - 10 * DAY,
+    });
     const r = sweepExpired(store, { now });
-    expect(r).toEqual({ sessions: 1, rooms: 1, custom: 1, reports: 1 });
+    expect(r).toEqual({
+      sessions: 1,
+      rooms: 1,
+      waiting: 2,
+      custom: 1,
+      reports: 1,
+    });
+    expect(store.get("room", "staleWaiting")).toBeUndefined();
+    expect(store.get("custom", "staleCustomWaiting")).toBeUndefined();
     expect(store.get("session", "live")).toBeTruthy();
     expect(store.get("room", "new")).toBeTruthy();
     expect(store.get("room", "active")).toBeTruthy();

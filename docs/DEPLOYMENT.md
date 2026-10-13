@@ -156,9 +156,9 @@ from before the update still work (schema is additive only).
 
 - Health: `https://chaturanga.me/healthz` (200 ok). No auth needed.
 - Logs: `journalctl -u chaturanga` or `docker logs chaturanga`.
-- Retention sweeps run hourly (sessions, finished games after
-  GAME_RETENTION_DAYS, reports after REPORT_RETENTION_DAYS) and log what they
-  purge.
+- Retention sweeps run hourly (expired sessions, finished games after
+  GAME_RETENTION_DAYS, never-joined waiting rooms after 7 days, reports after
+  REPORT_RETENTION_DAYS) and log what they purge.
 - Rate limits: 120 HTTP req/min/IP, 30 WS connects/min/IP, 20 concurrent
   sockets/IP, 240 game actions/min/player, 15 local signups/min/IP.
 - Scale: single process, in-memory record cache + SQLite. Comfortable for
