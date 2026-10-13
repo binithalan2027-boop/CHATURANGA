@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # Chaturanga v5 - build notes (2026-10-13)
 
 Method: compound-engineering loop (brainstorm -> plan -> work -> verify -> compound)

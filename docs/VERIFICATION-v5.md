@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # Chaturanga v5 - verification report (2026-10-13, local)
 
 Every claim below was executed on this build, not assumed.

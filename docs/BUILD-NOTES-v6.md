@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # Chaturanga v6 build notes
 
 2026-10-13. All local; no push, deployment, public preview, account setup or spending.
