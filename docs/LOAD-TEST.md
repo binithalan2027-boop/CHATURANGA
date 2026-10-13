@@ -79,3 +79,8 @@ data, not a leak. The cache holds all retained records in memory; finished
 games are kept for GAME_RETENTION_DAYS (default 180). Sizing: thousands of
 retained rooms is comfortable; hundreds of thousands is not - lower the
 retention window or move to a proper database first (see DEPLOYMENT.md).
+
+## Confirmation on the final tree (2026-10-13 ~midnight)
+After the security-pass-3 store change (report/entitlement kinds bypass the
+cache; hot kinds unchanged): 40 players, moves p95 114ms, state reads p95
+121ms, 10,300 WS pushes, 0 errors. No regression.
