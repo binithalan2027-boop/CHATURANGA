@@ -3,9 +3,9 @@ export const BOTS = [
   {
     id: "khivin",
     name: "Khivin",
-    level: "House bot · local practice",
+    level: "House bot · Stockfish classic",
     description:
-      "Your original house opponent. Bounded local search, not book-trained, master-strength or all-knowing.",
+      "Stockfish 19 lite in classic play. Original bounded search in maths/spell rules. Not book-trained, human-modeled or all-knowing.",
     depth: 3,
     noise: 5,
     accuracy: 0.94,

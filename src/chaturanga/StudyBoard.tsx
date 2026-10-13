@@ -1,5 +1,6 @@
+import { stockfishAnalyze } from "./stockfishAdapter";
 import MistakePuzzleEngine from "./MistakePuzzleEngine";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import PositionBoard from "./PositionBoard";
 import { Chess, Square } from "chess.js";
 import { parsePgn, fromFen, studyMove, materialEval, StudyLine } from "./study";
@@ -19,8 +20,7 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
     [engine, setEngine] = useState(false),
     [evaluation, setEvaluation] = useState("Engine off"),
     [best, setBest] = useState("");
-  const worker = useRef<Worker | null>(null),
-    fen = line.fens[index],
+  const fen = line.fens[index],
     chess = new Chess(fen),
     legal = selected
       ? chess.moves({ square: selected, verbose: true }).map((m) => m.to)
@@ -31,48 +31,30 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
       setEvaluation("Engine off");
       return;
     }
-    const w = new Worker("/stockfish.js");
-    worker.current = w;
-    let ready = false,
-      scored = false;
-    setEvaluation("Starting engine…");
-    w.onmessage = (e) => {
-      const s = String(e.data);
-      if (s.includes("uciok")) {
-        ready = true;
-        w.postMessage("position fen " + fen);
-        w.postMessage("go depth 8");
-      }
-      const cp = s.match(/score cp (-?\d+)/),
-        mate = s.match(/score mate (-?\d+)/),
-        depth = s.match(/depth (\d+)/);
-      if (cp || mate) {
-        scored = true;
+    const ctl = new AbortController();
+    setEvaluation("Starting Stockfish 19 lite…");
+    stockfishAnalyze(fen, {
+      depth: 10,
+      signal: ctl.signal,
+      onInfo: (info) => {
         const sign = new Chess(fen).turn() === "w" ? 1 : -1;
         setEvaluation(
-          mate
-            ? `Mate ${Number(mate[1]) * sign}`
-            : `${((Number(cp![1]) * sign) / 100).toFixed(2)} pawns · depth ${depth?.[1] || "?"}`,
+          info.mate !== undefined
+            ? `Mate ${info.mate * sign}`
+            : info.cp !== undefined
+              ? `${((info.cp * sign) / 100).toFixed(2)} pawns · depth ${info.depth || "?"}`
+              : "Analyzing…",
         );
-      }
-      if (s.startsWith("bestmove")) setBest(s.split(" ")[1]);
-    };
-    w.onerror = () =>
-      setEvaluation("Engine unavailable. Material balance is still shown.");
-    w.postMessage("uci");
-    const timer = setTimeout(() => {
-      if (!ready || !scored) {
-        setEvaluation(
-          "Engine did not return a score. Try again or use material balance.",
-        );
-        w.terminate();
-      }
-    }, 7000);
-    return () => {
-      clearTimeout(timer);
-      w.terminate();
-      worker.current = null;
-    };
+      },
+    })
+      .then((result) => setBest(result.best))
+      .catch(() => {
+        if (!ctl.signal.aborted)
+          setEvaluation(
+            "Stockfish unavailable in this browser. Material balance is still shown.",
+          );
+      });
+    return () => ctl.abort();
   }, [engine, fen]);
   const load = (kind: "pgn" | "fen") => {
     try {
@@ -236,7 +218,7 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
                   setBest("");
                 }}
               />{" "}
-              Enable existing Stockfish engine
+              Enable Stockfish 19 lite (local WASM)
             </label>
             <p className="engine-eval" role="status">
               {evaluation}

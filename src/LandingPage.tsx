@@ -8,6 +8,7 @@ import "./chaturanga/courtyard.css";
 interface LandingPageProps {
   user: { name: string; email: string } | null;
   onPlay: () => void;
+  onRuleVariants: () => void;
   onQuick: () => void;
   onTraining: () => void;
   onLogin: () => void;
@@ -69,7 +70,9 @@ export default function LandingPage(props: LandingPageProps) {
               <button className="primary" onClick={props.onQuick}>
                 Play or resume quiet practice ↗
               </button>
-              <button onClick={props.onPlay}>Explore classic variants</button>
+              <button onClick={props.onRuleVariants}>
+                Explore established variants
+              </button>
               <button onClick={props.onChaturanga}>Mind & magic</button>
             </div>
             <span className="home-footnote">

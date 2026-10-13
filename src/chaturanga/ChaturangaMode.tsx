@@ -1,3 +1,4 @@
+import { stockfishAnalyze } from "./stockfishAdapter";
 import { useEffect, useRef, useState } from "react";
 import { Chess, Square, PieceSymbol } from "chess.js";
 import {
@@ -182,6 +183,7 @@ export default function ChaturangaMode({
     const id = game.settings.opponent as BotId,
       bot = BOTS.find((b) => b.id === id)!;
     let delay: ReturnType<typeof setTimeout> | undefined;
+    const ctl = new AbortController();
     if (actor === "b" && game.phase === "math") {
       const token = game.gate.id;
       delay = setTimeout(
@@ -215,6 +217,55 @@ export default function ChaturangaMode({
         )
           return;
         setBotThinking(true);
+        if (id === "khivin" && game.settings.mode === "classic") {
+          stockfishAnalyze(request, { depth: 10, signal: ctl.signal })
+            .then((result) => {
+              const current = stateRef.current;
+              if (
+                !current ||
+                current.fen !== request ||
+                current.phase !== "play" ||
+                ctl.signal.aborted
+              )
+                return;
+              const legal = legalMoves(current).map(
+                (m) => m.from + m.to + (m.promotion || ""),
+              );
+              if (!legal.includes(result.best))
+                throw Error("Engine candidate is not legal under game rules.");
+              setBotThinking(false);
+              setGame((s) =>
+                s && s.fen === request
+                  ? command(
+                      s,
+                      Date.now(),
+                      {
+                        type: "move",
+                        from: result.best.slice(0, 2) as Square,
+                        to: result.best.slice(2, 4) as Square,
+                        promotion: result.best[4] as PieceSymbol | undefined,
+                      },
+                      `stockfish-${Date.now()}`,
+                    )
+                  : s,
+              );
+            })
+            .catch(() => {
+              if (!ctl.signal.aborted) {
+                setBotThinking(false);
+                setGame((s) =>
+                  s
+                    ? {
+                        ...s,
+                        notice:
+                          "Stockfish could not finish. Your game is saved; no silent fallback engine was used.",
+                      }
+                    : s,
+                );
+              }
+            });
+          return;
+        }
         botWorker.current?.postMessage({
           fen: request,
           id,
@@ -227,6 +278,7 @@ export default function ChaturangaMode({
     }
     return () => {
       if (delay) clearTimeout(delay);
+      ctl.abort();
     };
   }, [game?.phase, game?.fen, game?.gate.id, vsBot, actor]);
   const send = (cmd: Command) => {

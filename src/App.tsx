@@ -22,7 +22,9 @@ const LoadingVersusScreen = lazy(
 );
 import "./index.css";
 
+const VariantPage = lazy(() => import("./chaturanga/VariantPage"));
 type Screen =
+  | "rule_variants"
   | "tournaments"
   | "training"
   | "study"
@@ -130,6 +132,8 @@ function AppContent() {
   };
 
   const renderScreen = () => {
+    if (screen === "rule_variants")
+      return <VariantPage onExit={() => setScreen("landing")} />;
     if (screen === "tournaments")
       return <TournamentPage onExit={() => setScreen("landing")} />;
     if (screen === "training")
@@ -284,6 +288,7 @@ function AppContent() {
     return (
       <>
         <LandingPage
+          onRuleVariants={() => setScreen("rule_variants")}
           onQuick={() => setScreen("quick")}
           onTraining={() => setScreen("training")}
           onChaturanga={() => setScreen("chaturanga")}
