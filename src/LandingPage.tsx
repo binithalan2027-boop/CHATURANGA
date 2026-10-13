@@ -21,9 +21,7 @@ interface LandingPageProps {
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
   onOpenFriendsSanctum?: () => void;
-  matchStatus: "idle" | "searching" | "found";
   onSearchMatch: () => void;
-  onCancelMatch: () => void;
 }
 export default function LandingPage(props: LandingPageProps) {
   let progress = emptyProgress;
@@ -155,15 +153,9 @@ export default function LandingPage(props: LandingPageProps) {
               Warm wood. Quiet colours. A good question.
               <br />A place to enjoy the next move.
             </p>
-            {props.matchStatus === "searching" ? (
-              <button onClick={props.onCancelMatch}>
-                Cancel classic matchmaking
-              </button>
-            ) : (
-              <button onClick={props.onSearchMatch}>
-                Find a classic opponent
-              </button>
-            )}
+            <button onClick={props.onSearchMatch}>
+              Find a classic opponent
+            </button>
           </div>
         </section>
       </main>

@@ -31,7 +31,7 @@
 - Deployment artifacts: Dockerfile static analysis (tsx is a runtime dependency; transitive server imports from src resolve to chessops only; non-root user; healthcheck uses busybox wget present in alpine). compose binds loopback only. Caddy/nginx WebSocket headers present. systemd unit paths now match the guide exactly. .dockerignore excludes .env and data. Code refuses AUTH_MODE=local when NODE_ENV=production.
 - .env.example audited against every process.env read in server code; STATIC_DIR, ENTITLEMENTS and FREE_ONLINE_GAMES were missing and are now documented.
 - Play/PWA: TWA manifest referenced icons that did not exist - rendered 512px and maskable-512 PNGs from the brand mark (pixel-inspected), added /manifest.webmanifest linked from index.html; manifest and both icons return 200 through the dev server. Data-safety draft cross-checked against server code (added optional country/timezone fields).
-- Honesty sweep of user-facing copy: no matchmaking/tournament/anti-cheat overclaims; landing "Find a classic opponent" navigates to the private-room lobby (an unreachable dead cancel button remains, cosmetic).
+- Honesty sweep of user-facing copy: no matchmaking/tournament/anti-cheat overclaims; landing "Find a classic opponent" navigates to the private-room lobby (the unreachable dead cancel button found there was later removed).
 
 ## Third block (21:22): post-hardening re-run
 After the retention, deletion and store-cache changes, the full suite was

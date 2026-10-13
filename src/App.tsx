@@ -236,9 +236,7 @@ function AppContent() {
           onOpenAbout={() => setScreen("about")}
           onOpenProfile={() => setScreen("profile")}
           onOpenFriendsSanctum={() => setScreen("friends")}
-          matchStatus="idle"
           onSearchMatch={() => setScreen("online")}
-          onCancelMatch={() => {}}
         />
       </>
     );
