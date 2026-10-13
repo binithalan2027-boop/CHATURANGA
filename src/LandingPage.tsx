@@ -14,6 +14,7 @@ interface LandingPageProps {
   onLogin: () => void;
   onLogout: () => void;
   onChaturanga: () => void;
+  onChaturangaDemo: () => void;
   onBots: () => void;
   onOpenPolicy?: () => void;
   onOpenLearn?: () => void;
@@ -74,6 +75,9 @@ export default function LandingPage(props: LandingPageProps) {
                 Explore established variants
               </button>
               <button onClick={props.onChaturanga}>Mind & magic</button>
+              <button onClick={props.onChaturangaDemo}>
+                60-second demo ↗
+              </button>
             </div>
             <span className="home-footnote">
               No account needed for local play. Your board is ready.
@@ -118,7 +122,7 @@ export default function LandingPage(props: LandingPageProps) {
                 seven earned powers.
               </p>
               <span className="mode-link">
-                Local hot-seat & sequential demo ↗
+                Local hot-seat & vs Khivin ↗
               </span>
             </button>
             <button onClick={props.onPlay}>

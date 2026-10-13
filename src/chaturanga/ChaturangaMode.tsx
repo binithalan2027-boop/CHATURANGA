@@ -60,10 +60,13 @@ export default function ChaturangaMode({
   onExit,
   initialMode = "mind",
   quickStart = false,
+  demo = false,
 }: {
   onExit: () => void;
   initialMode?: Settings["mode"];
   quickStart?: boolean;
+  /** 60-second guided demo: preconfigured easy Mind Before Move vs Khivin. */
+  demo?: boolean;
 }) {
   const { prefs, update, open } = usePreferences();
   const [opponent, setOpponent] = useState<"local" | BotId>("khivin");
@@ -93,6 +96,16 @@ export default function ChaturangaMode({
   );
 
   const [mode, setMode] = useState<Settings["mode"]>(initialMode);
+  const [demoStep, setDemoStep] = useState(demo ? 1 : 0);
+  useEffect(() => {
+    if (demo) {
+      setMode("mind");
+      setOpponent("khivin");
+      setKhivinLevel("beginner");
+      setDifficulty("easy");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [difficulty, setDifficulty] =
     useState<Settings["difficulty"]>("medium");
   const [control, setControl] = useState("10+5");
@@ -427,6 +440,21 @@ export default function ChaturangaMode({
       </header>
       {!game ? (
         <main className="court-setup">
+          {demoStep > 0 && (
+            <section className="court-panel demo-coach" role="note">
+              <h2>60-second demo</h2>
+              <p>
+                1. We set it up for you: Mind Before Move, easy maths, Khivin
+                at beginner.
+              </p>
+              <p>2. Press Start. Each move asks one quick question first.</p>
+              <p>
+                3. Answer, move, and you have played Chaturanga. Mantra Duel is
+                the same idea with powers, every 90 seconds.
+              </p>
+              <button onClick={() => setDemoStep(0)}>Got it - hide</button>
+            </section>
+          )}
           <div className="eyebrow">THE COURTYARD COLLECTION</div>
           <h1>
             Take a seat.

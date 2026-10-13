@@ -33,6 +33,7 @@ type Screen =
   | "quick"
   | "bots"
   | "chaturanga"
+  | "chaturanga_demo"
   | "landing"
   | "auth"
   | "bot_select"
@@ -176,6 +177,14 @@ function AppContent() {
       return (
         <ChaturangaMode key="chaturanga" onExit={() => setScreen("landing")} />
       );
+    if (screen === "chaturanga_demo")
+      return (
+        <ChaturangaMode
+          key="chaturanga-demo"
+          demo
+          onExit={() => setScreen("landing")}
+        />
+      );
 
     if (screen === "bot_select") {
       return (
@@ -296,6 +305,7 @@ function AppContent() {
           onQuick={() => setScreen("quick")}
           onTraining={() => setScreen("training")}
           onChaturanga={() => setScreen("chaturanga")}
+          onChaturangaDemo={() => setScreen("chaturanga_demo")}
           onBots={() => setScreen("bots")}
           user={user}
           onPlay={triggerPlay}
