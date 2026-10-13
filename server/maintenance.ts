@@ -42,7 +42,8 @@ export function sweepExpired(store: Store, opts: SweepOptions = {}) {
     rooms = 0,
     waiting = 0,
     custom = 0,
-    reports = 0;
+    reports = 0,
+    abandoned = 0;
   for (const s of store.all<Session>("session"))
     if (s.expires < now) {
       store.delete("session", s.id);
@@ -56,6 +57,16 @@ export function sweepExpired(store: Store, opts: SweepOptions = {}) {
       // Abandoned rooms nobody joined: purge so they cannot accumulate.
       store.delete("room", r.id);
       waiting++;
+    } else if (r.status === "active" && (r.updatedAt ?? 0) < waitingCutoff) {
+      // Abandoned mid-game: the 3-15 minute clocks expired long ago, but the
+      // flag only falls when someone views the room. Close it unrated so it
+      // ages out under normal game retention instead of lingering forever.
+      store.put("room", r.id, {
+        ...r,
+        status: "finished",
+        result: "Abandoned - time expired",
+      });
+      abandoned++;
     }
   }
   for (const r of store.all<TimedRoom>("custom")) {
@@ -71,6 +82,17 @@ export function sweepExpired(store: Store, opts: SweepOptions = {}) {
     ) {
       store.delete("custom", r.id);
       waiting++;
+    } else if (
+      r.status === "active" &&
+      (r.createdAt ?? r.updatedAt ?? 0) < waitingCutoff
+    ) {
+      store.put("custom", r.id, {
+        ...r,
+        status: "finished",
+        result: "Abandoned - time expired",
+        finishedAt: r.finishedAt ?? now,
+      });
+      abandoned++;
     }
   }
   for (const r of store.all<Report>("report"))
@@ -78,5 +100,5 @@ export function sweepExpired(store: Store, opts: SweepOptions = {}) {
       store.delete("report", r.id);
       reports++;
     }
-  return { sessions, rooms, waiting, custom, reports };
+  return { sessions, rooms, waiting, custom, reports, abandoned };
 }

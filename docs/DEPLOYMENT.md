@@ -158,7 +158,9 @@ from before the update still work (schema is additive only).
 - Logs: `journalctl -u chaturanga` or `docker logs chaturanga`.
 - Retention sweeps run hourly (expired sessions, finished games after
   GAME_RETENTION_DAYS, never-joined waiting rooms after 7 days, reports after
-  REPORT_RETENTION_DAYS) and log what they purge.
+  REPORT_RETENTION_DAYS) and log what they purge. Games abandoned mid-play
+  for over 7 days are closed unrated ("Abandoned - time expired") and then
+  age out under the normal game retention window.
 - Rate limits: 120 HTTP req/min/IP, 30 WS connects/min/IP, 20 concurrent
   sockets/IP, 240 game actions/min/player, 15 local signups/min/IP.
 - Scale: single process, in-memory record cache + SQLite. Comfortable for

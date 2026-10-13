@@ -414,7 +414,13 @@ function sweep() {
       gameRetentionDays: Number(process.env.GAME_RETENTION_DAYS ?? 180),
       reportRetentionDays: Number(process.env.REPORT_RETENTION_DAYS ?? 365),
     });
-    const total = r.sessions + r.rooms + (r.waiting ?? 0) + r.custom + r.reports;
+    const total =
+      r.sessions +
+      r.rooms +
+      (r.waiting ?? 0) +
+      r.custom +
+      r.reports +
+      (r.abandoned ?? 0);
     if (total > 0) console.log(`Retention sweep purged: ${JSON.stringify(r)}`);
   } catch (e) {
     console.error("Retention sweep failed:", e);

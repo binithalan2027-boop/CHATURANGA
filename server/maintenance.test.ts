@@ -44,6 +44,16 @@ describe("retention sweep", () => {
       status: "waiting",
       createdAt: now - 10 * DAY,
     });
+    store.put("room", "activeFresh", {
+      id: "activeFresh",
+      status: "active",
+      updatedAt: now - 1000,
+    });
+    store.put("custom", "coldActive", {
+      id: "coldActive",
+      status: "active",
+      createdAt: now - 10 * DAY,
+    });
     const r = sweepExpired(store, { now });
     expect(r).toEqual({
       sessions: 1,
@@ -51,7 +61,18 @@ describe("retention sweep", () => {
       waiting: 2,
       custom: 1,
       reports: 1,
+      abandoned: 2,
     });
+    // Ancient active games are closed unrated, not deleted or left forever.
+    expect(store.get<{ status: string; result: string }>("room", "active")).toMatchObject({
+      status: "finished",
+      result: "Abandoned - time expired",
+    });
+    expect(
+      store.get<{ status: string; result: string }>("custom", "coldActive"),
+    ).toMatchObject({ status: "finished", result: "Abandoned - time expired" });
+    // A game touched a second ago is genuinely live and must survive.
+    expect(store.get<{ status: string }>("room", "activeFresh")!.status).toBe("active");
     expect(store.get("room", "staleWaiting")).toBeUndefined();
     expect(store.get("custom", "staleCustomWaiting")).toBeUndefined();
     expect(store.get("session", "live")).toBeTruthy();
