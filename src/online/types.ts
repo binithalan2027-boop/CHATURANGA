@@ -53,10 +53,17 @@ export interface RoomView {
   yourColor: "white" | "black";
   invitee: string | null;
 }
+export interface EntitlementStatus {
+  unlocked: boolean;
+  played: number;
+  remaining: number | null;
+}
 export interface OnlineState {
   profile: PlayerProfile;
   friends: FriendView[];
   rooms: RoomView[];
   customRooms?: import("./customTypes").CustomView[];
   mode: "local" | "supabase";
+  /** Present only when the server entitlement switch is in trial mode. */
+  entitlement?: EntitlementStatus | null;
 }

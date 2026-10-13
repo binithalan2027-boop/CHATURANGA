@@ -296,6 +296,13 @@ export default function OnlinePage({
                 {state.profile.wins} wins · {state.profile.draws} draws ·{" "}
                 {state.profile.losses} losses
               </p>
+              {state.entitlement && (
+                <p role="status">
+                  {state.entitlement.unlocked
+                    ? "Online play unlocked. Thank you."
+                    : `Free online games left: ${state.entitlement.remaining}. Unlocks are not on sale yet - the owner has not chosen a payment model.`}
+                </p>
+              )}
               <p>
                 FIDE:{" "}
                 {state.profile.fideRating

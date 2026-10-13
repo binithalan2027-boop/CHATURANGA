@@ -15,6 +15,7 @@ import {
 } from "./http";
 import { createStaticHandler } from "./static";
 import { sweepExpired } from "./maintenance";
+import { Entitlements } from "./entitlements";
 import type { Rule } from "../src/online/types";
 
 const mode = process.env.AUTH_MODE ?? "local";
@@ -90,6 +91,7 @@ if (process.env.SUPABASE_URL) {
 const csp = clientCsp(extraConnect);
 const cspReportOnly = process.env.CSP_REPORT_ONLY === "1";
 
+const entitlements = Entitlements.fromEnv(store);
 const limiter = new RateLimiter(60_000);
 /** Multiplies every rate limit. For load testing and capacity tuning only. */
 const LIMIT_SCALE = Math.max(1, Number(process.env.RATE_LIMIT_SCALE ?? 1));
@@ -141,6 +143,7 @@ function stateFor(id: string) {
   return store.transaction(() => ({
     ...service.state(id, mode as "local" | "supabase"),
     customRooms: custom.state(id),
+    entitlement: entitlements.status(id),
   }));
 }
 
@@ -258,6 +261,7 @@ const server = createServer(async (req, res) => {
         providers: (process.env.AUTH_PROVIDERS ?? "")
           .split(",")
           .filter((p) => ["google", "facebook", "discord"].includes(p)),
+        entitlements: entitlements.describe(),
       });
       return;
     }
@@ -306,9 +310,13 @@ const server = createServer(async (req, res) => {
     }
     // Synchronous transaction prevents simultaneous joins/moves from racing.
     store.transaction(() => {
-      if (path === "/api/custom-create")
+      if (path === "/api/custom-create") {
+        entitlements.assertCanPlay(id);
         result = { room: custom.create(id, data.kind, data.minutes) };
-      else if (path === "/api/custom-join") custom.join(id, data.room);
+      } else if (path === "/api/custom-join") {
+        entitlements.assertCanPlay(id);
+        custom.join(id, data.room);
+      }
       else if (path === "/api/report") result = service.report(id, data);
       else if (path === "/api/reports") result = service.reports(id);
       else if (path === "/api/profile")
@@ -317,11 +325,15 @@ const server = createServer(async (req, res) => {
         result = service.lookup(id, String(data.username ?? "").slice(0, 24));
       else if (path === "/api/friend")
         service.friendAction(id, data.action, data.target);
-      else if (path === "/api/create")
+      else if (path === "/api/create") {
+        entitlements.assertCanPlay(id);
         result = {
           room: service.create(id, data.rule as Rule, data.minutes, data.invitee),
         };
-      else if (path === "/api/join") service.join(id, data.room);
+      } else if (path === "/api/join") {
+        entitlements.assertCanPlay(id);
+        service.join(id, data.room);
+      }
       else if (path === "/api/delete") {
         custom.delete(id);
         service.deleteUser(id);
