@@ -35,7 +35,7 @@
 
 ## Third block (21:22): post-hardening re-run
 After the retention, deletion and store-cache changes, the full suite was
-re-run against the final tree: 173/173 unit tests, both typechecks,
+re-run against the final tree: 176/176 unit tests, both typechecks,
 online-smoke, v8-fog-browser, v7-browser (axe-clean on all four screens) and
 v7-mantra-browser - all green. Account deletion verified live end to end:
 after /api/delete, entitlement, profile and session rows are all zero and
@@ -43,16 +43,27 @@ opponent history stays intact (games finished unrated, names scrubbed).
 
 ## Fourth block (23:20): security pass 3 re-runs
 After the WebSocket cap, fog export, abandoned-game retention, cache
-passthrough and deletion-copy fixes: 173/173 unit tests, both typechecks,
+passthrough and deletion-copy fixes: 176/176 unit tests, both typechecks,
 online-smoke, v8-fog-browser and v7-mantra-browser re-run green at 22:02,
 v7-browser re-run green at 22:41. API malformed-input fuzz and the live
 trial-mode / moderation / export probes above all ran against this tree.
 
 ## Owner dry-run (23:57)
 The exact shipped patch was applied to a fresh clone of base 34410f9, then
-the full owner flow ran there: `npm ci` clean, 173/173 unit tests, `npm run
+the full owner flow ran there: `npm ci` clean, 176/176 unit tests, `npm run
 build` green, `npm audit` 0 vulnerabilities. The patch alone reproduces a
 working tree.
+
+## Fifth block (00:50, 14 Oct): production single-process topology
+Ran the exact deployment shape the Dockerfile uses - the game server serving
+the built client, API and WebSocket on one port. It was BROKEN as first
+shipped: same-origin browser GETs carry no Origin header and were 403'd, and
+a request without Origin then crashed the server outright
+(Access-Control-Allow-Origin set to "undefined"). Both fixed (origin gate
+treats a missing Origin as same-origin/non-browser; CORS headers only set
+when Origin is present). Verified live: built client boots error-free on
+port 8787, two players create/join a room, and a move travels over the
+same-port WebSocket. Evil origins still 403.
 
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.

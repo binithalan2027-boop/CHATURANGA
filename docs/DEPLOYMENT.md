@@ -78,7 +78,8 @@ AUTH_MODE=supabase            # after Supabase is configured; until then keep lo
 NODE_ENV=production
 HOST=127.0.0.1                # never bind 0.0.0.0; the proxy exposes it
 PORT=8787
-ALLOWED_ORIGINS=https://chaturanga.me
+ALLOWED_ORIGINS=https://chaturanga.me   # only cross-origin clients need listing;
+# same-origin browser traffic to the served client is always allowed
 TRUST_PROXY=1
 BEHIND_TLS=1
 SUPABASE_URL=https://YOUR-PROJECT.supabase.co
