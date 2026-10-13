@@ -1,0 +1,18 @@
+Chaturanga - third-party engine and rules acknowledgements
+
+Engines (run on-device, in the browser):
+- Stockfish 19 lite (public/engines/stockfish-19-lite/) - GPL-3.0+
+  https://stockfishchess.org - Copyright (c) the Stockfish developers
+- Fairy-Stockfish 1.1.12 WASM (public/engines/fairy-stockfish/) - GPL-3.0
+  https://github.com/fairy-stockfish/fairy-stockfish.wasm - Copyright (c) Fabian Fichter and contributors
+  License texts ship alongside each engine (Copying.txt).
+
+Rules libraries:
+- chessops (lichess-org) - GPL-3.0+ - variant move generation
+- chess.js - BSD-2-Clause - classic move generation
+
+Framework: React (MIT), Vite (MIT).
+
+Consequence of the GPL components: if Chaturanga is published, its complete
+corresponding source must be published under GPL-compatible terms. This was an
+explicit product decision (2026-10-10). See docs/OPEN-SOURCE-CHECKLIST.md.
