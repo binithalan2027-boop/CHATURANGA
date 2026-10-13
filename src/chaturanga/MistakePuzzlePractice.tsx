@@ -3,6 +3,7 @@ import { Chess, Square } from "chess.js";
 import { MistakePuzzle } from "./mistakeDetector";
 import PositionBoard from "./PositionBoard";
 import { readableSuggestion } from "./AnalysisCoach";
+import { explainMistake } from "./explainMistake";
 export default function MistakePuzzlePractice({
   puzzle,
   onResult,
@@ -21,6 +22,7 @@ export default function MistakePuzzlePractice({
     <div className="mistake-practice">
       <h3>Revisit ply {puzzle.ply}</h3>
       <p>
+        Why it cost you: {explainMistake(puzzle.fen, puzzle.played, puzzle.best)}{" "}
         Your line played {puzzle.played}. Depth-8 estimate dropped{" "}
         {(puzzle.loss / 100).toFixed(2)} pawns. Find the stored engine
         candidate.

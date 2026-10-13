@@ -50,6 +50,12 @@ export const BOTS = [
   },
 ] as const;
 export type BotId = (typeof BOTS)[number]["id"];
+export type BotLevel = "beginner" | "club" | "master";
+export const BOT_LEVELS: Record<BotLevel, { depth: number; noise: number; label: string }> = {
+  beginner: { depth: 1, noise: 220, label: "Beginner - learning moves" },
+  club: { depth: 2, noise: 60, label: "Club - solid casual game" },
+  master: { depth: 3, noise: 5, label: "Master - full local strength" },
+};
 const value: Record<string, number> = {
   p: 100,
   n: 320,
@@ -82,9 +88,12 @@ export function chooseBotMove(
   id: BotId,
   allowed?: string[],
   maxNodes = 15000,
+  level?: BotLevel,
 ): string {
   const c = new Chess(fen),
-    bot = BOTS.find((b) => b.id === id) || BOTS[0],
+    base = BOTS.find((b) => b.id === id) || BOTS[0],
+    lv = level ? BOT_LEVELS[level] : null,
+    bot = lv ? { ...base, depth: lv.depth, noise: lv.noise } : base,
     actor = c.turn();
   let nodes = 0;
   const search = (depth: number, alpha: number, beta: number): number => {

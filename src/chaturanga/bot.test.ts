@@ -1,4 +1,4 @@
-import { it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Chess } from "chess.js";
 import { chooseBotMove, BOTS } from "./bot";
 it("every bot returns a legal move without mutating the position", () => {
@@ -26,4 +26,21 @@ it("returns empty at checkmate", () => {
   const c = new Chess();
   for (const m of ["f3", "e5", "g4", "Qh4#"]) c.move(m);
   expect(chooseBotMove(c.fen(), "tara")).toBe("");
+});
+
+describe("Khivin difficulty levels", () => {
+  const fen = "rnb1kbnr/pppp1ppp/8/4q3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1"; // free queen on e5
+  it("master takes the free queen", () => {
+    expect(chooseBotMove(fen, "khivin", undefined, 8000, "master")).toBe("d4e5");
+  });
+  it("all levels return legal moves", () => {
+    const c = new Chess();
+    for (const lv of ["beginner", "club", "master"] as const) {
+      const m = chooseBotMove(c.fen(), "khivin", undefined, 8000, lv);
+      expect(c.moves({ verbose: true }).map((x) => x.from + x.to + (x.promotion || ""))).toContain(m);
+    }
+  });
+  it("without a level, house defaults still apply", () => {
+    expect(chooseBotMove(fen, "khivin", undefined, 8000)).toBe("d4e5");
+  });
 });

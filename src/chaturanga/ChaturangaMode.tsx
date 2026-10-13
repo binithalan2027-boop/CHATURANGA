@@ -16,7 +16,7 @@ import {
 } from "./engine";
 import "./courtyard.css";
 import { usePreferences } from "./preferences";
-import { BOTS, BotId } from "./bot";
+import { BOTS, BotId, BotLevel, BOT_LEVELS } from "./bot";
 const STORAGE = "chaturanga-local-v1";
 const symbols: Record<string, string> = {
   wk: "♔",
@@ -71,6 +71,7 @@ export default function ChaturangaMode({
   const stateRef = useRef<State | null>(null);
   const botWorker = useRef<Worker | null>(null);
   const [botThinking, setBotThinking] = useState(false);
+  const [khivinLevel, setKhivinLevel] = useState<BotLevel>("club");
   const storage = initialMode === "classic" ? STORAGE + "-bots" : STORAGE;
   const [game, setGame] = useState<State | null>(
     () =>
@@ -218,7 +219,7 @@ export default function ChaturangaMode({
           return;
         setBotThinking(true);
         if (id === "khivin" && game.settings.mode === "classic") {
-          stockfishAnalyze(request, { depth: 10, signal: ctl.signal })
+          stockfishAnalyze(request, { depth: { beginner: 4, club: 10, master: 14 }[khivinLevel], signal: ctl.signal })
             .then((result) => {
               const current = stateRef.current;
               if (
@@ -270,6 +271,7 @@ export default function ChaturangaMode({
           fen: request,
           id,
           request,
+          level: khivinLevel,
           allowed: legalMoves(game).map(
             (m) => m.from + m.to + (m.promotion || ""),
           ),
@@ -479,6 +481,22 @@ export default function ChaturangaMode({
                 ))}
               </select>
             </label>
+            {opponent === "khivin" && (
+              <label>
+                Khivin difficulty
+                <select
+                  aria-label="Khivin difficulty"
+                  value={khivinLevel}
+                  onChange={(e) => setKhivinLevel(e.target.value as BotLevel)}
+                >
+                  {(Object.keys(BOT_LEVELS) as BotLevel[]).map((lv) => (
+                    <option key={lv} value={lv}>
+                      {BOT_LEVELS[lv].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {opponent !== "local" && mode !== "mantra" && (
               <div className="bot-card">
                 <span className="bot-avatar">
