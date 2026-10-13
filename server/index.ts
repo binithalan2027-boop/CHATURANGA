@@ -246,10 +246,14 @@ const server = createServer(async (req, res) => {
     reply(res, 403, { error: "Origin not allowed." });
     return;
   }
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin!);
-  res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  // CORS headers matter only for cross-origin browser requests, which
+  // always send Origin. Setting the header to "undefined" would throw.
+  if (req.headers.origin) {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  }
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
