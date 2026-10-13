@@ -7,7 +7,8 @@ export type Rule =
   | "antichess"
   | "atomic"
   | "horde"
-  | "racingkings";
+  | "racingkings"
+  | "fog";
 export interface PlayerProfile {
   id: string;
   username: string;
@@ -52,6 +53,10 @@ export interface RoomView {
   drawOffer: string | null;
   yourColor: "white" | "black";
   invitee: string | null;
+  /** Fog of War only: squares hidden from the viewer (0=a1..63=h8). */
+  fogSquares?: number[];
+  /** Fog of War only: viewer's legal moves (uci) when it is their turn. */
+  fogMoves?: string[];
 }
 export interface EntitlementStatus {
   unlocked: boolean;

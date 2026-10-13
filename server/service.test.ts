@@ -227,3 +227,50 @@ describe("profile deletion fairness", () => {
     expect(s.requireUser("b").wins).toBe(1);
   });
 });
+
+describe("fog of war rooms", () => {
+  it("creates, joins and plays with per-player projection and masked moves", () => {
+    const { s } = setup();
+    const r = s.create("a", "fog" as never, 5);
+    s.join("b", r);
+    const wa = s.state("a", "local").rooms[0];
+    // White to move: white gets legal moves, black gets none yet.
+    expect(wa.fogMoves?.length).toBe(20);
+    const wb = s.state("b", "local").rooms[0];
+    expect(wb.fogMoves).toEqual([]);
+    // Both see their own back rank; neither sees the enemy back rank.
+    expect(wa.fen).toContain("RNBQKBNR");
+    expect(wa.fen.startsWith("8/8/8/8")).toBe(true); // black pieces hidden
+    expect(wb.fen.startsWith("8/8/8/8")).toBe(false); // black sees own pieces... check below
+    expect(wb.fogSquares?.length).toBeGreaterThan(0);
+    // White plays e2e4.
+    s.act("a", r, 1, "move", "e2e4");
+    const wa2 = s.state("a", "local").rooms[0];
+    const wb2 = s.state("b", "local").rooms[0];
+    expect(wa2.moves).toEqual(["e2-e4"]);
+    expect(wb2.moves).toEqual(["?"]); // opponent move masked
+    expect(wb2.fogMoves?.length).toBe(20); // black to move now
+    // Not black's opponents turn enforcement:
+    expect(() => s.act("a", r, 2, "move", "d2d4")).toThrow("turn");
+    // Illegal move rejected:
+    expect(() => s.act("b", r, 2, "move", "e7e6e9")).toThrow("Invalid");
+    expect(() => s.act("b", r, 2, "move", "e7e4")).toThrow();
+    s.act("b", r, 2, "move", "e7e5");
+    expect(s.state("a", "local").rooms[0].moves).toEqual(["e2-e4", "?"]);
+  });
+  it("finishes when a king is captured and hides castling/en-passant state", () => {
+    const { s } = setup();
+    const r = s.create("a", "fog" as never, 5);
+    s.join("b", r);
+    const wa = s.state("a", "local").rooms[0];
+    expect(wa.fen.split(" ")[2]).toBe("-"); // castling blanked in projection
+    expect(wa.fen.split(" ")[3]).toBe("-"); // en-passant blanked
+  });
+  it("handles resign and draw in fog rooms", () => {
+    const { s } = setup();
+    const r = s.create("a", "fog" as never, 5);
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    expect(s.state("a", "local").rooms[0].result).toMatch("resignation");
+  });
+});

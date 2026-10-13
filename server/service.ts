@@ -13,6 +13,18 @@ import type {
   OnlineState,
 } from "../src/online/types";
 import { Store } from "./store";
+import {
+  fogInitial,
+  fogFromFen,
+  fogFen,
+  fogPlay,
+  fogLegalMoves,
+  fogView,
+  fogPositionKey,
+  squareName,
+  parseSquare,
+  type FogPiece,
+} from "../src/online/fogRules";
 interface Friend {
   id: string;
   from: string;
@@ -248,9 +260,11 @@ export class Service {
     if (!(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady))
       throw Error("Complete your player profile first.");
     if (
-      !RULE_VARIANTS.some((v) => v.id === rule) ||
-      ![3, 5, 10, 15].includes(minutes)
+      rule !== "fog" &&
+      !RULE_VARIANTS.some((v) => v.id === rule)
     )
+      throw Error("Invalid game settings.");
+    if (![3, 5, 10, 15].includes(minutes))
       throw Error("Invalid game settings.");
     if (invitee && !this.friend(id, invitee))
       throw Error("Only accepted friends can be challenged.");
@@ -266,7 +280,10 @@ export class Service {
       white: id,
       black: null,
       invitee: invitee ?? null,
-      fen: variantFen(variantPosition(rule)),
+      fen:
+        rule === "fog"
+          ? fogFen(fogInitial())
+          : variantFen(variantPosition(rule as never)),
       moves: [],
       version: 0,
       status: "waiting",
@@ -316,14 +333,20 @@ export class Service {
   }
   tick(r: Room) {
     if (r.status !== "active") return;
-    const pos = variantPosition(r.rule, r.fen),
-      dt = Math.max(0, this.now() - r.updatedAt);
-    if (pos.turn === "white") r.whiteMs = Math.max(0, r.whiteMs - dt);
+    const whiteToMove =
+      r.rule === "fog"
+        ? fogFromFen(r.fen).turn === "w"
+        : variantPosition(r.rule, r.fen).turn === "white";
+    const dt = Math.max(0, this.now() - r.updatedAt);
+    if (whiteToMove) r.whiteMs = Math.max(0, r.whiteMs - dt);
     else r.blackMs = Math.max(0, r.blackMs - dt);
     r.updatedAt = this.now();
     if (r.whiteMs === 0 || r.blackMs === 0) {
       const winner = r.whiteMs === 0 ? "black" : "white";
-      if (r.rule === "chess" && pos.hasInsufficientMaterial(winner))
+      if (
+        r.rule === "chess" &&
+        variantPosition(r.rule, r.fen).hasInsufficientMaterial(winner)
+      )
         this.finish(r, "Draw on time (opponent cannot mate)", null);
       else this.finish(r, `${winner} wins on time`, winner);
     }
@@ -400,6 +423,10 @@ export class Service {
       this.finish(r, "Draw by agreement", null);
       return;
     } else if (action === "move") {
+      if (r.rule === "fog") {
+        this.fogMove(r, color, uci);
+        return;
+      }
       const pos = variantPosition(r.rule, r.fen);
       if (pos.turn !== color) throw Error("Not your turn.");
       if (typeof uci !== "string" || uci.length > 8)
@@ -434,6 +461,7 @@ export class Service {
     this.member(id, r);
     this.tick(r);
     this.store.put("room", r.id, r);
+    if (r.rule === "fog") return this.fogRoomView(id, r);
     return {
       id: r.id,
       rule: r.rule,
@@ -501,6 +529,99 @@ export class Service {
       invitee: id,
     };
   }
+  /** Fog of War move handling (house rules; see src/online/fogRules.ts). */
+  private fogMove(r: Room, color: "white" | "black", uci: unknown) {
+    const state = fogFromFen(r.fen);
+    const c = color === "white" ? "w" : "b";
+    if (state.turn !== c) throw Error("Not your turn.");
+    if (typeof uci !== "string" || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))
+      throw Error("Invalid move.");
+    const from = parseSquare(uci.slice(0, 2)),
+      to = parseSquare(uci.slice(2, 4));
+    const capture =
+      state.board[to] !== null ||
+      (state.ep === to && state.board[from]?.toLowerCase() === "p");
+    const next = fogPlay(state, {
+      from,
+      to,
+      promotion: (uci[4] as "q" | "r" | "b" | "n" | undefined) ?? undefined,
+    });
+    r.fen = fogFen(next);
+    const castle =
+      state.board[from]?.toLowerCase() === "k" &&
+      Math.abs((to % 8) - (from % 8)) === 2;
+    r.moves.push(
+      castle
+        ? to % 8 === 6
+          ? "O-O"
+          : "O-O-O"
+        : `${squareName(from)}${capture ? "x" : "-"}${squareName(to)}${next.board[to] !== state.board[from] && next.board[to] ? "=" + next.board[to]!.toUpperCase() : ""}`,
+    );
+    r.version++;
+    r.drawOffer = null;
+    if (next.result) {
+      const winner = next.result.startsWith("White")
+        ? "white"
+        : next.result.startsWith("Black")
+          ? "black"
+          : null;
+      this.finish(r, next.result, winner);
+      return;
+    }
+    const k = fogPositionKey(next);
+    r.repetition[k] = (r.repetition[k] ?? 0) + 1;
+    if (r.repetition[k] >= 3) {
+      this.finish(r, "Draw (threefold repetition)", null);
+      return;
+    }
+    this.store.put("room", r.id, r);
+  }
+
+  /** Fog of War per-player view: hidden enemy pieces and moves stay server-side. */
+  private fogRoomView(id: string, r: Room): RoomView {
+    const state = fogFromFen(r.fen);
+    const yourColor = r.white === id ? ("white" as const) : ("black" as const);
+    const c = yourColor === "white" ? ("w" as const) : ("b" as const);
+    const projection = fogView(state, c);
+    const visible: (FogPiece | null)[] = new Array(64).fill(null);
+    for (const { square, piece } of projection.pieces)
+      visible[square] = piece;
+    // Castling rights and en-passant are blanked: they leak hidden positions.
+    const fen = fogFen({ ...state, board: visible, castling: "", ep: null });
+    return {
+      id: r.id,
+      rule: r.rule,
+      white: r.white,
+      black: r.black,
+      whiteName: this.requireUser(r.white).displayName,
+      blackName: r.black ? this.requireUser(r.black).displayName : null,
+      fen,
+      moves: r.moves.map((san, i) =>
+        i % 2 === (c === "w" ? 0 : 1) ? san : "?",
+      ),
+      version: r.version,
+      status: r.status,
+      turn: state.turn === "w" ? "white" : "black",
+      whiteMs: r.whiteMs,
+      blackMs: r.blackMs,
+      serverTime: this.now(),
+      result: r.result,
+      drawOffer: r.drawOffer,
+      yourColor,
+      invitee: r.invitee,
+      fogSquares: projection.fog,
+      fogMoves:
+        r.status === "active" && state.turn === c
+          ? fogLegalMoves(state).map(
+              (m) =>
+                squareName(m.from) +
+                squareName(m.to) +
+                (m.promotion ?? ""),
+            )
+          : [],
+    };
+  }
+
   report(id: string, input: Record<string, unknown>) {
     this.requireUser(id);
     const category=String(input.category ?? "");
