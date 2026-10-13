@@ -34,6 +34,12 @@ export default function DrillsPage({ onExit }: { onExit: () => void }) {
       </header>
       <main className="court-match">
         <section className="board-column">
+          <div className="match-heading">
+            <div>
+              <div className="eyebrow">PRACTICE FROM YOUR OWN GAMES</div>
+              <h1>Daily drills</h1>
+            </div>
+          </div>
           {current ? (
             <div className="court-panel">
               <MistakePuzzlePractice
