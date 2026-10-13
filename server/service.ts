@@ -328,13 +328,18 @@ export class Service {
       else this.finish(r, `${winner} wins on time`, winner);
     }
   }
-  finish(r: Room, result: string, winner: "white" | "black" | null) {
+  finish(
+    r: Room,
+    result: string,
+    winner: "white" | "black" | null,
+    opts: { rated?: boolean } = {},
+  ) {
     if (r.status === "finished") return;
     r.status = "finished";
     r.result = result;
     r.drawOffer = null;
     r.version++;
-    if (r.rule === "chess" && r.black) {
+    if (r.rule === "chess" && r.black && opts.rated !== false) {
       const white = this.requireUser(r.white),
         black = this.requireUser(r.black),
         score = winner === "white" ? 1 : winner === "black" ? 0 : 0.5,
@@ -526,10 +531,12 @@ export class Service {
     for (const r of this.store.all<Room>("room"))
       if (r.white === id || r.black === id) {
         if (r.status === "active")
+          // Unrated: deleting a profile must not hand rating points to opponents.
           this.finish(
             r,
             "Opponent deleted profile",
             r.white === id ? "black" : "white",
+            { rated: false },
           );
         if (r.status === "waiting") {
           r.status = "finished";

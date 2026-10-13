@@ -43,6 +43,10 @@ export class Store {
       throw e;
     }
   }
+  /** Consistent online backup of the database (safe in WAL mode). */
+  backup(path: string) {
+    this.db.exec(`VACUUM INTO '${path.replace(/'/g, "''")}'`);
+  }
   close() {
     this.db.close();
   }

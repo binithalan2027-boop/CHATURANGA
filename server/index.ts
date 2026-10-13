@@ -1,12 +1,22 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { WebSocketServer, WebSocket } from "ws";
 import { createClient } from "@supabase/supabase-js";
 import { Store } from "./store";
 import { Service } from "./service";
-import {CustomService} from "./custom";
+import { CustomService } from "./custom";
+import {
+  RateLimiter,
+  clientIp,
+  apiSecurityHeaders,
+  clientCsp,
+  staticSecurityHeaders,
+} from "./http";
+import { createStaticHandler } from "./static";
+import { sweepExpired } from "./maintenance";
 import type { Rule } from "../src/online/types";
+
 const mode = process.env.AUTH_MODE ?? "local";
 if (!["local", "supabase"].includes(mode))
   throw Error("AUTH_MODE must be local or supabase.");
@@ -24,6 +34,15 @@ if (
   (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY)
 )
   throw Error("Supabase configuration required.");
+if (
+  mode === "supabase" &&
+  process.env.PUBLIC_LEGAL_REVIEW !== "approved"
+)
+  throw Error(
+    "Public account play requires reviewed audience, child-data safeguards, policies and grievance operations. Local testing remains available.",
+  );
+const trustProxy = process.env.TRUST_PROXY === "1";
+const behindTls = process.env.BEHIND_TLS === "1";
 const supabase =
   mode === "supabase"
     ? createClient(
@@ -32,68 +51,122 @@ const supabase =
         { auth: { persistSession: false, autoRefreshToken: false } },
       )
     : null;
+
 mkdirSync("data", { recursive: true });
 const store = new Store(process.env.DB_PATH ?? "data/chaturanga.sqlite"),
   service = new Service(store);
-const custom = new CustomService(store, () => Date.now(), (a,b) => {if(!(service.requireUser(a).adultConfirmed || service.requireUser(a).profileReady))throw Error("Save your test profile first."); if(b && service.blocked(a,b)) throw Error("Player unavailable.");}, id=>service.requireUser(id).displayName);
-if(mode === "supabase" && process.env.PUBLIC_LEGAL_REVIEW !== "approved") throw Error("Public account play requires reviewed audience, child-data safeguards, policies and grievance operations. Local testing remains available.");
+const custom = new CustomService(
+  store,
+  () => Date.now(),
+  (a, b) => {
+    if (
+      !(
+        service.requireUser(a).adultConfirmed ||
+        service.requireUser(a).profileReady
+      )
+    )
+      throw Error("Save your test profile first.");
+    if (b && service.blocked(a, b)) throw Error("Player unavailable.");
+  },
+  (id) => service.requireUser(id).displayName,
+);
+
+/** Static client build (production single-process deploy). */
+const staticDir =
+  process.env.STATIC_DIR ?? (existsSync("dist/index.html") ? "dist" : null);
+const staticHandler = staticDir ? createStaticHandler(staticDir) : null;
+const extraConnect = (process.env.CSP_CONNECT_SRC ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+if (process.env.SUPABASE_URL) {
+  try {
+    const u = new URL(process.env.SUPABASE_URL);
+    extraConnect.push(u.origin, `wss://${u.host}`);
+  } catch {
+    /* validated by Supabase client creation above */
+  }
+}
+const csp = clientCsp(extraConnect);
+const cspReportOnly = process.env.CSP_REPORT_ONLY === "1";
+
+const limiter = new RateLimiter(60_000);
 interface Session {
   id: string;
   user: string;
   expires: number;
 }
-const clients = new Map<WebSocket, { id: string; expires: number }>(),
-  buckets = new Map<string, { n: number; start: number }>();
-function limit(key: string, max = 120) {
-  const t = Date.now();
-  let b = buckets.get(key);
-  if (!b || t - b.start > 60000) {
-    b = { n: 0, start: t };
-    buckets.set(key, b);
-  }
-  if (++b.n > max) throw Error("Too many requests. Try again in a minute.");
-  if (buckets.size > 10000)
-    for (const [k, v] of buckets) if (t - v.start > 60000) buckets.delete(k);
-}
-function allow(req: IncomingMessage) {
-  return !!req.headers.origin && origins.includes(req.headers.origin);
-}
-async function auth(token: unknown) {
-  if (typeof token !== "string" || token.length > 4096)
+/** Short-lived cache of validated Supabase tokens (avoids an upstream call per request). */
+const tokenCache = new Map<string, { user: string; expires: number }>();
+const clients = new Map<WebSocket, { id: string; expires: number }>();
+const wsPerIp = new Map<string, number>();
+/** Re-authenticate push sockets periodically so revoked sessions drop. */
+const WS_REAUTH_MS = 5 * 60_000;
+
+async function auth(token: unknown, ip: string) {
+  if (typeof token !== "string" || token.length > 4096) {
+    limiter.check(`authfail:${ip}`, 30, "Too many failed sign-ins.");
     throw Error("Sign in required.");
+  }
   if (supabase) {
+    const cached = tokenCache.get(token);
+    if (cached && cached.expires > Date.now()) return cached.user;
     const { data, error } = await supabase.auth.getUser(token);
-    if (error || !data.user) throw Error("Sign in expired.");
+    if (error || !data.user) {
+      limiter.check(`authfail:${ip}`, 30, "Too many failed sign-ins.");
+      throw Error("Sign in expired.");
+    }
     service.ensureUser(data.user.id);
+    tokenCache.set(token, {
+      user: data.user.id,
+      expires: Date.now() + 60_000,
+    });
+    if (tokenCache.size > 5000)
+      for (const [k, v] of tokenCache)
+        if (v.expires < Date.now()) tokenCache.delete(k);
     return data.user.id;
   }
   const session = store.get<Session>("session", token);
-  if (!session || session.expires < Date.now())
+  if (!session || session.expires < Date.now()) {
+    limiter.check(`authfail:${ip}`, 30, "Too many failed sign-ins.");
     throw Error("Local session expired.");
+  }
   service.requireUser(session.user);
   return session.user;
 }
-function publish() {
-  for (const [ws, identity] of clients)
-    if (ws.readyState === WebSocket.OPEN) {
-      if (identity.expires < Date.now()) {
-        ws.close();
-        continue;
-      }
-      const id = identity.id;
-      try {
-        ws.send(
-          JSON.stringify({
-            state: store.transaction(() =>
-              ({...service.state(id, mode as "local" | "supabase"), customRooms: custom.state(id)}),
-            ),
-          }),
-        );
-      } catch {
-        ws.close();
-      }
-    }
+
+function stateFor(id: string) {
+  return store.transaction(() => ({
+    ...service.state(id, mode as "local" | "supabase"),
+    customRooms: custom.state(id),
+  }));
 }
+
+function publish() {
+  const byUser = new Map<string, WebSocket[]>();
+  for (const [ws, identity] of clients) {
+    if (identity.expires < Date.now()) {
+      ws.close();
+      continue;
+    }
+    if (ws.readyState !== WebSocket.OPEN) continue;
+    const list = byUser.get(identity.id) ?? [];
+    list.push(ws);
+    byUser.set(identity.id, list);
+  }
+  // Compute each player's state once per tick, then fan out to their tabs.
+  for (const [id, sockets] of byUser) {
+    let payload: string;
+    try {
+      payload = JSON.stringify({ state: stateFor(id) });
+    } catch {
+      for (const ws of sockets) ws.close();
+      continue;
+    }
+    for (const ws of sockets) ws.send(payload);
+  }
+}
+
 function reply(
   res: import("node:http").ServerResponse,
   status: number,
@@ -105,17 +178,56 @@ function reply(
   });
   res.end(JSON.stringify(body));
 }
+
 async function body(req: IncomingMessage) {
   let raw = "";
   for await (const chunk of req) {
     raw += chunk;
     if (raw.length > 16384) throw Error("Request too large.");
   }
-  return raw ? JSON.parse(raw) : {};
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw Error("Invalid request body.");
+  }
 }
+
+/** Deletes the Supabase auth identity. Requires the secret (service-role) key. */
+async function deleteAuthIdentity(
+  userId: string,
+): Promise<"deleted" | "manual-step-required" | "failed"> {
+  if (!supabase) return "manual-step-required";
+  const secret = process.env.SUPABASE_SECRET_KEY;
+  if (!secret) return "manual-step-required";
+  try {
+    const r = await fetch(
+      `${process.env.SUPABASE_URL}/auth/v1/admin/users/${userId}`,
+      {
+        method: "DELETE",
+        headers: { apikey: secret, Authorization: `Bearer ${secret}` },
+      },
+    );
+    return r.ok ? "deleted" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 const server = createServer(async (req, res) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  if (!allow(req)) {
+  const ip = clientIp(req, trustProxy);
+  const path = (req.url ?? "").split("?")[0];
+  if (!path.startsWith("/api/")) {
+    if (staticHandler) {
+      staticSecurityHeaders(res, { csp, behindTls, reportOnly: cspReportOnly });
+      if (staticHandler(req, res)) return;
+    }
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not found.");
+    return;
+  }
+  apiSecurityHeaders(res);
+  if (!origins.includes(req.headers.origin ?? "")) {
     reply(res, 403, { error: "Origin not allowed." });
     return;
   }
@@ -129,8 +241,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   try {
-    limit(req.socket.remoteAddress ?? "unknown");
-    const path = (req.url ?? "").split("?")[0];
+    limiter.check(`http:${ip}`, 120);
     if (path === "/api/config") {
       reply(res, 200, {
         mode,
@@ -142,7 +253,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "POST" && path === "/api/local-session") {
       if (mode !== "local") throw Error("Local sign-in is disabled.");
-      limit(`signup:${req.socket.remoteAddress}`, 15);
+      limiter.check(`signup:${ip}`, 15);
       const token = randomBytes(32).toString("hex"),
         id = randomBytes(16).toString("hex");
       service.ensureUser(id);
@@ -155,25 +266,28 @@ const server = createServer(async (req, res) => {
       return;
     }
     const token = req.headers.authorization?.replace(/^Bearer /, "");
-    const id = await auth(token);
+    const id = await auth(token, ip);
     if (req.method === "GET" && path === "/api/state") {
-      reply(
-        res,
-        200,
-        store.transaction(() =>
-          ({...service.state(id, mode as "local" | "supabase"), customRooms: custom.state(id)}),
-        ),
-      );
+      reply(res, 200, stateFor(id));
       return;
     }
     if (req.method === "GET" && path === "/api/export") {
-      reply(res, 200, {...service.export(id),customGames:custom.export(id)});
+      reply(res, 200, {
+        ...service.export(id),
+        customGames: custom.export(id),
+      });
       return;
     }
     if (req.method !== "POST") throw Error("Unsupported request.");
+    limiter.check(`act:${id}`, 240);
     const data = await body(req);
     let result: unknown = { ok: true };
-    if(path === "/api/custom-action") {store.transaction(()=>custom.act(id,data.room,data.version,data));reply(res,200,{ok:true});publish();return;}
+    if (path === "/api/custom-action") {
+      store.transaction(() => custom.act(id, data.room, data.version, data));
+      reply(res, 200, { ok: true });
+      publish();
+      return;
+    }
     if (path === "/api/game") {
       service.act(id, data.room, data.version, data.action, data.uci);
       reply(res, 200, { ok: true });
@@ -182,27 +296,22 @@ const server = createServer(async (req, res) => {
     }
     // Synchronous transaction prevents simultaneous joins/moves from racing.
     store.transaction(() => {
-      if(path === "/api/custom-create") result={room:custom.create(id,data.kind,data.minutes)};
-      else if(path === "/api/custom-join") custom.join(id,data.room);
-      else if(path === "/api/report") result=service.report(id,data);
-      else if(path === "/api/reports") result=service.reports(id);
-      else if (path === "/api/profile") result = service.profile(id, data, mode === "local");
+      if (path === "/api/custom-create")
+        result = { room: custom.create(id, data.kind, data.minutes) };
+      else if (path === "/api/custom-join") custom.join(id, data.room);
+      else if (path === "/api/report") result = service.report(id, data);
+      else if (path === "/api/reports") result = service.reports(id);
+      else if (path === "/api/profile")
+        result = service.profile(id, data, mode === "local");
       else if (path === "/api/find")
         result = service.lookup(id, String(data.username ?? "").slice(0, 24));
       else if (path === "/api/friend")
         service.friendAction(id, data.action, data.target);
       else if (path === "/api/create")
         result = {
-          room: service.create(
-            id,
-            data.rule as Rule,
-            data.minutes,
-            data.invitee,
-          ),
+          room: service.create(id, data.rule as Rule, data.minutes, data.invitee),
         };
       else if (path === "/api/join") service.join(id, data.room);
-      else if (path === "/api/game")
-        throw Error("Internal game route conflict.");
       else if (path === "/api/delete") {
         custom.delete(id);
         service.deleteUser(id);
@@ -212,6 +321,11 @@ const server = createServer(async (req, res) => {
         if (mode === "local" && token) store.delete("session", token);
       } else throw Error("Unknown endpoint.");
     });
+    if (path === "/api/delete") {
+      for (const [k, v] of tokenCache) if (v.user === id) tokenCache.delete(k);
+      result = { ok: true, authIdentity: await deleteAuthIdentity(id) };
+    }
+    if (path === "/api/logout" && token) tokenCache.delete(token);
     if (path === "/api/delete" || path === "/api/logout")
       for (const [ws, identity] of clients) if (identity.id === id) ws.close();
     reply(res, 200, result);
@@ -222,15 +336,31 @@ const server = createServer(async (req, res) => {
     });
   }
 });
+
 const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 server.on("upgrade", (req, socket, head) => {
-  if (!allow(req) || req.url !== "/api/live") {
+  const ip = clientIp(req, trustProxy);
+  try {
+    limiter.check(`ws:${ip}`, 30);
+  } catch {
+    socket.destroy();
+    return;
+  }
+  const originOk = origins.includes(req.headers.origin ?? "");
+  if (!originOk || req.url !== "/api/live") {
     socket.destroy();
     return;
   }
   wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
 });
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req: IncomingMessage) => {
+  const ip = clientIp(req, trustProxy);
+  const count = wsPerIp.get(ip) ?? 0;
+  if (count >= 20) {
+    ws.close();
+    return;
+  }
+  wsPerIp.set(ip, count + 1);
   const timeout = setTimeout(() => ws.close(), 5000);
   let authenticated = false;
   ws.on("message", async (raw) => {
@@ -241,9 +371,9 @@ wss.on("connection", (ws) => {
       }
       authenticated = true;
       const { token } = JSON.parse(raw.toString());
-      const id = await auth(token);
+      const id = await auth(token, ip);
       clearTimeout(timeout);
-      clients.set(ws, { id, expires: Date.now() + 5 * 60000 });
+      clients.set(ws, { id, expires: Date.now() + WS_REAUTH_MS });
       publish();
     } catch {
       ws.close();
@@ -252,16 +382,33 @@ wss.on("connection", (ws) => {
   ws.on("close", () => {
     clearTimeout(timeout);
     clients.delete(ws);
+    wsPerIp.set(ip, (wsPerIp.get(ip) ?? 1) - 1);
   });
 });
+
+function sweep() {
+  try {
+    const r = sweepExpired(store, {
+      gameRetentionDays: Number(process.env.GAME_RETENTION_DAYS ?? 180),
+      reportRetentionDays: Number(process.env.REPORT_RETENTION_DAYS ?? 365),
+    });
+    const total = r.sessions + r.rooms + r.custom + r.reports;
+    if (total > 0) console.log(`Retention sweep purged: ${JSON.stringify(r)}`);
+  } catch (e) {
+    console.error("Retention sweep failed:", e);
+  }
+}
+sweep();
+const sweepTimer = setInterval(sweep, 3600_000);
 const timer = setInterval(publish, 1000);
 server.listen(port, host, () =>
   console.log(
-    `Chaturanga server: http://${host}:${port} (${mode} authentication)`,
+    `Chaturanga server: http://${host}:${port} (${mode} authentication${staticDir ? `, static ${staticDir}` : ""})`,
   ),
 );
 function shutdown() {
   clearInterval(timer);
+  clearInterval(sweepTimer);
   for (const ws of clients.keys()) ws.close();
   wss.close();
   server.close(() => {

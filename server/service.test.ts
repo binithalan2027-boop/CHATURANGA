@@ -215,3 +215,15 @@ it("timeout is a draw if opponent cannot mate", () => {
   advance(180001);
   expect(s.state("a", "local").rooms[0].result).toMatch("Draw on time");
 });
+
+describe("profile deletion fairness", () => {
+  it("finishes active games unrated so deletion cannot farm rating", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    const before = s.requireUser("b").rating;
+    s.deleteUser("a");
+    expect(s.requireUser("b").rating).toBe(before);
+    expect(s.requireUser("b").wins).toBe(1);
+  });
+});
