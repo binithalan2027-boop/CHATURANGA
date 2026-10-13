@@ -48,6 +48,12 @@ const { chromium, expect } = require("@playwright/test");
   await a.getByRole("button", { name: "d5, black pawn", exact: true }).click();
   await expect(a.getByRole("button", { name: "d5, white pawn", exact: true })).toBeVisible();
   await expect(c.getByRole("button", { name: "d5, white pawn", exact: true })).toBeVisible();
+  // Mobile: fog board must fit 320px with no horizontal overflow
+  await a.setViewportSize({ width: 320, height: 820 });
+  await a.screenshot({ path: "/downloads/v8-fog-mobile.png", fullPage: true });
+  const overflow = await a.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+  if (overflow) throw Error("Mobile overflow on fog board");
+  await a.setViewportSize({ width: 1366, height: 950 });
   await a.screenshot({ path: "/downloads/v8-fog-white.png" });
   await c.screenshot({ path: "/downloads/v8-fog-black.png" });
   console.log(JSON.stringify({ fogOnline: true, masked: true, projection: true, errors }, null, 2));
