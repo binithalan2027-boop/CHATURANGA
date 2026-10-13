@@ -70,6 +70,27 @@ export class ConnectionTracker {
   }
 }
 
+/**
+ * Origin gate for API and WebSocket traffic. Same-origin requests (the
+ * production single-process topology, where the server also serves the
+ * client) are always allowed; cross-origin requests must be on the explicit
+ * ALLOWED_ORIGINS list (the Vite dev server during development).
+ */
+export function originAllowed(
+  origin: string | undefined,
+  host: string | undefined,
+  allowed: string[],
+): boolean {
+  if (origin && host) {
+    try {
+      if (new URL(origin).host === host) return true;
+    } catch {
+      /* fall through to the allowlist */
+    }
+  }
+  return allowed.includes(origin ?? "");
+}
+
 /** Security headers applied to every API response. */
 export function apiSecurityHeaders(res: ServerResponse): void {
   res.setHeader("X-Content-Type-Options", "nosniff");

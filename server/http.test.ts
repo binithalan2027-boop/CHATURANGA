@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { RateLimiter, ConnectionTracker, clientIp, clientCsp } from "./http";
+import {
+  RateLimiter,
+  ConnectionTracker,
+  clientIp,
+  originAllowed,
+  clientCsp,
+} from "./http";
 import type { IncomingMessage } from "node:http";
 
 function req(headers: Record<string, string>, remote = "10.0.0.1") {
@@ -66,6 +72,23 @@ describe("ConnectionTracker", () => {
     t.release("ghost");
     expect(t.count("ghost")).toBe(0);
     expect(t.acquire("ghost")).toBe(true);
+  });
+});
+
+
+describe("originAllowed", () => {
+  it("always allows same-origin requests (single-process production)", () => {
+    expect(originAllowed("http://127.0.0.1:8787", "127.0.0.1:8787", [])).toBe(true);
+    expect(
+      originAllowed("https://play.example.com", "play.example.com", []),
+    ).toBe(true);
+  });
+  it("allows configured cross-origins and rejects the rest", () => {
+    const allowed = ["http://localhost:5173"];
+    expect(originAllowed("http://localhost:5173", "127.0.0.1:8787", allowed)).toBe(true);
+    expect(originAllowed("https://evil.example", "127.0.0.1:8787", allowed)).toBe(false);
+    expect(originAllowed(undefined, "127.0.0.1:8787", allowed)).toBe(false);
+    expect(originAllowed("not a url", "127.0.0.1:8787", allowed)).toBe(false);
   });
 });
 

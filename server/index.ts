@@ -10,6 +10,7 @@ import {
   RateLimiter,
   ConnectionTracker,
   clientIp,
+  originAllowed,
   apiSecurityHeaders,
   clientCsp,
   staticSecurityHeaders,
@@ -241,7 +242,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   apiSecurityHeaders(res);
-  if (!origins.includes(req.headers.origin ?? "")) {
+  if (!originAllowed(req.headers.origin, req.headers.host, origins)) {
     reply(res, 403, { error: "Origin not allowed." });
     return;
   }
@@ -370,8 +371,10 @@ server.on("upgrade", (req, socket, head) => {
     socket.destroy();
     return;
   }
-  const originOk = origins.includes(req.headers.origin ?? "");
-  if (!originOk || req.url !== "/api/live") {
+  if (
+    !originAllowed(req.headers.origin, req.headers.host, origins) ||
+    req.url !== "/api/live"
+  ) {
     socket.destroy();
     return;
   }
