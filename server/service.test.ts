@@ -274,3 +274,27 @@ describe("fog of war rooms", () => {
     expect(s.state("a", "local").rooms[0].result).toMatch("resignation");
   });
 });
+
+describe("fog export privacy", () => {
+  it("never leaks the full fog position through export while the game runs", () => {
+    const { s } = setup();
+    const r = s.create("a", "fog" as never, 5);
+    s.join("b", r);
+    s.act("a", r, 1, "move", "e2e4");
+    s.act("b", r, 2, "move", "e7e5");
+    const exported = s.export("a");
+    const room = exported.games.find((g) => g.id === r) as never as {
+      fen: string;
+      moves: string[];
+      status: string;
+    };
+    // The full-position FEN would place every black piece; the safe view must not.
+    const full = s.getRoom(r);
+    expect(room.fen).not.toBe(full.fen);
+    expect(room.moves).toContain("?");
+    // A finished game's full record is fine to export.
+    s.act("a", r, 3, "resign");
+    const after = s.export("a").games.find((g) => g.id === r)!;
+    expect(after.fen).toBe(s.getRoom(r).fen);
+  });
+});

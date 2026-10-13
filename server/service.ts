@@ -643,7 +643,14 @@ export class Service {
       friends: this.friends(id),
       games: this.store
         .all<Room>("room")
-        .filter((r) => r.white === id || r.black === id),
+        .filter((r) => r.white === id || r.black === id)
+        // Unfinished Fog of War rooms export as the player's safe projection:
+        // the raw record would reveal every hidden enemy piece and move.
+        .map((r) =>
+          r.rule === "fog" && r.status !== "finished"
+            ? (this.view(id, r) as unknown as Room)
+            : r,
+        ),
     };
   }
   deleteUser(id: string) {
