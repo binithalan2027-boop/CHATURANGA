@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # Online Play - decision needed from Binit
 
 Status 2026-10-13: NOT built in v5. Everything else in v5 is fully local.

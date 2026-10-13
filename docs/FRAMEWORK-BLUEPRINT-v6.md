@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # Chaturanga v6 build plan
 
 2026-10-13. Local development only, exact v5 base.

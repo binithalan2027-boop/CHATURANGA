@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # v7 component loop
 Workflow orientation only; permission comes from the user's original local-only request.
 

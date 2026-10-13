@@ -1,3 +1,5 @@
+> SUPERSEDED by BUILD-NOTES-v8.md / VERIFICATION-v8.md (2026-10-13). Kept for history.
+
 # Chaturanga v7 local build
 13 October 2026. Based on exact v6, clean original base 34410f9. This patch supersedes previous patches when applied to that base. No repository push, public preview, hosting configuration or account mutation.
 
