@@ -596,6 +596,7 @@ export default function OnlinePage({
                   <label>
                     Variant
                     <select
+                      aria-label="Variant"
                       value={rule}
                       onChange={(e) => setRule(e.target.value as Rule)}
                     >
@@ -612,6 +613,7 @@ export default function OnlinePage({
                   <label>
                     Time per side
                     <select
+                      aria-label="Time per side"
                       value={minutes}
                       onChange={(e) => setMinutes(Number(e.target.value))}
                     >
@@ -681,7 +683,7 @@ export default function OnlinePage({
                 ))}
               </section>
               <section className="online-card online-game">
-                {room && pos ? (
+                {room && (pos || isFog) ? (
                   <>
                     <h2>
                       {room.whiteName} vs{" "}
@@ -708,7 +710,7 @@ export default function OnlinePage({
                         dests={active ? dests : []}
                         onSquare={square}
                       />
-                    ) : (
+                    ) : pos ? (
                       <VariantBoard
                         flip={room.yourColor === "black"}
                         pos={pos}
@@ -716,7 +718,7 @@ export default function OnlinePage({
                         dests={active ? dests : []}
                         onSquare={square}
                       />
-                    )}
+                    ) : null}
                     {isFog && (
                       <p className="fine-print">
                         Fog of War house rules: capture the king to win - there
@@ -842,8 +844,9 @@ export default function OnlinePage({
                     <h2>Your next game starts here</h2>
                     <p>
                       Create a private room or open a game from the list.
-                      Standard chess and seven established variants use the
-                      server rule engine. Maths/spells and three/four-player house rules are above. Fog remains local-only.
+                      Standard chess, seven established variants and Fog of
+                      War (house rules) use the server rule engine.
+                      Maths/spells and three/four-player house rules are above.
                     </p>
                   </>
                 )}
