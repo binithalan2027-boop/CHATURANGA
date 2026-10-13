@@ -67,5 +67,14 @@ same-port WebSocket. Evil origins still 403. After the origin-gate changes the f
 suite was re-run against this tree on the dev topology: online-smoke,
 v8-fog-browser, v7-browser, v7-mantra-browser - all green.
 
+## Dockerfile closure check (01:35)
+No docker daemon is available here, so the image itself was not built.
+Statically re-verified instead: the server's full import closure (server/*,
+src/chaturanga/{engine,bot,math,variantRules,variantCatalog}, src/online/
+{types,customTypes,crossRules,fogRules}) is covered by the Dockerfile COPY
+paths plus npm dependencies; tsx is a runtime dependency; the runtime stage
+serves /app/dist via the auto-detected STATIC_DIR - exactly the one-port
+topology that was live-verified tonight (fifth block).
+
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.
