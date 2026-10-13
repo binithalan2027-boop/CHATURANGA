@@ -44,6 +44,32 @@ export class RateLimiter {
   }
 }
 
+/**
+ * Open WebSocket connections per client IP. Rejected connections never
+ * acquire a slot, so floods of refused attempts cannot erode the count and
+ * silently lift the cap.
+ */
+export class ConnectionTracker {
+  private counts = new Map<string, number>();
+  constructor(private max = 20) {}
+  /** Take a slot for the key, or refuse when it is at capacity. */
+  acquire(key: string): boolean {
+    const n = this.counts.get(key) ?? 0;
+    if (n >= this.max) return false;
+    this.counts.set(key, n + 1);
+    return true;
+  }
+  /** Return a slot. Releasing a key that holds none is a no-op. */
+  release(key: string): void {
+    const n = this.counts.get(key) ?? 0;
+    if (n <= 1) this.counts.delete(key);
+    else this.counts.set(key, n - 1);
+  }
+  count(key: string): number {
+    return this.counts.get(key) ?? 0;
+  }
+}
+
 /** Security headers applied to every API response. */
 export function apiSecurityHeaders(res: ServerResponse): void {
   res.setHeader("X-Content-Type-Options", "nosniff");

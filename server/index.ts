@@ -8,6 +8,7 @@ import { Service } from "./service";
 import { CustomService } from "./custom";
 import {
   RateLimiter,
+  ConnectionTracker,
   clientIp,
   apiSecurityHeaders,
   clientCsp,
@@ -103,7 +104,7 @@ interface Session {
 /** Short-lived cache of validated Supabase tokens (avoids an upstream call per request). */
 const tokenCache = new Map<string, { user: string; expires: number }>();
 const clients = new Map<WebSocket, { id: string; expires: number }>();
-const wsPerIp = new Map<string, number>();
+const wsPerIp = new ConnectionTracker(20);
 /** Re-authenticate push sockets periodically so revoked sessions drop. */
 const WS_REAUTH_MS = 5 * 60_000;
 
@@ -378,12 +379,10 @@ server.on("upgrade", (req, socket, head) => {
 });
 wss.on("connection", (ws, req: IncomingMessage) => {
   const ip = clientIp(req, trustProxy);
-  const count = wsPerIp.get(ip) ?? 0;
-  if (count >= 20) {
+  if (!wsPerIp.acquire(ip)) {
     ws.close();
     return;
   }
-  wsPerIp.set(ip, count + 1);
   const timeout = setTimeout(() => ws.close(), 5000);
   let authenticated = false;
   ws.on("message", async (raw) => {
@@ -405,7 +404,7 @@ wss.on("connection", (ws, req: IncomingMessage) => {
   ws.on("close", () => {
     clearTimeout(timeout);
     clients.delete(ws);
-    wsPerIp.set(ip, (wsPerIp.get(ip) ?? 1) - 1);
+    wsPerIp.release(ip);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { RateLimiter, clientIp, clientCsp } from "./http";
+import { RateLimiter, ConnectionTracker, clientIp, clientCsp } from "./http";
 import type { IncomingMessage } from "node:http";
 
 function req(headers: Record<string, string>, remote = "10.0.0.1") {
@@ -40,6 +40,32 @@ describe("RateLimiter", () => {
     l.check("a", 1);
     expect(() => l.check("a", 1)).toThrow();
     l.check("b", 1);
+  });
+});
+
+
+describe("ConnectionTracker", () => {
+  it("caps per key and frees slots on release", () => {
+    const t = new ConnectionTracker(2);
+    expect(t.acquire("ip")).toBe(true);
+    expect(t.acquire("ip")).toBe(true);
+    expect(t.acquire("ip")).toBe(false);
+    t.release("ip");
+    expect(t.acquire("ip")).toBe(true);
+  });
+  it("rejected attempts never erode the live count", () => {
+    const t = new ConnectionTracker(2);
+    t.acquire("ip");
+    t.acquire("ip");
+    for (let i = 0; i < 50; i++) expect(t.acquire("ip")).toBe(false);
+    expect(t.count("ip")).toBe(2);
+    expect(t.acquire("ip")).toBe(false);
+  });
+  it("releasing an untracked key is a no-op", () => {
+    const t = new ConnectionTracker(2);
+    t.release("ghost");
+    expect(t.count("ghost")).toBe(0);
+    expect(t.acquire("ghost")).toBe(true);
   });
 });
 
