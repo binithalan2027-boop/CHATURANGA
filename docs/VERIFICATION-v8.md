@@ -9,6 +9,7 @@
 
 ## Real-browser (system Chrome via Playwright, fresh dev servers)
 - scripts/online-smoke.cjs: two-browser PvP room create/join/move, reload restore, draw agreement. PASS.
+- Entitlement trial flow verified live (ENTITLEMENTS=trial, FREE_ONLINE_GAMES=2): two finished games counted, third create rejected with the payments-off message, operator CLI grant effective immediately (no restart), create succeeds after grant.
 - Operator CLI visibility verified live: a moderate.ts resolve decision is visible to the reporter immediately (no server restart). Earlier the server cache hid CLI writes (moderation + entitlement grants) until a restart - fixed by making report/entitlement kinds cache-passthrough, with a two-process unit regression.
 - Data export verified live for fog privacy: an unfinished fog game exports as the player's safe projection (hidden army absent, opponent moves "?"); the full record appears only after the game finishes. Earlier the raw room leaked the whole position through /api/export - fixed, with a unit regression.
 - WebSocket per-IP cap verified live: 20 held connections + a 50-connection refused flood + 5 post-flood probes; every excess connection refused (earlier, refused attempts silently decremented the counter and would have eroded the cap - fixed, with unit regression tests).
