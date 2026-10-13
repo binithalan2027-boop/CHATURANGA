@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Rules, Role } from "chessops/types";
-import { fairyBotMove } from "./fairyStockfish";
+import { variantBotMove } from "./variantEngine";
 import { makeSquare, parseUci } from "chessops/util";
 import {
   variantPosition,
@@ -21,7 +21,7 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
     [notice, setNotice] = useState(""),
     [promotion, setPromotion] = useState<string[]>([]),
     [botSide, setBotSide] = useState<"white" | "black" | null>(null),
-    [botDepth, setBotDepth] = useState(4),
+    [botStrength, setBotStrength] = useState<"casual" | "club" | "strong">("club"),
     [thinking, setThinking] = useState(false);
   const botCtl = useRef<AbortController | null>(null),
     lastBotFen = useRef("");
@@ -53,7 +53,7 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
     const ctl = new AbortController();
     botCtl.current = ctl;
     setThinking(true);
-    fairyBotMove(rule, fen, { depth: botDepth, signal: ctl.signal })
+    variantBotMove(rule, fen, botStrength, ctl.signal)
       .then((r) => {
         if (ctl.signal.aborted) return;
         const next = variantPlay(pos, r.best);
@@ -70,7 +70,7 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
         if (!ctl.signal.aborted) setThinking(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pos, rule, botSide, botDepth]);
+  }, [pos, rule, botSide, botStrength]);
 
   const move = (uci: string) => {
     try {
@@ -247,21 +247,21 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
               Strength
               <select
                 aria-label="Computer strength"
-                value={botDepth}
+                value={botStrength}
                 disabled={!botSide}
-                onChange={(e) => setBotDepth(Number(e.target.value))}
+                onChange={(e) =>
+                  setBotStrength(e.target.value as "casual" | "club" | "strong")
+                }
               >
-                <option value={2}>Casual</option>
-                <option value={4}>Club</option>
-                <option value={8}>Strong</option>
+                <option value="casual">Casual</option>
+                <option value="club">Club</option>
+                <option value="strong">Strong</option>
               </select>
             </label>
             <p role="status">
               {thinking
-                ? "Fairy-Stockfish is thinking on this device..."
-                : botSide
-                  ? "Fairy-Stockfish 1.1.12, WASM, runs locally."
-                  : "Engine: Fairy-Stockfish 1.1.12 (GPLv3)."}
+                ? "Computer is thinking on this device..."
+                : "Runs on-device. Uses Fairy-Stockfish WASM when the site is deployed with isolation headers; otherwise the built-in search."}
             </p>
           </section>
           <section className="court-panel">
