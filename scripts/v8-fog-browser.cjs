@@ -36,6 +36,17 @@ const { chromium, expect } = require("@playwright/test");
   await a.getByRole("button", { name: "e2, white pawn", exact: true }).click();
   await a.getByRole("button", { name: "e4, empty", exact: true }).click();
   await expect(c.locator(".online-move-row").first()).toContainText("?"); // masked move for black
+  {
+    // The screen-reader announcement stays masked too: "Arun moved." - the SAN never leaks
+    let leaked = "";
+    await expect
+      .poll(async () => {
+        leaked = ((await c.locator(".sr-only[role=status]").textContent())?.trim() ?? "");
+        return leaked;
+      }, { timeout: 20_000 })
+      .toBe("Arun moved.");
+    if (/e4/.test(leaked)) errors.push(`fog announcement leaked SAN: ${leaked}`);
+  }
   await expect(a.locator(".online-move-row").first()).toContainText("e2-e4");
   // B's pawn on e7 stays fog for A (nothing attacks e7); B plays d7d5, landing in A's e4-pawn sight
   await expect(a.getByRole("button", { name: "e7, fog", exact: true })).toBeVisible();

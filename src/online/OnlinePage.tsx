@@ -194,6 +194,20 @@ export default function OnlinePage({
     () => (state ? sortRooms(state.rooms, state.profile.id) : []),
     [state],
   );
+  // Screen-reader announcements: the latest move or the result, in a
+  // visually hidden live region. Fog moves that are masked stay
+  // masked here too - hidden information never reaches the announce
+  // channel either.
+  const announcement = useMemo(() => {
+    if (!room) return "";
+    if (room.result) return `Game over: ${room.result}.`;
+    const n = room.moves.length;
+    if (n === 0) return "";
+    const san = room.moves[n - 1];
+    const mover = n % 2 === 1 ? room.whiteName : (room.blackName ?? "Black");
+    if (san === "?") return `${mover} moved.`;
+    return `${mover} played ${san}.`;
+  }, [room?.id, room?.result, room?.moves, room?.whiteName, room?.blackName]);
   const [opening, setOpening] = useState<{
     eco: string;
     name: string;
@@ -1103,6 +1117,9 @@ export default function OnlinePage({
                       >
                         Black {formatClock(live?.blackMs ?? room.blackMs)}
                       </span>
+                    </div>
+                    <div className="sr-only" role="status" aria-live="polite">
+                      {announcement}
                     </div>
                     {material && (
                       <div className="online-material" aria-label="Material balance" title="Missing starting pieces inferred from the board; promotions can change these icons.">

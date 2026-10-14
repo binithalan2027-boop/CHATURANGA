@@ -4,6 +4,8 @@
 const { chromium, expect } = require("@playwright/test");
 (async () => {
   const b = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
+  const announce = async (page) =>
+    (await page.locator(".sr-only[role=status]").textContent())?.trim() ?? "";
   const errors = [], stamp = Date.now().toString().slice(-8);
   const mk = async (name) => {
     const ctx = await b.newContext({ viewport: { width: 1366, height: 950 }, permissions: ["clipboard-read", "clipboard-write"] });
@@ -169,6 +171,9 @@ const { chromium, expect } = require("@playwright/test");
   await a.keyboard.press("Enter");
   await expect(a.locator(".online-move-row").nth(2)).toContainText("Nf3");
   await expect(a.locator(".online-opening")).toContainText("Center Game: Kieseritzky Variation");
+  // Screen-reader live region announces the latest move on both screens
+  await expect.poll(() => announce(c), { timeout: 20_000 }).toMatch(/played Nf3\.$/);
+  await expect.poll(() => announce(a), { timeout: 20_000 }).toMatch(/played Nf3\.$/);
   // Draw offer banner: A offers, B sees and declines; A re-offers, withdraws
   await a.getByRole("button", { name: "Offer draw", exact: true }).click();
   await expect(c.locator(".online-draw")).toContainText("offers a draw");
@@ -187,6 +192,7 @@ const { chromium, expect } = require("@playwright/test");
   await a.getByRole("button", { name: "Confirm resign", exact: true }).click();
   await expect(a.locator(".online-result")).toContainText("black wins by resignation");
   await expect(c.locator(".online-result")).toContainText("black wins by resignation");
+  await expect.poll(() => announce(c), { timeout: 20_000 }).toMatch(/Game over: black wins by resignation/);
   // Game-end summary: move count and the opening the game followed
   await expect(a.locator(".online-result")).toContainText("5 moves played");
   await expect(a.locator(".online-result")).toContainText("Center Game: Kieseritzky Variation");
@@ -278,7 +284,7 @@ const { chromium, expect } = require("@playwright/test");
   await a.screenshot({ path: "/downloads/v9-mobile.png", fullPage: true });
   if (await a.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push("mobile overflow on standard game");
   await a.setViewportSize({ width: 1366, height: 950 });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, increment: true, resignInline: true, crazyhouse: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, increment: true, resignInline: true, crazyhouse: true, announce: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
