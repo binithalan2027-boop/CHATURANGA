@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { liveClock, formatClock } from "./liveClock";
+import { moveRows } from "./moveList";
+import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
 import FogBoard from "../chaturanga/FogBoard";
@@ -48,7 +51,16 @@ export default function OnlinePage({
   const [profile, setProfile] = useState<PlayerProfile | null>(null),
     [selected, setSelected] = useState<number | null>(null),
     [promotion, setPromotion] = useState<string[]>([]),
-    [drop, setDrop] = useState("");
+    [drop, setDrop] = useState(""),
+    [flipped, setFlipped] = useState(false),
+    [, setTickTs] = useState(0);
+  // Local clock baseline: re-anchored whenever the server sends a new
+  // board version, then decremented locally so clocks tick smoothly.
+  const clockBase = useRef({ version: -1, at: Date.now() });
+  useEffect(() => {
+    setFlipped(false);
+    setTickTs(0);
+  }, [selectedRoom]);
   useEffect(() => {
     void api<{ mode: string; providers: string[] }>("config")
       .then(setConfig)
@@ -95,6 +107,18 @@ export default function OnlinePage({
     }
   };
   const room = state?.rooms.find((r) => r.id === selectedRoom);
+  if (room && clockBase.current.version !== room.version)
+    clockBase.current = { version: room.version, at: Date.now() };
+  useEffect(() => {
+    if (room?.status !== "active") return;
+    const t = setInterval(() => setTickTs((x) => x + 1), 200);
+    return () => clearInterval(t);
+  }, [room?.status]);
+  const live = room
+    ? liveClock(room, Date.now() - clockBase.current.at)
+    : null;
+  const material = room?.rule === "chess" ? materialFromFen(room.fen) : null;
+  const boardFlip = (room?.yourColor === "black") !== flipped;
   const isFog = room?.rule === "fog";
   const pos = room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null,
     legal = isFog ? (room?.fogMoves ?? []) : pos ? variantMoves(pos) : [];
@@ -709,21 +733,42 @@ export default function OnlinePage({
                       . Room: <code>{room.id}</code>
                     </p>
                     <div className="online-clocks">
-                      <span>White {clock(room.whiteMs)}</span>
-                      <span>Black {clock(room.blackMs)}</span>
+                      <span
+                        className={`${room.status === "active" && room.turn === "white" ? "online-clock-active" : ""} ${live && live.whiteMs <= 10000 && room.status === "active" ? "online-clock-low" : ""}`}
+                      >
+                        White {formatClock(live?.whiteMs ?? room.whiteMs)}
+                      </span>
+                      <span
+                        className={`${room.status === "active" && room.turn === "black" ? "online-clock-active" : ""} ${live && live.blackMs <= 10000 && room.status === "active" ? "online-clock-low" : ""}`}
+                      >
+                        Black {formatClock(live?.blackMs ?? room.blackMs)}
+                      </span>
                     </div>
+                    {material && (
+                      <div className="online-material" aria-label="Captured pieces">
+                        <Captured label="White took" pieces={material.capturedByWhite} color="b" />
+                        <span className="online-material-lead">
+                          {material.lead === 0
+                            ? "Level material"
+                            : material.lead > 0
+                              ? `White +${material.lead}`
+                              : `Black +${-material.lead}`}
+                        </span>
+                        <Captured label="Black took" pieces={material.capturedByBlack} color="w" />
+                      </div>
+                    )}
                     {isFog ? (
                       <FogBoard
                         fen={room.fen}
                         fogSquares={room.fogSquares ?? []}
-                        flip={room.yourColor === "black"}
+                        flip={boardFlip}
                         selected={selected}
                         dests={active ? dests : []}
                         onSquare={square}
                       />
                     ) : pos ? (
                       <VariantBoard
-                        flip={room.yourColor === "black"}
+                        flip={boardFlip}
                         pos={pos}
                         selected={selected}
                         dests={active ? dests : []}
@@ -805,6 +850,34 @@ export default function OnlinePage({
                           : "Game not active"}
                     </p>
                     <div className="online-actions">
+                      <button
+                        disabled={busy}
+                        onClick={() => setFlipped((f) => !f)}
+                      >
+                        Flip board
+                      </button>
+                      {room.status === "finished" &&
+                        room.black &&
+                        room.result !== "Room cancelled" && (
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              void run(async () => {
+                                const out = await api<{ room?: string }>(
+                                  "game",
+                                  {
+                                    room: room.id,
+                                    version: room.version,
+                                    action: "rematch",
+                                  },
+                                );
+                                if (out?.room) setSelectedRoom(out.room);
+                              })
+                            }
+                          >
+                            Rematch (colours swap)
+                          </button>
+                        )}
                       {room.status === "active" && (
                         <>
                           <button
@@ -843,7 +916,16 @@ export default function OnlinePage({
                           </button>
                         )}
                     </div>
-                    <p>Moves: {room.moves.join(" · ") || "No moves yet"}</p>
+                    <div className="online-moves" aria-label="Move list">
+                      {room.moves.length === 0 && <p>No moves yet</p>}
+                      {moveRows(room.moves).map(([n, w, b]) => (
+                        <div className="online-move-row" key={n}>
+                          <span>{n}</span>
+                          <span>{w}</span>
+                          <span>{b ?? ""}</span>
+                        </div>
+                      ))}
+                    </div>
                     <small>
                       Server clocks keep running when a player disconnects.
                       Reconnect restores the latest board. These private games
@@ -869,7 +951,31 @@ export default function OnlinePage({
     </main>
   );
 }
-function clock(ms: number) {
-  const s = Math.ceil(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+function Captured({
+  label,
+  pieces,
+  color,
+}: {
+  label: string;
+  pieces: string[];
+  color: "w" | "b";
+}) {
+  const FILE: Record<string, string> = {
+    p: "P",
+    n: "N",
+    b: "B",
+    r: "R",
+    q: "Q",
+  };
+  return (
+    <span className="online-captured" aria-label={label} title={label}>
+      {pieces.map((role, i) => (
+        <img
+          key={`${role}-${i}`}
+          src={`/pieces/${color}${FILE[role]}.svg`}
+          alt={role}
+        />
+      ))}
+    </span>
+  );
 }

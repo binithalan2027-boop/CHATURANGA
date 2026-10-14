@@ -298,3 +298,54 @@ describe("fog export privacy", () => {
     expect(after.fen).toBe(s.getRoom(r).fen);
   });
 });
+
+describe("rematch", () => {
+  it("creates a colour-swapped challenge the opponent can accept without friendship", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    const out = s.act("a", r, 2, "rematch");
+    const id2 = out?.room;
+    expect(id2).toBeTruthy();
+    const room2 = s.getRoom(id2!);
+    expect(room2.rematchOf).toBe(r);
+    expect(room2.invitee).toBe("b");
+    expect(room2.initialMs).toBe(5 * 60000);
+    // No friendship exists; the rematch invite still lets b join.
+    s.join("b", id2!);
+    // Colour swap: a was White, so a takes Black in the rematch.
+    expect(room2.white).toBe("b");
+    expect(room2.black).toBe("a");
+    expect(room2.status).toBe("active");
+  });
+  it("keeps the requester on White when they were Black before", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    const out = s.act("b", r, 2, "rematch");
+    s.join("a", out!.room);
+    const room2 = s.getRoom(out!.room);
+    expect(room2.white).toBe("b");
+    expect(room2.black).toBe("a");
+  });
+  it("rejects rematch on active, waiting or cancelled rooms and from strangers", () => {
+    const { s } = setup();
+    const waiting = s.create("a", "chess", 3);
+    expect(() => s.act("a", waiting, 0, "rematch")).toThrow("played game");
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    expect(() => s.act("a", r, 1, "rematch")).toThrow("played game");
+    s.act("a", r, 1, "resign");
+    expect(() => s.act("c", r, 2, "rematch")).toThrow("player");
+    const out = s.act("b", r, 2, "rematch");
+    expect(() => s.join("c", out!.room)).toThrow("unavailable");
+  });
+  it("rejects rematch on a cancelled room", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 3);
+    s.act("a", r, 0, "cancel");
+    expect(() => s.act("a", r, 1, "rematch")).toThrow("played game");
+  });
+});

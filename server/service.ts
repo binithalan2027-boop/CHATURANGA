@@ -42,6 +42,8 @@ interface Room {
   white: string;
   black: string | null;
   invitee: string | null;
+  /** Set when this room was created as a rematch of a finished room. */
+  rematchOf?: string | null;
   fen: string;
   moves: string[];
   version: number;
@@ -256,7 +258,13 @@ export class Service {
     }
     throw Error("Unknown friend action.");
   }
-  create(id: string, rule: Rule, minutes: number, invitee?: string) {
+  create(
+    id: string,
+    rule: Rule,
+    minutes: number,
+    invitee?: string,
+    opts: { skipFriendCheck?: boolean; rematchOf?: string } = {},
+  ) {
     if (!(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady))
       throw Error("Complete your player profile first.");
     if (
@@ -266,7 +274,7 @@ export class Service {
       throw Error("Invalid game settings.");
     if (![3, 5, 10, 15].includes(minutes))
       throw Error("Invalid game settings.");
-    if (invitee && !this.friend(id, invitee))
+    if (invitee && !opts.skipFriendCheck && !this.friend(id, invitee))
       throw Error("Only accepted friends can be challenged.");
     if (
       this.store
@@ -280,6 +288,7 @@ export class Service {
       white: id,
       black: null,
       invitee: invitee ?? null,
+      rematchOf: opts.rematchOf ?? null,
       fen:
         rule === "fog"
           ? fogFen(fogInitial())
@@ -311,9 +320,20 @@ export class Service {
       (r.invitee && r.invitee !== id)
     )
       throw Error("Room unavailable.");
-    if (r.invitee && !this.friend(id, r.white))
+    if (r.invitee && !r.rematchOf && !this.friend(id, r.white))
       throw Error("Friend challenge unavailable.");
-    r.black = id;
+    if (r.rematchOf) {
+      const old = this.store.get<Room>("room", r.rematchOf);
+      if (old && old.white === r.white) {
+        // Colour swap: the previous game's White takes Black in the rematch.
+        r.black = r.white;
+        r.white = id;
+      } else {
+        r.black = id;
+      }
+    } else {
+      r.black = id;
+    }
     r.status = "active";
     r.updatedAt = this.now();
     r.version++;
@@ -389,7 +409,13 @@ export class Service {
       }
     this.store.put("room", r.id, r);
   }
-  act(id: string, code: string, version: number, action: string, uci?: string) {
+  act(
+    id: string,
+    code: string,
+    version: number,
+    action: string,
+    uci?: string,
+  ): { room: string } | undefined {
     const r = this.getRoom(code);
     this.member(id, r);
     this.tick(r);
@@ -397,6 +423,19 @@ export class Service {
     this.store.put("room", r.id, r);
     if (r.version !== version)
       throw Error("Position changed. Wait for the latest board.");
+    if (action === "rematch") {
+      if (r.status !== "finished" || !r.black || r.result === "Room cancelled")
+        throw Error("Rematch is available after a played game.");
+      const opponent = r.white === id ? r.black : r.white;
+      const room = this.create(
+        id,
+        r.rule,
+        Math.round(r.initialMs / 60000),
+        opponent,
+        { skipFriendCheck: true, rematchOf: r.id },
+      );
+      return { room };
+    }
     if (action === "cancel" && r.status === "waiting" && r.white === id) {
       r.status = "finished";
       r.result = "Room cancelled";

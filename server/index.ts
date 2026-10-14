@@ -309,8 +309,9 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (path === "/api/game") {
-      service.act(id, data.room, data.version, data.action, data.uci);
-      reply(res, 200, { ok: true });
+      if (data.action === "rematch") entitlements.assertCanPlay(id);
+      const out = service.act(id, data.room, data.version, data.action, data.uci);
+      reply(res, 200, out ?? { ok: true });
       publish();
       return;
     }
