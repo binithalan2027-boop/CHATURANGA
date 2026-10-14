@@ -505,3 +505,40 @@ describe("takebacks", () => {
     );
   });
 });
+
+describe("increment time controls", () => {
+  it("adds the increment to the mover's clock after each move", () => {
+    const { s, advance } = setup();
+    const r = s.create("a", "chess", 5, undefined, { incrementSeconds: 3 });
+    s.join("b", r);
+    advance(2000);
+    s.act("a", r, 1, "move", "e2e4"); // ~2s spent, +3s increment
+    const room = s.state("a", "local").rooms[0];
+    expect(room.incrementMs).toBe(3000);
+    expect(room.whiteMs).toBeGreaterThan(300000 - 2500); // 300000-2000+3000
+    expect(room.whiteMs).toBeLessThanOrEqual(301000);
+    expect(room.blackMs).toBe(300000);
+  });
+  it("rejects invalid increments and defaults to none", () => {
+    const { s } = setup();
+    expect(() =>
+      s.create("a", "chess", 5, undefined, { incrementSeconds: 7 }),
+    ).toThrow("Invalid game settings");
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    expect(s.state("a", "local").rooms[0].incrementMs).toBe(0);
+  });
+  it("rematch keeps the same increment", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5, undefined, { incrementSeconds: 2 });
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    const out = s.act("b", r, 2, "rematch") as { room: string };
+    s.join("a", out.room);
+    const rematch = s
+      .state("a", "local")
+      .rooms.find((x) => x.id === out.room);
+    expect(rematch?.incrementMs).toBe(2000);
+    expect(rematch?.initialMs).toBe(300000);
+  });
+});

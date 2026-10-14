@@ -148,8 +148,10 @@ export function ruleLabel(rule: string): string {
 
 /** Compact time control for lobby rows ("5 min"). Rooms are created with
  * whole-minute clocks, so no increment suffix is needed. */
-export function timeControlLabel(initialMs: number): string {
+export function timeControlLabel(initialMs: number, incrementMs = 0): string {
   if (!Number.isFinite(initialMs) || initialMs <= 0) return "";
   const m = Math.round(initialMs / 60000);
-  return m >= 1 ? `${m} min` : `${Math.round(initialMs / 1000)}s`;
+  const base = m >= 1 ? `${m} min` : `${Math.round(initialMs / 1000)}s`;
+  const inc = Math.round((incrementMs || 0) / 1000);
+  return inc > 0 ? `${base} + ${inc}s` : base;
 }

@@ -58,6 +58,8 @@ interface Room {
   /** Player id asking to undo the last move, awaiting the opponent. */
   takeback?: string | null;
   initialMs: number;
+  /** Increment added to the mover's clock after each move, ms. */
+  incrementMs?: number;
   /** Last played move in uci ("e2e4", "e7e8q", "n@e4" for drops). */
   lastMove: string | null;
   /** Last meaningful state change (join, move, offer, finish). Unlike
@@ -272,8 +274,9 @@ export class Service {
     rule: Rule,
     minutes: number,
     invitee?: string,
-    opts: { skipFriendCheck?: boolean; rematchOf?: string } = {},
+    opts: { skipFriendCheck?: boolean; rematchOf?: string; incrementSeconds?: number } = {},
   ) {
+    const incrementSeconds = opts.incrementSeconds ?? 0;
     if (!(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady))
       throw Error("Complete your player profile first.");
     if (
@@ -282,6 +285,8 @@ export class Service {
     )
       throw Error("Invalid game settings.");
     if (![3, 5, 10, 15].includes(minutes))
+      throw Error("Invalid game settings.");
+    if (![0, 1, 2, 3, 5, 10, 15].includes(incrementSeconds))
       throw Error("Invalid game settings.");
     if (invitee && !opts.skipFriendCheck && !this.friend(id, invitee))
       throw Error("Only accepted friends can be challenged.");
@@ -309,6 +314,7 @@ export class Service {
       blackMs: minutes * 60000,
       updatedAt: this.now(),
       initialMs: minutes * 60000,
+      incrementMs: incrementSeconds * 1000,
       result: null,
       drawOffer: null,
       takeback: null,
@@ -488,7 +494,11 @@ export class Service {
         r.rule,
         Math.round(r.initialMs / 60000),
         opponent,
-        { skipFriendCheck: true, rematchOf: r.id },
+        {
+          skipFriendCheck: true,
+          rematchOf: r.id,
+          incrementSeconds: Math.round((r.incrementMs ?? 0) / 1000),
+        },
       );
       return { room };
     }
@@ -563,6 +573,11 @@ export class Service {
       r.fen = variantFen(next.pos);
       r.moves.push(next.san);
       r.lastMove = uci;
+      const inc = r.incrementMs ?? 0;
+      if (inc > 0) {
+        if (color === "white") r.whiteMs += inc;
+        else r.blackMs += inc;
+      }
       r.version++;
       r.activityAt = this.now();
       r.drawOffer = null;
@@ -611,6 +626,7 @@ export class Service {
       // Rooms persisted before activityAt existed fall back to updatedAt.
       activityAt: r.activityAt ?? r.updatedAt,
       initialMs: r.initialMs,
+      incrementMs: r.incrementMs ?? 0,
       result: r.result,
       drawOffer: r.drawOffer,
       takeback: r.takeback ?? null,

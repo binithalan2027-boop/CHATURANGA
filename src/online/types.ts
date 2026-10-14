@@ -53,6 +53,8 @@ export interface RoomView {
   activityAt: number;
   /** Initial clock per player in ms (the room's time control). */
   initialMs: number;
+  /** Increment added to the mover's clock after each move, ms. */
+  incrementMs?: number;
   result: string | null;
   drawOffer: string | null;
   /** Player id asking to undo the last move, awaiting the opponent. */

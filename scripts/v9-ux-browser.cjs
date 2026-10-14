@@ -33,6 +33,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.locator(".online-hints")).toHaveCount(0);
   // A creates a standard room, B joins
   await a.getByLabel("Variant", { exact: true }).selectOption("chess");
+  await a.getByLabel("Time per side", { exact: true }).selectOption("5|3");
   await a.getByRole("button", { name: "Create private room", exact: true }).click();
   const code = (await a.locator("code").first().textContent()).trim();
   await c.getByLabel("Room code", { exact: true }).fill(code);
@@ -60,6 +61,9 @@ const { chromium, expect } = require("@playwright/test");
   });
   await a.getByRole("button", { name: "e2, white pawn", exact: true }).click();
   await a.getByRole("button", { name: "e4, empty", exact: true }).click();
+  // Increment: A spent a few seconds but gained 3s back, so White's
+  // clock reads at or above 5:00 right after the move.
+  await expect(a.locator(".online-clocks")).toContainText(/White 5:0/, { timeout: 5000 });
   await a.waitForTimeout(700);
   const glides = await a.evaluate(() => window.__glides);
   if (!glides.length) errors.push("glide overlay never rendered");
@@ -198,8 +202,8 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.getByText("You are white.", { exact: false })).toBeVisible();
   await expect(a.locator(".online-material-lead")).toHaveText("Level material");
   // Lobby labels: C (white) is to move in the rematch, A (black) waits
-  await expect(c.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min · your turn/ })).toBeVisible();
-  await expect(a.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min · opponent's turn/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min \+ 3s · your turn/ })).toBeVisible();
+  await expect(a.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min \+ 3s · opponent's turn/ })).toBeVisible();
   // Lobby rows carry a valid relative time - never NaN (regression: rooms
   // persisted before activityAt existed produced "NaNd ago")
   await expect(a.getByText("NaN", { exact: false })).toHaveCount(0);
@@ -212,7 +216,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.getByRole("button", { name: /black wins by resignation/ })).toBeVisible();
   await expect(c.getByRole("button", { name: /your turn/ })).toHaveCount(0);
   await c.getByRole("button", { name: "Needs you", exact: true }).click();
-  await expect(c.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min · your turn/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min \+ 3s · your turn/ })).toBeVisible();
   await expect(c.getByRole("button", { name: /resignation/ })).toHaveCount(0);
   await c.getByRole("button", { name: "All", exact: true }).click();
   await expect(c.getByRole("button", { name: /resignation/ })).toBeVisible();
@@ -237,7 +241,7 @@ const { chromium, expect } = require("@playwright/test");
   await a.screenshot({ path: "/downloads/v9-mobile.png", fullPage: true });
   if (await a.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push("mobile overflow on standard game");
   await a.setViewportSize({ width: 1366, height: 950 });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, increment: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

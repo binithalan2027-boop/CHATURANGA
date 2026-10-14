@@ -335,7 +335,9 @@ const server = createServer(async (req, res) => {
       else if (path === "/api/create") {
         entitlements.assertCanPlay(id);
         result = {
-          room: service.create(id, data.rule as Rule, data.minutes, data.invitee),
+          room: service.create(id, data.rule as Rule, data.minutes, data.invitee, {
+            incrementSeconds: Number(data.incrementSeconds ?? 0),
+          }),
         };
       } else if (path === "/api/join") {
         entitlements.assertCanPlay(id);

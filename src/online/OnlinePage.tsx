@@ -52,6 +52,7 @@ export default function OnlinePage({
     [code, setCode] = useState(""),
     [rule, setRule] = useState<Rule>("chess"),
     [minutes, setMinutes] = useState(5),
+    [increment, setIncrement] = useState(0),
     [query, setQuery] = useState(""),
     [found, setFound] = useState<{
       id: string;
@@ -361,6 +362,7 @@ export default function OnlinePage({
       const r = await api<{ room: string }>("create", {
         rule,
         minutes,
+        incrementSeconds: increment,
         invitee: id,
       });
       setSelectedRoom(r.room);
@@ -826,12 +828,24 @@ export default function OnlinePage({
                     Time per side
                     <select
                       aria-label="Time per side"
-                      value={minutes}
-                      onChange={(e) => setMinutes(Number(e.target.value))}
+                      value={`${minutes}|${increment}`}
+                      onChange={(e) => {
+                        const [m, i] = e.target.value.split("|").map(Number);
+                        setMinutes(m);
+                        setIncrement(i);
+                      }}
                     >
-                      {[3, 5, 10, 15].map((m) => (
-                        <option key={m} value={m}>
-                          {m} minutes, no increment
+                      {[
+                        [3, 0],
+                        [3, 2],
+                        [5, 0],
+                        [5, 3],
+                        [10, 0],
+                        [10, 5],
+                        [15, 10],
+                      ].map(([m, i]) => (
+                        <option key={`${m}|${i}`} value={`${m}|${i}`}>
+                          {m} minutes{i > 0 ? ` + ${i}s per move` : ", no increment"}
                         </option>
                       ))}
                     </select>
@@ -895,7 +909,7 @@ export default function OnlinePage({
                       }}
                     >
                       {r.whiteName} vs {r.blackName ?? "waiting"} ·{" "}
-                      {ruleLabel(r.rule)} · {timeControlLabel(r.initialMs)} ·{" "}
+                      {ruleLabel(r.rule)} · {timeControlLabel(r.initialMs, r.incrementMs)} ·{" "}
                       {roomLabel(r, state.profile.id)}
                       {timeAgo(Date.now(), r.activityAt) &&
                         ` · ${timeAgo(Date.now(), r.activityAt)}`}

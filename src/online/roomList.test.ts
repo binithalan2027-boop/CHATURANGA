@@ -70,6 +70,16 @@ describe("roomLabel", () => {
   });
 });
 
+describe("timeControlLabel", () => {
+  it("shows the increment when the room has one", () => {
+    expect(timeControlLabel(300000)).toBe("5 min");
+    expect(timeControlLabel(300000, 3000)).toBe("5 min + 3s");
+    expect(timeControlLabel(180000, 2000)).toBe("3 min + 2s");
+    expect(timeControlLabel(300000, 0)).toBe("5 min");
+    expect(timeControlLabel(0, 3000)).toBe("");
+  });
+});
+
 describe("lastMoveSquares", () => {
   it("maps a normal move to from and to squares (a1=0)", () => {
     expect(lastMoveSquares("e2e4")).toEqual([12, 28]);
