@@ -59,3 +59,18 @@ html,body,.product-shell{background:var(--court-sand);color:var(--court-ink);fon
 .product-shell.board-teak .courtyard .square.light{background:#eadbb9!important}.product-shell.board-teak .courtyard .square.dark{background:#a48b60!important}
 .product-shell.board-slate .courtyard .square.light{background:#dde5e8!important}.product-shell.board-slate .courtyard .square.dark{background:#72858f!important}
 .product-shell.board-contrast .courtyard .square.light{background:#fff!important}.product-shell.board-contrast .courtyard .square.dark{background:#565656!important}
+
+/* Board squares must win over the generic online action-button skin. */
+.product-shell .online-game button.square{border:0!important;border-radius:0!important;padding:0!important;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;aspect-ratio:1}
+.product-shell .online-game button.square.light{background:#eadbb9!important}
+.product-shell .online-game button.square.dark{background:#a48b60!important}
+.product-shell.board-sage .online-game button.square.light{background:#e1e8cf!important}
+.product-shell.board-sage .online-game button.square.dark{background:#809b65!important}
+.product-shell.board-slate .online-game button.square.light{background:#dde5e8!important}
+.product-shell.board-slate .online-game button.square.dark{background:#72858f!important}
+.product-shell.board-contrast .online-game button.square.light{background:#fff!important}
+.product-shell.board-contrast .online-game button.square.dark{background:#565656!important}
+.product-shell .online-game button.square.selected{box-shadow:inset 0 0 0 4px #bf6e28!important}
+.product-shell .online-game button.square.fogged{background:#343b36!important;background-image:repeating-linear-gradient(45deg,#ffffff08 0 1px,transparent 1px 8px)!important}
+.product-shell .online-clocks .online-clock-active{background:#e1e8cf;color:#244a35;border:2px solid #244a35;padding:4px 8px;border-radius:6px}
+.product-shell .online-clocks .online-clock-low{color:#ab2929;border-color:#ab2929}

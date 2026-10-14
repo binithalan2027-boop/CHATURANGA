@@ -54,9 +54,12 @@ export default function VariantBoard({
     if (!g.length) return;
     setGlides(g);
     setBatch((x) => x + 1);
+  }, [boardArr]);
+  useEffect(() => {
+    if (!glides.length) return;
     const t = setTimeout(() => setGlides([]), GLIDE_MS + 80);
     return () => clearTimeout(t);
-  }, [boardArr]);
+  }, [glides]);
   const hiding = new Set(glides.map((g) => g.to));
   return (
     <div className="court-board" role="group" aria-label="Variant chess board">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
 import { materialFromFen } from "./material";
@@ -57,7 +57,7 @@ export default function OnlinePage({
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
-  const clockBase = useRef({ version: -1, at: Date.now() });
+  const clockBase = useRef({ room: "", serverTime: -1, at: Date.now() });
   useEffect(() => {
     setFlipped(false);
     setCopied(false);
@@ -109,8 +109,8 @@ export default function OnlinePage({
     }
   };
   const room = state?.rooms.find((r) => r.id === selectedRoom);
-  if (room && clockBase.current.version !== room.version)
-    clockBase.current = { version: room.version, at: Date.now() };
+  if (room && (clockBase.current.room !== room.id || clockBase.current.serverTime !== room.serverTime))
+    clockBase.current = { room: room.id, serverTime: room.serverTime, at: Date.now() };
   useEffect(() => {
     if (room?.status !== "active") return;
     const t = setInterval(() => setTickTs((x) => x + 1), 200);
@@ -122,7 +122,7 @@ export default function OnlinePage({
   const material = room?.rule === "chess" ? materialFromFen(room.fen) : null;
   const boardFlip = (room?.yourColor === "black") !== flipped;
   const isFog = room?.rule === "fog";
-  const pos = room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null,
+  const pos = useMemo(() => room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null, [room?.id, room?.rule, room?.fen]),
     legal = isFog ? (room?.fogMoves ?? []) : pos ? variantMoves(pos) : [];
   const active =
     room?.status === "active" &&
@@ -734,7 +734,8 @@ export default function OnlinePage({
                         onClick={() => {
                           void navigator.clipboard
                             ?.writeText(room.id)
-                            .then(() => setCopied(true));
+                            .then(() => setCopied(true))
+                            .catch(() => setError("Copy failed. Select and copy the room code above."));
                         }}
                       >
                         {copied ? "Copied" : "Copy code"}
@@ -746,7 +747,7 @@ export default function OnlinePage({
                         {room.rule === "chess" &&
                           room.result !== "Room cancelled" && (
                             <span>
-                              Both players' provisional ratings were updated.
+                              Standard chess uses provisional private-match ratings.
                             </span>
                           )}
                         {room.black && room.result !== "Room cancelled" && (
