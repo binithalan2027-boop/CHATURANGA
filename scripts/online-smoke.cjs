@@ -72,8 +72,9 @@ const { chromium, expect } = require("@playwright/test");
   ).toBeVisible();
   await c.getByRole("button", { name: "Offer draw", exact: true }).click();
   await a.getByRole("button", { name: "Accept draw", exact: true }).click();
+  // The lobby label also carries the result text now - scope to the banner.
   await expect(
-    a.getByText("Draw by agreement", { exact: false }),
+    a.locator(".online-result").getByText("Draw by agreement", { exact: false }),
   ).toBeVisible();
   await a.getByRole("button", { name: "Profile", exact: true }).last().click();
   await expect(a.getByText("1 game", { exact: false })).toBeVisible();
