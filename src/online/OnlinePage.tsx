@@ -4,6 +4,8 @@ import { moveRows } from "./moveList";
 import { roomLabel, sortRooms, filterRooms, lastMoveSquares, timeAgo, ruleLabel, timeControlLabel } from "./roomList";
 import type { LobbyFilter } from "./roomList";
 import { premoveUci } from "./premove";
+import { matchMoveInput } from "./keyboardMove";
+import { makeSan } from "chessops/san";
 import { replayTo } from "./replay";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
@@ -61,6 +63,8 @@ export default function OnlinePage({
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
+    [moveInput, setMoveInput] = useState(""),
+    [moveInputError, setMoveInputError] = useState(""),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
@@ -164,6 +168,33 @@ export default function OnlinePage({
     room?.rule === "chess"
       ? materialFromFen(review ? variantFen(review.pos) : room.fen)
       : null;
+  const sanOf = useMemo(() => {
+    if (!pos || isFog) return () => null;
+    const cache = new Map<string, string | null>();
+    return (uci: string) => {
+      if (!cache.has(uci)) {
+        let san: string | null = null;
+        try {
+          const m = parseUci(uci);
+          if (m) san = makeSan(pos.clone(), m);
+        } catch {
+          san = null;
+        }
+        cache.set(uci, san);
+      }
+      return cache.get(uci) ?? null;
+    };
+  }, [pos, isFog]);
+  const submitMoveInput = () => {
+    const uci = matchMoveInput(moveInput, legal, sanOf);
+    if (!uci) {
+      setMoveInputError("Not a legal move here.");
+      return;
+    }
+    setMoveInput("");
+    setMoveInputError("");
+    doMove(uci);
+  };
   const active =
     !review &&
     room?.status === "active" &&
@@ -1012,6 +1043,65 @@ export default function OnlinePage({
                             ))}
                         </select>
                       </label>
+                    )}
+                    {active && !isFog && (
+                      <form
+                        className="online-keyboard"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          submitMoveInput();
+                        }}
+                      >
+                        <label>
+                          Type a move
+                          <input
+                            value={moveInput}
+                            onChange={(e) => {
+                              setMoveInput(e.target.value);
+                              setMoveInputError("");
+                            }}
+                            placeholder="e4, Nf3, O-O, e2e4"
+                            aria-label="Type a move"
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                        </label>
+                        <button type="submit" disabled={busy || !moveInput.trim()}>
+                          Play move
+                        </button>
+                      </form>
+                    )}
+                    {active && isFog && (
+                      <form
+                        className="online-keyboard"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          submitMoveInput();
+                        }}
+                      >
+                        <label>
+                          Type a move
+                          <input
+                            value={moveInput}
+                            onChange={(e) => {
+                              setMoveInput(e.target.value);
+                              setMoveInputError("");
+                            }}
+                            placeholder="e2e4"
+                            aria-label="Type a move"
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                        </label>
+                        <button type="submit" disabled={busy || !moveInput.trim()}>
+                          Play move
+                        </button>
+                      </form>
+                    )}
+                    {moveInputError && (
+                      <p className="online-keyboard-error" role="alert">
+                        {moveInputError}
+                      </p>
                     )}
                     {promotion.length > 0 && (
                       <div

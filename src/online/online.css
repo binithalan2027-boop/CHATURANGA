@@ -303,3 +303,20 @@
 .online-draw button {
   font-weight: 600;
 }
+.online-keyboard {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+}
+.online-keyboard label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+.online-keyboard-error {
+  color: #a33;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}
