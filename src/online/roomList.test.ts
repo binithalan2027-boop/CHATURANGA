@@ -63,6 +63,11 @@ describe("roomLabel", () => {
     expect(roomLabel(room({ status: "waiting" }), "me")).toBe("waiting for an opponent");
     expect(roomLabel(room({ status: "finished", result: "black wins on time" }), "me")).toBe("black wins on time");
   });
+  it("adds the move number once the game is under way", () => {
+    expect(roomLabel(room({ moves: ["e4"], turn: "white", yourColor: "white" }), "me")).toBe("your turn, move 1");
+    expect(roomLabel(room({ moves: ["e4", "e5"], turn: "white", yourColor: "white" }), "me")).toBe("your turn, move 2");
+    expect(roomLabel(room({ moves: ["e4", "e5", "Nf3"], turn: "black", yourColor: "white" }), "me")).toBe("opponent's turn, move 2");
+  });
 });
 
 describe("lastMoveSquares", () => {

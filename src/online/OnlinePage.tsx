@@ -935,6 +935,11 @@ export default function OnlinePage({
                     {room.result ? (
                       <div className="online-result" role="status">
                         <strong>{room.result}</strong>
+                        <span>
+                          {room.moves.length}{" "}
+                          {room.moves.length === 1 ? "move" : "moves"} played
+                          {opening ? ` · ${opening.name}` : ""}
+                        </span>
                         {room.rule === "chess" &&
                           room.result !== "Room cancelled" && (
                             <span>

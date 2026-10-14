@@ -60,15 +60,25 @@ export function timeAgo(now: number, then: number): string {
   return `${Math.round(h / 24)}d ago`;
 }
 
-/** Short, honest status line for one room in the list. */
+/** Full move number of the next move to be played (1-based). */
+function moveNumber(r: RoomView): number {
+  return Math.floor(r.moves.length / 2) + 1;
+}
+
+/** Short, honest status line for one room in the list. Active games
+ * carry the move number so rows are scannable at a glance. */
 export function roomLabel(r: RoomView, viewerId: string): string {
   switch (roomCategory(r, viewerId)) {
     case "accept":
       return "challenges you";
     case "yourTurn":
-      return "your turn";
+      return r.moves.length === 0
+        ? "your turn"
+        : `your turn, move ${moveNumber(r)}`;
     case "opponentTurn":
-      return "opponent's turn";
+      return r.moves.length === 0
+        ? "opponent's turn"
+        : `opponent's turn, move ${moveNumber(r)}`;
     case "waiting":
       return "waiting for an opponent";
     default:

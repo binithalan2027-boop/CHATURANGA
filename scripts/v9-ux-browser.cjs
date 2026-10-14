@@ -179,6 +179,9 @@ const { chromium, expect } = require("@playwright/test");
   await a.getByRole("button", { name: "Resign", exact: true }).click();
   await expect(a.locator(".online-result")).toContainText("black wins by resignation");
   await expect(c.locator(".online-result")).toContainText("black wins by resignation");
+  // Game-end summary: move count and the opening the game followed
+  await expect(a.locator(".online-result")).toContainText("5 moves played");
+  await expect(a.locator(".online-result")).toContainText("Center Game: Kieseritzky Variation");
   await a.screenshot({ path: "/downloads/v9-gameover.png" });
   // Copy PGN: exports the game score; button flips to "PGN copied"
   await a.locator(".online-result").getByRole("button", { name: "Copy PGN", exact: true }).click();
@@ -229,7 +232,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
