@@ -54,6 +54,8 @@ interface Room {
   result: string | null;
   drawOffer: string | null;
   initialMs: number;
+  /** Last played move in uci ("e2e4", "e7e8q", "n@e4" for drops). */
+  lastMove: string | null;
   repetition: Record<string, number>;
 }
 const key = (a: string, b: string) => [a, b].sort().join(":");
@@ -302,6 +304,7 @@ export class Service {
       initialMs: minutes * 60000,
       result: null,
       drawOffer: null,
+      lastMove: null,
       repetition: {},
     };
     r.repetition[this.positionKey(r.fen)] = 1;
@@ -426,6 +429,17 @@ export class Service {
     if (action === "rematch") {
       if (r.status !== "finished" || !r.black || r.result === "Room cancelled")
         throw Error("Rematch is available after a played game.");
+      // Idempotent: a double-click or both players clicking rematch must not
+      // spawn duplicate rooms - return the pending rematch room instead.
+      const existing = this.store
+        .all<Room>("room")
+        .find(
+          (x) =>
+            x.rematchOf === r.id &&
+            x.status !== "finished" &&
+            (x.white === id || x.black === id || x.invitee === id),
+        );
+      if (existing) return { room: existing.id };
       const opponent = r.white === id ? r.black : r.white;
       const room = this.create(
         id,
@@ -473,6 +487,7 @@ export class Service {
       const next = variantPlay(pos, uci);
       r.fen = variantFen(next.pos);
       r.moves.push(next.san);
+      r.lastMove = uci;
       r.version++;
       r.drawOffer = null;
       const outcome = next.pos.outcome();
@@ -520,6 +535,7 @@ export class Service {
       drawOffer: r.drawOffer,
       yourColor: r.white === id ? "white" : "black",
       invitee: r.invitee,
+      lastMove: r.lastMove,
     };
   }
   state(id: string, mode: "local" | "supabase"): OnlineState {
@@ -598,6 +614,7 @@ export class Service {
     );
     r.version++;
     r.drawOffer = null;
+    r.lastMove = uci;
     if (next.result) {
       const winner = next.result.startsWith("White")
         ? "white"
@@ -649,6 +666,15 @@ export class Service {
       yourColor,
       invitee: r.invitee,
       fogSquares: projection.fog,
+      // Last move only when both its squares are visible to the viewer -
+      // revealing the origin of a move made in the dark would leak position.
+      lastMove: (() => {
+        if (!r.lastMove || r.lastMove.includes("@")) return null;
+        const from = parseSquare(r.lastMove.slice(0, 2)),
+          to = parseSquare(r.lastMove.slice(2, 4));
+        const hidden = new Set(projection.fog);
+        return !hidden.has(from) && !hidden.has(to) ? r.lastMove : null;
+      })(),
       fogMoves:
         r.status === "active" && state.turn === c
           ? fogLegalMoves(state).map(

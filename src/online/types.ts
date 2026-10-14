@@ -53,6 +53,9 @@ export interface RoomView {
   drawOffer: string | null;
   yourColor: "white" | "black";
   invitee: string | null;
+  /** Last played move in uci. Fog of War: only when both its squares are
+   * visible to the viewer; drops (crazyhouse) have no from-square. */
+  lastMove?: string | null;
   /** Fog of War only: squares hidden from the viewer (0=a1..63=h8). */
   fogSquares?: number[];
   /** Fog of War only: viewer's legal moves (uci) when it is their turn. */

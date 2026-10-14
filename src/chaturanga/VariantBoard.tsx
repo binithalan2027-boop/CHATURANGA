@@ -28,12 +28,18 @@ export default function VariantBoard({
   dests,
   onSquare,
   flip = false,
+  lastMove = [],
+  checkSq = null,
 }: {
   pos: Position;
   selected: number | null;
   dests: number[];
   onSquare: (sq: number) => void;
   flip?: boolean;
+  /** Squares the last move touched (from/to, or to for drops). */
+  lastMove?: number[];
+  /** King square to flag when the side to move is in check. */
+  checkSq?: number | null;
 }) {
   const { prefs } = usePreferences();
   const boardArr = useMemo<(GlidePiece | null)[]>(
@@ -72,8 +78,8 @@ export default function VariantBoard({
         return (
           <button
             key={sq}
-            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""}`}
-            aria-label={`${name}, ${p ? p.color + " " + p.role : "empty"}`}
+            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${lastMove.includes(sq) ? "last-move" : ""} ${checkSq === sq ? "in-check" : ""}`}
+            aria-label={`${name}, ${p ? p.color + " " + p.role : "empty"}${checkSq === sq ? ", in check" : ""}`}
             onClick={() => onSquare(sq)}
             onKeyDown={(e) => {
               const delta: { [key: string]: number } = {

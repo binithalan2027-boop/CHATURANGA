@@ -1,5 +1,6 @@
-// Batch-2 UX verification: live clocks, piece glide, move list, material
-// strip, flip board, copy code, result banner, rematch with colour swap.
+// Batch-2/3 UX verification: live clocks, piece glide, move list, material
+// strip, flip board, copy code, result banner, rematch with colour swap,
+// last-move ring, check ring, lobby status labels.
 const { chromium, expect } = require("@playwright/test");
 (async () => {
   const b = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
@@ -49,6 +50,8 @@ const { chromium, expect } = require("@playwright/test");
   const glides = await a.evaluate(() => window.__glides);
   if (!glides.length) errors.push("glide overlay never rendered");
   await a.screenshot({ path: "/downloads/v9-glide-check.png" });
+  // Last-move ring highlights both touched squares (e2 and e4)
+  await expect(a.locator(".square.last-move")).toHaveCount(2);
   // Numbered move list
   await expect(a.locator(".online-move-row").first()).toContainText("1.");
   await expect(a.locator(".online-move-row").first()).toContainText("e4");
@@ -85,7 +88,26 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.getByText("You are black.", { exact: false })).toBeVisible();
   await expect(c.getByText("You are white.", { exact: false })).toBeVisible();
   await expect(a.locator(".online-material-lead")).toHaveText("Level material");
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, errors }, null, 2));
+  // Lobby labels: C (white) is to move in the rematch, A (black) waits
+  await expect(c.getByRole("button", { name: /Asha vs Biru · chess · your turn/ })).toBeVisible();
+  await expect(a.getByRole("button", { name: /Asha vs Biru · chess · opponent's turn/ })).toBeVisible();
+  // Fool's mate in the rematch: 1.f3 e5 2.g4 Qh4# -> check ring + result
+  await c.getByRole("button", { name: "f2, white pawn", exact: true }).click();
+  await c.getByRole("button", { name: "f3, empty", exact: true }).click();
+  await expect(a.locator(".square.last-move")).toHaveCount(2);
+  await a.getByRole("button", { name: "e7, black pawn", exact: true }).click();
+  await a.getByRole("button", { name: "e5, empty", exact: true }).click();
+  await c.getByRole("button", { name: "g2, white pawn", exact: true }).click();
+  await c.getByRole("button", { name: "g4, empty", exact: true }).click();
+  await a.getByRole("button", { name: "d8, black queen", exact: true }).click();
+  await a.getByRole("button", { name: "h4, empty", exact: true }).click();
+  // Checkmate: white king square flagged, result banner on both screens
+  await expect(a.locator(".square.in-check")).toHaveCount(1);
+  await expect(c.locator(".square.in-check")).toHaveCount(1);
+  await expect(a.locator(".online-result")).toContainText("black wins");
+  await expect(c.locator(".online-result")).toContainText("black wins");
+  await a.screenshot({ path: "/downloads/v9-checkmate.png" });
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

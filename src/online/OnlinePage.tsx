@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
+import { roomLabel, sortRooms, lastMoveSquares } from "./roomList";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
@@ -124,6 +125,23 @@ export default function OnlinePage({
   const isFog = room?.rule === "fog";
   const pos = useMemo(() => room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null, [room?.id, room?.rule, room?.fen]),
     legal = isFog ? (room?.fogMoves ?? []) : pos ? variantMoves(pos) : [];
+  const sortedRooms = useMemo(
+    () => (state ? sortRooms(state.rooms, state.profile.id) : []),
+    [state],
+  );
+  const lastMove = useMemo(() => lastMoveSquares(room?.lastMove), [room?.lastMove]);
+  const checkSq = useMemo(() => {
+    if (!pos) return null;
+    try {
+      if (typeof pos.isCheck === "function" && pos.isCheck()) {
+        const k = pos.board.kingOf(pos.turn);
+        return typeof k === "number" ? k : null;
+      }
+    } catch {
+      // Kingless variants (antichess) throw or lack kings - no check UI.
+    }
+    return null;
+  }, [pos]);
   const active =
     room?.status === "active" &&
     room.yourColor === room.turn &&
@@ -691,7 +709,7 @@ export default function OnlinePage({
                   challenges are restricted to the invited friend.
                 </p>
                 <h2>Your games</h2>
-                {state.rooms.map((r) => (
+                {sortedRooms.map((r) => (
                   <div className="online-person" key={r.id}>
                     <button
                       onClick={() => {
@@ -701,7 +719,7 @@ export default function OnlinePage({
                       }}
                     >
                       {r.whiteName} vs {r.blackName ?? "waiting"} · {r.rule} ·{" "}
-                      {r.status}
+                      {roomLabel(r, state.profile.id)}
                     </button>
                     {r.invitee === state.profile.id && !r.black && (
                       <button
@@ -812,6 +830,7 @@ export default function OnlinePage({
                         selected={selected}
                         dests={active ? dests : []}
                         onSquare={square}
+                        lastMove={lastMove}
                       />
                     ) : pos ? (
                       <VariantBoard
@@ -820,6 +839,8 @@ export default function OnlinePage({
                         selected={selected}
                         dests={active ? dests : []}
                         onSquare={square}
+                        lastMove={lastMove}
+                        checkSq={checkSq}
                       />
                     ) : null}
                     {isFog && (

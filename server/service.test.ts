@@ -349,3 +349,52 @@ describe("rematch", () => {
     expect(() => s.act("a", r, 1, "rematch")).toThrow("played game");
   });
 });
+
+describe("rematch idempotency", () => {
+  it("returns the existing rematch room on a repeated request", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    const first = s.act("a", r, 2, "rematch");
+    const again = s.act("a", r, 2, "rematch");
+    expect(again?.room).toBe(first?.room);
+  });
+  it("returns the same room when both players ask for a rematch", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    const first = s.act("a", r, 2, "rematch");
+    const second = s.act("b", r, 2, "rematch");
+    expect(second?.room).toBe(first?.room);
+    // The invitee can still join that room for the colour swap.
+    s.join("b", first!.room);
+    expect(s.getRoom(first!.room).status).toBe("active");
+  });
+});
+
+describe("last move in room views", () => {
+  it("exposes the last uci move in non-fog games", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    expect(s.state("a", "local").rooms[0].lastMove).toBeNull();
+    s.act("a", r, 1, "move", "e2e4");
+    expect(s.state("a", "local").rooms[0].lastMove).toBe("e2e4");
+    s.act("b", r, 2, "move", "e7e5");
+    expect(s.state("b", "local").rooms[0].lastMove).toBe("e7e5");
+  });
+  it("shows your own fog moves but hides moves made in the dark", () => {
+    const { s } = setup();
+    const r = s.create("a", "fog" as never, 5);
+    s.join("b", r);
+    s.act("a", r, 1, "move", "e2e4");
+    const wa = s.state("a", "local").rooms[0];
+    const wb = s.state("b", "local").rooms[0];
+    // White's own move stays visible to White.
+    expect(wa.lastMove).toBe("e2e4");
+    // Black cannot see e2 or e4 yet: the move happened in the dark.
+    expect(wb.lastMove).toBeNull();
+  });
+});

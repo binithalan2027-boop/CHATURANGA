@@ -34,6 +34,7 @@ export default function FogBoard({
   dests,
   onSquare,
   flip = false,
+  lastMove = [],
 }: {
   fen: string;
   fogSquares: number[];
@@ -41,6 +42,8 @@ export default function FogBoard({
   dests: number[];
   onSquare: (sq: number) => void;
   flip?: boolean;
+  /** Squares the last move touched - only sent when visible to the viewer. */
+  lastMove?: number[];
 }) {
   const { prefs } = usePreferences();
   const state = fogFromFen(fen);
@@ -88,7 +91,7 @@ export default function FogBoard({
         return (
           <button
             key={sq}
-            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${hidden ? "fogged" : ""}`}
+            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${hidden ? "fogged" : ""} ${lastMove.includes(sq) ? "last-move" : ""}`}
             aria-label={
               hidden
                 ? `${name}, fog`
