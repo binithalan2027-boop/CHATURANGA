@@ -112,7 +112,8 @@ const { chromium, expect } = require("@playwright/test");
   // persisted before activityAt existed produced "NaNd ago")
   await expect(a.getByText("NaN", { exact: false })).toHaveCount(0);
   await expect(c.getByText("NaN", { exact: false })).toHaveCount(0);
-  await expect(c.getByRole("button", { name: /just now|ago/ })).toBeVisible();
+  // (two lobby rows match - strict mode needs .first())
+  await expect(c.getByRole("button", { name: /just now|ago/ }).first()).toBeVisible();
   // Fool's mate in the rematch: 1.f3 e5 2.g4 Qh4# -> check ring + result
   await c.getByRole("button", { name: "f2, white pawn", exact: true }).click();
   await c.getByRole("button", { name: "f3, empty", exact: true }).click();
