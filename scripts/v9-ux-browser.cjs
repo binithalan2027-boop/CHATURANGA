@@ -33,12 +33,21 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.getByRole("button", { name: "Copied", exact: true })).toBeVisible();
   // Material strip starts level
   await expect(a.locator(".online-material-lead")).toHaveText("Level material");
-  // A plays e2e4; glide overlay appears briefly
+  // A plays e2e4; the glide overlay must appear, starting at the from-square
+  await a.evaluate(() => {
+    window.__glides = [];
+    const iv = setInterval(() => {
+      const el = document.querySelector(".piece-glide");
+      if (el && !window.__glides.length)
+        window.__glides.push({ transform: el.style.transform });
+      if (window.__glides.length > 2) clearInterval(iv);
+    }, 15);
+  });
   await a.getByRole("button", { name: "e2, white pawn", exact: true }).click();
   await a.getByRole("button", { name: "e4, empty", exact: true }).click();
-  await expect(a.locator(".piece-glide")).toHaveCount(1, { timeout: 500 }).catch(() => {
-    errors.push("glide overlay not observed (may have landed before poll)");
-  });
+  await a.waitForTimeout(700);
+  const glides = await a.evaluate(() => window.__glides);
+  if (!glides.length) errors.push("glide overlay never rendered");
   await a.screenshot({ path: "/downloads/v9-glide-check.png" });
   // Numbered move list
   await expect(a.locator(".online-move-row").first()).toContainText("1.");

@@ -58,18 +58,19 @@ export default function FogBoard({
       }),
     [fen],
   );
-  const animRef = useRef({ board: boardArr, batch: 0 });
+  const prevBoard = useRef(boardArr);
   const [glides, setGlides] = useState<Glide[]>([]);
-  if (animRef.current.board !== boardArr) {
-    const g = motionOK() ? diffGlides(animRef.current.board, boardArr) : [];
-    animRef.current = { board: boardArr, batch: animRef.current.batch + 1 };
-    if (g.length) setGlides(g);
-  }
+  const [batch, setBatch] = useState(0);
   useEffect(() => {
-    if (!glides.length) return;
-    const t = setTimeout(() => setGlides([]), GLIDE_MS + 60);
+    if (prevBoard.current === boardArr) return;
+    const g = motionOK() ? diffGlides(prevBoard.current, boardArr) : [];
+    prevBoard.current = boardArr;
+    if (!g.length) return;
+    setGlides(g);
+    setBatch((x) => x + 1);
+    const t = setTimeout(() => setGlides([]), GLIDE_MS + 80);
     return () => clearTimeout(t);
-  }, [glides]);
+  }, [boardArr]);
   const hiding = new Set(glides.map((g) => g.to));
   return (
     <div className="court-board" role="group" aria-label="Fog of War chess board">
@@ -132,7 +133,7 @@ export default function FogBoard({
       })}
       <PieceGlideLayer
         glides={glides}
-        batch={animRef.current.batch}
+        batch={batch}
         flip={flip}
         render={(piece) => ({
           text: (
