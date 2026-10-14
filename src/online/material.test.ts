@@ -22,3 +22,9 @@ describe("materialFromFen", () => {
     expect(m.lead).toBe(6 - 14);
   });
 });
+
+it("counts promoted material in the lead", () => {
+  const m = materialFromFen("rnbqkbnr/pppppppp/8/8/8/8/1PPPPPPP/RNBQKBNQ w - - 0 1");
+  // White replaced a rook with a promoted queen and is missing a pawn.
+  expect(m.lead).toBe(3);
+});

@@ -792,7 +792,7 @@ export default function OnlinePage({
                       </span>
                     </div>
                     {material && (
-                      <div className="online-material" aria-label="Captured pieces">
+                      <div className="online-material" aria-label="Material balance" title="Missing starting pieces inferred from the board; promotions can change these icons.">
                         <Captured label="White took" pieces={material.capturedByWhite} color="b" />
                         <span className="online-material-lead">
                           {material.lead === 0

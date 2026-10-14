@@ -32,10 +32,12 @@ export function materialFromFen(fen: string): Material {
     for (let i = onBoard.b[role]; i < START[role]; i++) capturedByWhite.push(role);
     for (let i = onBoard.w[role]; i < START[role]; i++) capturedByBlack.push(role);
   }
-  const points = (lost: string[]) => lost.reduce((n, role) => n + VALUES[role], 0);
+  // FEN alone cannot distinguish promoted pieces from original pieces.
+  // Use actual material on the board for the lead, not inferred captures.
+  const points = (army: Record<string, number>) => Object.entries(army).reduce((n, [role, count]) => n + count * VALUES[role], 0);
   return {
     capturedByWhite,
     capturedByBlack,
-    lead: points(capturedByWhite) - points(capturedByBlack),
+    lead: points(onBoard.w) - points(onBoard.b),
   };
 }
