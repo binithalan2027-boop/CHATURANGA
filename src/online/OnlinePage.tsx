@@ -147,6 +147,9 @@ export default function OnlinePage({
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable))
         return;
+      // Board squares own their arrow keys (focus movement); review
+      // navigation applies everywhere else.
+      if (t?.closest(".court-board")) return;
       const next = nextReviewPly(reviewPly, room.moves.length, e.key);
       if (next === undefined) return;
       e.preventDefault();

@@ -136,6 +136,23 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.getByRole("button", { name: "Sound off", exact: true })).toBeVisible();
   await a.getByRole("button", { name: "Sound off", exact: true }).click();
   await expect(a.getByRole("button", { name: "Sound on", exact: true })).toBeVisible();
+  // Keyboard board play: arrows move square focus (no wrap at the h-file),
+  // Enter selects and plays; arrows on the board must not open review.
+  // (The board was flipped earlier - flip it back to White's view first.)
+  await a.getByRole("button", { name: "Flip board", exact: true }).click();
+  await a.getByRole("button", { name: "h3, empty", exact: true }).focus();
+  await a.keyboard.press("ArrowRight"); // edge: stays on h3, no wrap
+  await expect(a.locator(":focus")).toHaveAccessibleName("h3, empty");
+  await a.keyboard.press("ArrowLeft");
+  await expect(a.locator(":focus")).toHaveAccessibleName("g3, empty");
+  await expect(a.locator(".online-review")).toHaveCount(0);
+  await a.getByRole("button", { name: "g1, white knight", exact: true }).focus();
+  await a.keyboard.press("Enter");
+  await expect(a.locator(".square.selected")).toHaveCount(1);
+  await a.screenshot({ path: "/downloads/v9-keyboard-board.png" });
+  await a.getByRole("button", { name: "f3, empty", exact: true }).focus();
+  await a.keyboard.press("Enter");
+  await expect(a.locator(".online-move-row").nth(2)).toContainText("Nf3");
   // Draw offer banner: A offers, B sees and declines; A re-offers, withdraws
   await a.getByRole("button", { name: "Offer draw", exact: true }).click();
   await expect(c.locator(".online-draw")).toContainText("offers a draw");
@@ -200,7 +217,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

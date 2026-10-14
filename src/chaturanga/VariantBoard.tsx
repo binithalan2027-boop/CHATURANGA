@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Position } from "chessops/variant";
 import { makeSquare } from "chessops/util";
+import { navIndex } from "./boardNav";
 import { usePreferences } from "./preferences";
 import { diffGlides, type Glide, type GlidePiece } from "./pieceGlide";
 import PieceGlideLayer, { GLIDE_MS, motionOK } from "./PieceGlideLayer";
@@ -85,18 +86,12 @@ export default function VariantBoard({
             aria-label={`${name}, ${p ? p.color + " " + p.role : "empty"}${checkSq === sq ? ", in check" : ""}`}
             onClick={() => onSquare(sq)}
             onKeyDown={(e) => {
-              const delta: { [key: string]: number } = {
-                ArrowRight: 1,
-                ArrowLeft: -1,
-                ArrowDown: 8,
-                ArrowUp: -8,
-              };
-              if (e.key in delta) {
-                e.preventDefault();
-                const b =
-                  e.currentTarget.parentElement!.querySelectorAll("button");
-                b[Math.min(63, Math.max(0, i + delta[e.key]))].focus();
-              }
+              const next = navIndex(i, e.key);
+              if (next === null) return;
+              e.preventDefault();
+              const b =
+                e.currentTarget.parentElement!.querySelectorAll("button");
+              b[next].focus();
             }}
           >
             {prefs.coordinates && i % 8 === 0 && (
