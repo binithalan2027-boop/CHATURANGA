@@ -584,9 +584,20 @@ export class Service {
       r.takeback = null;
       const outcome = next.pos.outcome();
       if (outcome) {
+        const reason = next.pos.isCheckmate()
+          ? "checkmate"
+          : next.pos.isStalemate()
+            ? "stalemate"
+            : next.pos.isInsufficientMaterial()
+              ? "insufficient material"
+              : null;
         this.finish(
           r,
-          outcome.winner ? `${outcome.winner} wins` : "Draw",
+          outcome.winner
+            ? `${outcome.winner} wins${reason ? ` by ${reason}` : ""}`
+            : reason
+              ? `Draw by ${reason}`
+              : "Draw",
           outcome.winner ?? null,
         );
         return;

@@ -65,7 +65,7 @@ describe("authoritative game service", () => {
       s.act(i % 2 ? "b" : "a", r, i + 1, "move", m),
     );
     const recovered = new Service(store);
-    expect(recovered.state("a", "local").rooms[0].result).toBe("black wins");
+    expect(recovered.state("a", "local").rooms[0].result).toBe("black wins by checkmate");
     expect(recovered.requireUser("b").games).toBe(1);
   });
   it.each([
