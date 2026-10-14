@@ -36,7 +36,7 @@ const { chromium, expect } = require("@playwright/test");
   await c.getByLabel("Room code", { exact: true }).fill(code);
   await c.getByRole("button", { name: "Join room", exact: true }).click();
   await expect(
-    a.getByText("You are white. white to move.", { exact: false }),
+    a.getByText("white to move", { exact: false }),
   ).toBeVisible();
   await a.getByRole("button", { name: "e2, white pawn", exact: true }).click();
   await a.getByRole("button", { name: "e4, empty", exact: true }).click();
