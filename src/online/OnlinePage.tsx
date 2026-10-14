@@ -853,6 +853,12 @@ export default function OnlinePage({
                       ))}
                     </select>
                   </label>
+                  <p className="fine-print online-variant-summary" aria-live="polite">
+                    {rule === "fog"
+                      ? "Enemy pieces stay hidden until you can capture them - take the king to win."
+                      : (RULE_VARIANTS.find((v) => v.id === rule)?.summary ??
+                        "")}
+                  </p>
                   <label>
                     Time per side
                     <select

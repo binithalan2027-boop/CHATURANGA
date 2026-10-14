@@ -254,6 +254,9 @@ expect.configure({ timeout: 20_000 });
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
   // Crazyhouse: captures fill the pocket; pieces drop back onto the board
   await a.getByLabel("Variant", { exact: true }).selectOption("crazyhouse");
+  // The create panel explains the selected variant under the select
+  await expect(a.locator(".online-variant-summary")).toContainText(/captured|Captured/);
+  await a.screenshot({ path: "/downloads/v9-variant-summary.png" });
   await a.getByLabel("Time per side", { exact: true }).selectOption("5|0");
   await a.getByRole("button", { name: "Create private room", exact: true }).click();
   // Wait for the NEW waiting room to render before reading its code -
