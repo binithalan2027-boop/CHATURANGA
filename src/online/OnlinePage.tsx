@@ -855,6 +855,42 @@ export default function OnlinePage({
                         .
                       </p>
                     )}
+                    {room.status === "active" && room.drawOffer && (
+                      <div className="online-draw" role="status">
+                        {room.drawOffer === state.profile.id ? (
+                          <>
+                            <span>You offered a draw.</span>
+                            <button
+                              disabled={busy}
+                              onClick={() => gameAction("declineDraw")}
+                            >
+                              Withdraw offer
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span>
+                              {room.yourColor === "white"
+                                ? room.blackName
+                                : room.whiteName}{" "}
+                              offers a draw.
+                            </span>
+                            <button
+                              disabled={busy}
+                              onClick={() => gameAction("acceptDraw")}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              disabled={busy}
+                              onClick={() => gameAction("declineDraw")}
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
                     <div className="online-clocks">
                       <span
                         className={`${room.status === "active" && room.turn === "white" ? "online-clock-active" : ""} ${live && live.whiteMs <= 10000 && room.status === "active" ? "online-clock-low" : ""}`}
@@ -1006,15 +1042,6 @@ export default function OnlinePage({
                           >
                             Offer draw
                           </button>
-                          {room.drawOffer &&
-                            room.drawOffer !== state.profile.id && (
-                              <button
-                                disabled={busy}
-                                onClick={() => gameAction("acceptDraw")}
-                              >
-                                Accept draw
-                              </button>
-                            )}
                         </>
                       )}
                       {room.status === "waiting" &&

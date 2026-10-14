@@ -288,3 +288,18 @@
   font-size: 0.75rem;
   padding: 0.15rem 0.5rem;
 }
+.online-draw {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #b98f2e;
+  border-radius: 8px;
+  background: #fdf3d7;
+  color: #5c4510;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+}
+.online-draw button {
+  font-weight: 600;
+}

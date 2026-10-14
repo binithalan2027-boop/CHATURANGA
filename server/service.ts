@@ -460,7 +460,7 @@ export class Service {
       r.status = "finished";
       r.result = "Room cancelled";
       r.version++;
-    r.activityAt = this.now();
+      r.activityAt = this.now();
       this.store.put("room", r.id, r);
       return;
     }
@@ -477,7 +477,15 @@ export class Service {
     if (action === "offerDraw") {
       r.drawOffer = id;
       r.version++;
-    r.activityAt = this.now();
+      r.activityAt = this.now();
+    } else if (action === "declineDraw") {
+      // The recipient declines, or the offerer withdraws their own offer.
+      if (!r.drawOffer) throw Error("No draw offer to decline.");
+      r.drawOffer = null;
+      r.version++;
+      r.activityAt = this.now();
+      this.store.put("room", r.id, r);
+      return;
     } else if (action === "acceptDraw") {
       if (!r.drawOffer || r.drawOffer === id)
         throw Error("No opponent draw offer.");
@@ -497,7 +505,7 @@ export class Service {
       r.moves.push(next.san);
       r.lastMove = uci;
       r.version++;
-    r.activityAt = this.now();
+      r.activityAt = this.now();
       r.drawOffer = null;
       const outcome = next.pos.outcome();
       if (outcome) {

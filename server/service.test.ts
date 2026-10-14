@@ -411,3 +411,25 @@ describe("activityAt", () => {
     expect(view.activityAt).toBe(raw.updatedAt);
   });
 });
+
+describe("declineDraw", () => {
+  it("lets the recipient decline and the offerer withdraw", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "offerDraw");
+    s.act("b", r, 2, "declineDraw");
+    expect(s.getRoom(r).drawOffer).toBeNull();
+    // Offer again, then the offerer withdraws it.
+    s.act("a", r, 3, "offerDraw");
+    s.act("a", r, 4, "declineDraw");
+    expect(s.getRoom(r).drawOffer).toBeNull();
+    expect(s.getRoom(r).status).toBe("active");
+  });
+  it("rejects declining when there is no offer", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    expect(() => s.act("a", r, 1, "declineDraw")).toThrow("No draw offer");
+  });
+});

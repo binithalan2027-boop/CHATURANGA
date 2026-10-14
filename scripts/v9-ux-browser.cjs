@@ -94,6 +94,16 @@ const { chromium, expect } = require("@playwright/test");
   // Flip board: first square becomes h1 for A
   await a.getByRole("button", { name: "Flip board", exact: true }).click();
   await expect(a.locator(".court-board button").first()).toHaveAccessibleName(/h1/);
+  // Draw offer banner: A offers, B sees and declines; A re-offers, withdraws
+  await a.getByRole("button", { name: "Offer draw", exact: true }).click();
+  await expect(c.locator(".online-draw")).toContainText("offers a draw");
+  await c.locator(".online-draw").getByRole("button", { name: "Decline", exact: true }).click();
+  await expect(c.locator(".online-draw")).toHaveCount(0);
+  await expect(a.locator(".online-draw")).toHaveCount(0);
+  await a.getByRole("button", { name: "Offer draw", exact: true }).click();
+  await expect(a.locator(".online-draw")).toContainText("You offered a draw");
+  await a.locator(".online-draw").getByRole("button", { name: "Withdraw offer", exact: true }).click();
+  await expect(a.locator(".online-draw")).toHaveCount(0);
   // A resigns; result banner with rematch appears on both screens
   await a.getByRole("button", { name: "Resign", exact: true }).click();
   await expect(a.locator(".online-result")).toContainText("black wins by resignation");
@@ -130,7 +140,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
