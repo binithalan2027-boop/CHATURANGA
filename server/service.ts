@@ -540,7 +540,8 @@ export class Service {
       whiteMs: r.whiteMs,
       blackMs: r.blackMs,
       serverTime: this.now(),
-      activityAt: r.activityAt,
+      // Rooms persisted before activityAt existed fall back to updatedAt.
+      activityAt: r.activityAt ?? r.updatedAt,
       result: r.result,
       drawOffer: r.drawOffer,
       yourColor: r.white === id ? "white" : "black",
@@ -588,7 +589,8 @@ export class Service {
       whiteMs: r.whiteMs,
       blackMs: r.blackMs,
       serverTime: this.now(),
-      activityAt: r.activityAt,
+      // Rooms persisted before activityAt existed fall back to updatedAt.
+      activityAt: r.activityAt ?? r.updatedAt,
       result: null,
       drawOffer: null,
       yourColor: "black",
@@ -673,7 +675,8 @@ export class Service {
       whiteMs: r.whiteMs,
       blackMs: r.blackMs,
       serverTime: this.now(),
-      activityAt: r.activityAt,
+      // Rooms persisted before activityAt existed fall back to updatedAt.
+      activityAt: r.activityAt ?? r.updatedAt,
       result: r.result,
       drawOffer: r.drawOffer,
       yourColor,

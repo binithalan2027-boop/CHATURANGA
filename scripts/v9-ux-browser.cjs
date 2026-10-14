@@ -108,6 +108,11 @@ const { chromium, expect } = require("@playwright/test");
   // Lobby labels: C (white) is to move in the rematch, A (black) waits
   await expect(c.getByRole("button", { name: /Biru vs Asha · chess · your turn/ })).toBeVisible();
   await expect(a.getByRole("button", { name: /Biru vs Asha · chess · opponent's turn/ })).toBeVisible();
+  // Lobby rows carry a valid relative time - never NaN (regression: rooms
+  // persisted before activityAt existed produced "NaNd ago")
+  await expect(a.getByText("NaN", { exact: false })).toHaveCount(0);
+  await expect(c.getByText("NaN", { exact: false })).toHaveCount(0);
+  await expect(c.getByRole("button", { name: /just now|ago/ })).toBeVisible();
   // Fool's mate in the rematch: 1.f3 e5 2.g4 Qh4# -> check ring + result
   await c.getByRole("button", { name: "f2, white pawn", exact: true }).click();
   await c.getByRole("button", { name: "f3, empty", exact: true }).click();

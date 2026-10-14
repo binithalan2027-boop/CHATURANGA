@@ -93,3 +93,12 @@ describe("timeAgo", () => {
     expect(timeAgo(now, now + 5_000)).toBe("just now");
   });
 });
+
+describe("timeAgo invalid input", () => {
+  it("returns an empty string for missing, NaN, zero or negative stamps", () => {
+    expect(timeAgo(1000, undefined as never)).toBe("");
+    expect(timeAgo(1000, NaN)).toBe("");
+    expect(timeAgo(1000, 0)).toBe("");
+    expect(timeAgo(1000, -50)).toBe("");
+  });
+});

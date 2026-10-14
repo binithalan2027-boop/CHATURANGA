@@ -775,8 +775,9 @@ export default function OnlinePage({
                       }}
                     >
                       {r.whiteName} vs {r.blackName ?? "waiting"} · {r.rule} ·{" "}
-                      {roomLabel(r, state.profile.id)} ·{" "}
-                      {timeAgo(Date.now(), r.activityAt)}
+                      {roomLabel(r, state.profile.id)}
+                      {timeAgo(Date.now(), r.activityAt) &&
+                        ` · ${timeAgo(Date.now(), r.activityAt)}`}
                     </button>
                     {r.invitee === state.profile.id && !r.black && (
                       <button

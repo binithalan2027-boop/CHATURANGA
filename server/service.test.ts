@@ -398,3 +398,16 @@ describe("last move in room views", () => {
     expect(wb.lastMove).toBeNull();
   });
 });
+
+describe("activityAt", () => {
+  it("falls back to updatedAt for rooms persisted before activityAt existed", () => {
+    const { s, store } = setup();
+    const r = s.create("a", "chess", 5);
+    const raw = store.get<any>("room", r)!;
+    delete raw.activityAt;
+    store.put("room", r, raw);
+    const view = s.state("a", "local").rooms[0];
+    expect(Number.isFinite(view.activityAt)).toBe(true);
+    expect(view.activityAt).toBe(raw.updatedAt);
+  });
+});

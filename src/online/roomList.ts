@@ -45,8 +45,12 @@ export function sortRooms(rooms: RoomView[], viewerId: string): RoomView[] {
     .map((x) => x.r);
 }
 
-/** Compact relative time for lobby rows: "just now", "3m", "5h", "2d". */
+/**
+ * Compact relative time for lobby rows: "just now", "3m", "5h", "2d".
+ * Returns "" for missing or invalid timestamps - callers render nothing.
+ */
 export function timeAgo(now: number, then: number): string {
+  if (!Number.isFinite(then) || then <= 0) return "";
   const d = Math.max(0, now - then);
   if (d < 45_000) return "just now";
   const m = Math.round(d / 60_000);
