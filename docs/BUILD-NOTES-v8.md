@@ -16,6 +16,16 @@
 - Security pass 3 (post-verification review) found and fixed four more real issues: refused WebSocket connections eroded the per-IP connection cap; /api/export leaked the full Fog of War position mid-game (unfinished fog rooms now export as the player's safe projection); games abandoned mid-play stayed "active" forever (the hourly sweep now closes them unrated after 7 days); and operator CLI writes (moderation decisions, entitlement grants) were invisible to the running server until restart (report/entitlement records now bypass the cache). The account-deletion dialog also claimed the sign-in account survives; the copy now matches the actual auth-identity removal and surfaces manual-step outcomes.
 - docs/ROADMAP.md: combined maths/spells + three/four-player cross-board is DEFERRED (rules design is an owner decision; merging two verified engines days before launch is a weakest-link risk) with a concrete build sketch and the three owner decisions it needs.
 
+## October 14 online quality program (user-requested active improvements)
+- Clocks that tick live between server pushes (re-anchored on every state view), low-time highlight, tenths under 10 seconds.
+- Rematch as a server-created challenge the opponent accepts; colours swap; idempotent under double-clicks and simultaneous clicks; increments preserved.
+- Move list: numbered SAN rows, auto-scroll while live, click-to-review read-only step-through with arrow keys (fog excluded by design - masked moves). Copy PGN from the result panel (full headers, variant-aware).
+- Board feel: piece glide animation (reduced-motion aware), last-move ring, check ring, premove with blue ring (auto-fires if legal, auto-queens pawns), keyboard play (type e2e4/Nf3), right-click annotations (square highlights and drawn arrows, cleared on click or move; client-only, never transmitted).
+- Game-end clarity: every ending names its reason - checkmate, stalemate, insufficient material, resignation, timeout, repetition, fifty-move rule, agreement, abort. Finished rated games show the rating change (+12/-12/no change) beside the provisional-ratings note.
+- Fair-play lifecycle: abort before each side has moved (unrated, uncounted), draw offers with accept/decline/withdraw (mutual offers settle at once, chess.com style), takebacks with accept/decline/withdraw in casual rooms (clock not restored), resign behind an inline confirm, and abandonment: a player gone past a 60-second grace window (ABANDON_MS override) forfeits while the opponent is present; both-away pauses the game.
+- Lobby: action-needed ordering, All/Needs you/Waiting/Finished filters, friendly variant and time-control labels, relative times, move numbers, game-end summaries, empty-state guidance, join-by-code with Enter, opponent presence, variant summaries on the create form, first-run hints, mobile guard.
+- Ratings note: app ratings remain provisional private-match Elo; variants and custom modes are unrated by design.
+
 ## Apply this patch
 ```
 git clone <your repo> chaturanga-v8 && cd chaturanga-v8

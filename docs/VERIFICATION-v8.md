@@ -1,9 +1,9 @@
 # Chaturanga v8 verification record
-13 October 2026, loopback only. All steps run against a fresh clone: clean base 34410f9 + the full 57-commit v8 series applied with `git am` (two trailing-whitespace warnings inside an OFL font license text block, harmless). Result tree compared to the working tree: `git diff` empty (identical).
+13-14 October 2026, loopback only. All steps run against a fresh clone: clean base 34410f9 + the full 120-commit v8 series applied with `git am` (two trailing-whitespace warnings inside an OFL font license text block, harmless). Result tree compared to the working tree: `git diff` empty (identical).
 
 ## Automated
 - `npm ci`: clean.
-- Unit: 21 files, 173 tests, all pass. Includes server auth/rate-limit/store/backup/custom/fog/maintenance suites and client engine/drills/fogRules suites.
+- Unit: 34 files, 271 tests, all pass (14 October final). Includes server auth/rate-limit/store/backup/custom/fog/maintenance/service suites and client engine/drills/fogRules/online suites.
 - Typechecks: `tsc -b` green (client + server). Build: `tsc && vite build` green.
 - `npm audit`: 0 vulnerabilities (v7's twelve dev advisories resolved by the toolchain upgrade).
 
@@ -83,3 +83,26 @@ topology that was live-verified tonight (fifth block).
 
 ## Caveats
 Loopback local authentication only; no real OAuth, HTTPS/WSS, hosted database, or public-network test was possible without owner accounts. Those steps are scripted in docs/DEPLOYMENT.md and remain owner-run.
+
+## 14 October final pass (online quality program)
+Owner dry-run on a fresh clone (git am the final patch, `npm ci`, `npx vitest run` 271/271, `npm run build`, `npm audit` 0): clean.
+
+Real-browser suites (system Chrome via Playwright, fresh dev servers), all PASS:
+- online-smoke: two-browser PvP create/join/move, reload restore, draw agreement.
+- v9-ux-browser: live clocks, glide, move list, material, flip, copy PGN, rematch, rings, lobby labels/chips/times, step-through, premove, draw banner, keyboard input, first-run hints, screen-reader announcements.
+- v8-fog-browser: fog projection, masked moves, reveal-on-sight, capture, mobile 320px, privacy guards (no lastMove/check/review/premove leaks).
+- v7-browser, v7-mantra-browser: cross3/cross4 rounds, mind maths unlock + privacy, reload restore, reports, axe-clean, Mantra private sets + reward.
+- v9-moves-scroll, v9-cross-browser, v9-mind-browser: move-list auto-scroll under long games; cross-board and mind regressions.
+- v9-promotion: promotion picker (choose piece, cancel).
+- v9-koth, v9-3check, v9-antichess, v9-atomic, v9-horde, v9-racing: each variant's win condition end to end.
+- v9-lobby-empty: empty-state guidance for new players.
+- v9-variant-premove: premove fires and is discarded when illegal, in variants.
+- v9-end-reasons: checkmate, resignation and repetition name their reasons; rating change shown (+12/-12 between fresh 1200s).
+- v9-abort: abort window open at 0/1 moves, closed after 2; aborted games unrated with no ratings note.
+- v9-draw-takeback: draw offer/decline/withdraw/accept, takeback ask/decline/withdraw/accept, mutual offers settle immediately.
+- v9-board-annotations: right-click highlight, right-drag arrow, left-click and next move clear.
+- v9-abandon: closing all tabs forfeits after the grace window ("wins (opponent disconnected)"); both-away pauses.
+
+Suite timing note: v9-mind-browser failed twice under heavy machine load (5s assertion cap exceeded while earlier suites were still winding down) and then passed repeatedly on a quiet machine; no product defect found (the gate was verified present in a manual inspection run).
+
+Screenshots attached with the final package: v9-end-reasons.png, v9-draw-repetition.png, v9-abort.png, v9-draw-takeback.png, v9-annotations.png, v9-abandon.png (suite-generated on the verified tree), plus the earlier v8/v9 captures listed above.
