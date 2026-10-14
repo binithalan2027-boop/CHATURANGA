@@ -87,6 +87,8 @@ const { chromium, expect } = require("@playwright/test");
   await c.getByRole("button", { name: "d4, white pawn", exact: true }).click();
   await expect(a.locator(".online-material-lead")).toHaveText("Black +1");
   await expect(c.locator(".online-material-lead")).toHaveText("Black +1");
+  // Opening name follows the book line (ECO table)
+  await expect(a.locator(".online-opening")).toContainText("Center Game Accepted");
   await expect(a.locator(".online-captured").nth(1).locator("img")).toHaveCount(1);
   // Move list shows both rows
   await expect(a.locator(".online-move-row").nth(1)).toContainText("d4");
@@ -162,6 +164,7 @@ const { chromium, expect } = require("@playwright/test");
   await a.getByRole("button", { name: "f3, empty", exact: true }).focus();
   await a.keyboard.press("Enter");
   await expect(a.locator(".online-move-row").nth(2)).toContainText("Nf3");
+  await expect(a.locator(".online-opening")).toContainText("Center Game: Kieseritzky Variation");
   // Draw offer banner: A offers, B sees and declines; A re-offers, withdraws
   await a.getByRole("button", { name: "Offer draw", exact: true }).click();
   await expect(c.locator(".online-draw")).toContainText("offers a draw");
@@ -226,7 +229,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -10,6 +10,7 @@ import { makeSan } from "chessops/san";
 import { replayTo } from "./replay";
 import { nextReviewPly } from "./reviewNav";
 import { playSound, soundForSan } from "./sounds";
+import { openingForMoves } from "./opening";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
@@ -189,6 +190,13 @@ export default function OnlinePage({
   const sortedRooms = useMemo(
     () => (state ? sortRooms(state.rooms, state.profile.id) : []),
     [state],
+  );
+  const opening = useMemo(
+    () =>
+      room && room.rule === "chess" && room.moves.length > 0
+        ? openingForMoves(room.moves)
+        : null,
+    [room?.id, room?.rule, room?.moves],
   );
   const review = useMemo(
     () =>
@@ -1309,6 +1317,11 @@ export default function OnlinePage({
                         >
                           Back to live
                         </button>
+                      </p>
+                    )}
+                    {opening && (
+                      <p className="online-opening" title="Named from the ECO opening table while the game follows a book line.">
+                        {opening.name} <small>{opening.eco}</small>
                       </p>
                     )}
                     <div className="online-moves" aria-label="Move list">

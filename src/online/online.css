@@ -342,3 +342,13 @@
   font-size: 0.85rem;
   line-height: 1.45;
 }
+.online-opening {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent, #c9a45c);
+}
+.online-opening small {
+  font-weight: 400;
+  opacity: 0.7;
+}

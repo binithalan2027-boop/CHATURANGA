@@ -56,6 +56,8 @@ const { chromium, expect } = require("@playwright/test");
   await a.setViewportSize({ width: 1366, height: 950 });
   await a.screenshot({ path: "/downloads/v8-fog-white.png" });
   await c.screenshot({ path: "/downloads/v8-fog-black.png" });
+  // Fog privacy: no takeback button, no opening name (not a book game)
+  if (await a.locator(".online-opening").count()) errors.push("fog: opening name visible");
   // Fog privacy: no takeback button (hidden information) and no arrow review
   if (await a.getByRole("button", { name: "Takeback", exact: true }).count()) errors.push("fog: takeback button visible");
   // Fog privacy: arrow keys must NOT open move-list review (masked list)
