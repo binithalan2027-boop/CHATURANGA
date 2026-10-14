@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
-import { roomLabel, sortRooms, lastMoveSquares } from "./roomList";
+import { roomLabel, sortRooms, lastMoveSquares, timeAgo } from "./roomList";
+import { premoveUci } from "./premove";
 import { replayTo } from "./replay";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
@@ -57,6 +58,7 @@ export default function OnlinePage({
     [flipped, setFlipped] = useState(false),
     [copied, setCopied] = useState(false),
     [reviewPly, setReviewPly] = useState<number | null>(null),
+    [premove, setPremove] = useState<string | null>(null),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
@@ -66,6 +68,7 @@ export default function OnlinePage({
     setCopied(false);
     setTickTs(0);
     setReviewPly(null);
+    setPremove(null);
   }, [selectedRoom]);
   useEffect(() => {
     void api<{ mode: string; providers: string[] }>("config")
@@ -178,7 +181,33 @@ export default function OnlinePage({
       setDrop("");
     });
   function square(sq: number) {
-    if (!active) return;
+    if (!active) {
+      // Premove: game running, your seat, not your turn, live board.
+      if (
+        !room ||
+        isFog ||
+        review ||
+        !pos ||
+        room.status !== "active" ||
+        notice !== "Connected"
+      )
+        return;
+      if (premove) {
+        setPremove(null);
+        setSelected(null);
+        return;
+      }
+      if (selected === null) {
+        setSelected(
+          pos.board.get(sq)?.color === room.yourColor ? sq : null,
+        );
+        return;
+      }
+      const uci = premoveUci(pos, selected, sq, room.yourColor);
+      if (uci) setPremove(uci);
+      setSelected(null);
+      return;
+    }
     const moves = legal
       .filter((u) =>
         u.startsWith(
@@ -213,6 +242,15 @@ export default function OnlinePage({
       ),
     )
     .map((u) => parseUci(u)!.to);
+  // Fire a queued premove the moment the opponent's move makes it our
+  // turn; discard it if the new position made it illegal.
+  useEffect(() => {
+    if (!active || !premove) return;
+    const uci = premove;
+    setPremove(null);
+    if (legal.includes(uci)) doMove(uci);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
   const gameAction = (action: string) =>
     void run(() =>
       api("game", { room: room!.id, version: room!.version, action }),
@@ -737,7 +775,8 @@ export default function OnlinePage({
                       }}
                     >
                       {r.whiteName} vs {r.blackName ?? "waiting"} · {r.rule} ·{" "}
-                      {roomLabel(r, state.profile.id)}
+                      {roomLabel(r, state.profile.id)} ·{" "}
+                      {timeAgo(Date.now(), r.activityAt)}
                     </button>
                     {r.invitee === state.profile.id && !r.black && (
                       <button
@@ -859,6 +898,7 @@ export default function OnlinePage({
                         onSquare={square}
                         lastMove={lastMove}
                         checkSq={checkSq}
+                        premove={premove ? lastMoveSquares(premove) : []}
                       />
                     ) : null}
                     {isFog && (
@@ -925,6 +965,12 @@ export default function OnlinePage({
                           </button>
                         ))}
                       </div>
+                    )}
+                    {premove && (
+                      <p className="online-premove" role="status">
+                        Premove set - it plays automatically when your
+                        opponent moves. Click the board to cancel it.
+                      </p>
                     )}
                     <p aria-live="polite">
                       {busy

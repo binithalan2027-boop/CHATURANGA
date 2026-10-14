@@ -49,6 +49,8 @@ export interface RoomView {
   whiteMs: number;
   blackMs: number;
   serverTime: number;
+  /** Last meaningful state change (join, move, offer, finish), ms epoch. */
+  activityAt: number;
   result: string | null;
   drawOffer: string | null;
   yourColor: "white" | "black";

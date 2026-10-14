@@ -56,6 +56,9 @@ interface Room {
   initialMs: number;
   /** Last played move in uci ("e2e4", "e7e8q", "n@e4" for drops). */
   lastMove: string | null;
+  /** Last meaningful state change (join, move, offer, finish). Unlike
+   * updatedAt, which the clock tick touches on every view. */
+  activityAt: number;
   repetition: Record<string, number>;
 }
 const key = (a: string, b: string) => [a, b].sort().join(":");
@@ -305,6 +308,7 @@ export class Service {
       result: null,
       drawOffer: null,
       lastMove: null,
+      activityAt: this.now(),
       repetition: {},
     };
     r.repetition[this.positionKey(r.fen)] = 1;
@@ -340,6 +344,7 @@ export class Service {
     r.status = "active";
     r.updatedAt = this.now();
     r.version++;
+    r.activityAt = this.now();
     this.store.put("room", r.id, r);
   }
   getRoom(code: string) {
@@ -385,6 +390,7 @@ export class Service {
     r.result = result;
     r.drawOffer = null;
     r.version++;
+    r.activityAt = this.now();
     if (r.rule === "chess" && r.black && opts.rated !== false) {
       const white = this.requireUser(r.white),
         black = this.requireUser(r.black),
@@ -454,6 +460,7 @@ export class Service {
       r.status = "finished";
       r.result = "Room cancelled";
       r.version++;
+    r.activityAt = this.now();
       this.store.put("room", r.id, r);
       return;
     }
@@ -470,6 +477,7 @@ export class Service {
     if (action === "offerDraw") {
       r.drawOffer = id;
       r.version++;
+    r.activityAt = this.now();
     } else if (action === "acceptDraw") {
       if (!r.drawOffer || r.drawOffer === id)
         throw Error("No opponent draw offer.");
@@ -489,6 +497,7 @@ export class Service {
       r.moves.push(next.san);
       r.lastMove = uci;
       r.version++;
+    r.activityAt = this.now();
       r.drawOffer = null;
       const outcome = next.pos.outcome();
       if (outcome) {
@@ -531,6 +540,7 @@ export class Service {
       whiteMs: r.whiteMs,
       blackMs: r.blackMs,
       serverTime: this.now(),
+      activityAt: r.activityAt,
       result: r.result,
       drawOffer: r.drawOffer,
       yourColor: r.white === id ? "white" : "black",
@@ -578,6 +588,7 @@ export class Service {
       whiteMs: r.whiteMs,
       blackMs: r.blackMs,
       serverTime: this.now(),
+      activityAt: r.activityAt,
       result: null,
       drawOffer: null,
       yourColor: "black",
@@ -613,6 +624,7 @@ export class Service {
         : `${squareName(from)}${capture ? "x" : "-"}${squareName(to)}${next.board[to] !== state.board[from] && next.board[to] ? "=" + next.board[to]!.toUpperCase() : ""}`,
     );
     r.version++;
+    r.activityAt = this.now();
     r.drawOffer = null;
     r.lastMove = uci;
     if (next.result) {
@@ -661,6 +673,7 @@ export class Service {
       whiteMs: r.whiteMs,
       blackMs: r.blackMs,
       serverTime: this.now(),
+      activityAt: r.activityAt,
       result: r.result,
       drawOffer: r.drawOffer,
       yourColor,

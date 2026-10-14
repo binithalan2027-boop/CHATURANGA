@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { roomCategory, sortRooms, roomLabel, lastMoveSquares } from "./roomList";
+import { roomCategory, sortRooms, roomLabel, lastMoveSquares, timeAgo } from "./roomList";
 import type { RoomView } from "./types";
 
 const base: RoomView = {
@@ -17,6 +17,7 @@ const base: RoomView = {
   whiteMs: 300000,
   blackMs: 300000,
   serverTime: 0,
+  activityAt: 0,
   result: null,
   drawOffer: null,
   yourColor: "white",
@@ -36,8 +37,8 @@ describe("roomCategory", () => {
 
 describe("sortRooms", () => {
   it("orders action-needed games first and finished newest-first", () => {
-    const finished1 = room({ id: "f1", status: "finished", result: "white wins" });
-    const finished2 = room({ id: "f2", status: "finished", result: "Draw" });
+    const finished1 = room({ id: "f1", status: "finished", result: "white wins", activityAt: 100 });
+    const finished2 = room({ id: "f2", status: "finished", result: "Draw", activityAt: 200 });
     const opponent = room({ id: "o1", turn: "black", yourColor: "white" });
     const mine = room({ id: "m1", turn: "white", yourColor: "white" });
     const invite = room({ id: "i1", status: "waiting", invitee: "me" });
@@ -77,5 +78,18 @@ describe("lastMoveSquares", () => {
     expect(lastMoveSquares(null)).toEqual([]);
     expect(lastMoveSquares("")).toEqual([]);
     expect(lastMoveSquares("i9i9")).toEqual([]);
+  });
+});
+
+describe("timeAgo", () => {
+  const now = 1_000_000_000;
+  it("formats fresh, minute, hour and day ages", () => {
+    expect(timeAgo(now, now - 10_000)).toBe("just now");
+    expect(timeAgo(now, now - 3 * 60_000)).toBe("3m ago");
+    expect(timeAgo(now, now - 5 * 3_600_000)).toBe("5h ago");
+    expect(timeAgo(now, now - 2 * 86_400_000)).toBe("2d ago");
+  });
+  it("never goes negative on clock skew", () => {
+    expect(timeAgo(now, now + 5_000)).toBe("just now");
   });
 });

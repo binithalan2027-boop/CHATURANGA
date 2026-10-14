@@ -30,6 +30,7 @@ export default function VariantBoard({
   flip = false,
   lastMove = [],
   checkSq = null,
+  premove = [],
 }: {
   pos: Position;
   selected: number | null;
@@ -40,6 +41,8 @@ export default function VariantBoard({
   lastMove?: number[];
   /** King square to flag when the side to move is in check. */
   checkSq?: number | null;
+  /** Squares of a queued premove (from/to), shown as a blue ring. */
+  premove?: number[];
 }) {
   const { prefs } = usePreferences();
   const boardArr = useMemo<(GlidePiece | null)[]>(
@@ -78,7 +81,7 @@ export default function VariantBoard({
         return (
           <button
             key={sq}
-            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${lastMove.includes(sq) ? "last-move" : ""} ${checkSq === sq ? "in-check" : ""}`}
+            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${lastMove.includes(sq) ? "last-move" : ""} ${checkSq === sq ? "in-check" : ""} ${premove.includes(sq) ? "premove" : ""}`}
             aria-label={`${name}, ${p ? p.color + " " + p.role : "empty"}${checkSq === sq ? ", in check" : ""}`}
             onClick={() => onSquare(sq)}
             onKeyDown={(e) => {

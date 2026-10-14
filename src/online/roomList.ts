@@ -28,8 +28,9 @@ const ORDER: RoomCategory[] = [
 ];
 
 /**
- * Stable sort: action-needed first, finished games last (newest first -
- * the server feed arrives oldest-first, so finished order is reversed).
+ * Stable sort: action-needed first, finished games last. Finished games
+ * order by their last activity, newest first; other categories keep feed
+ * order.
  */
 export function sortRooms(rooms: RoomView[], viewerId: string): RoomView[] {
   return rooms
@@ -38,9 +39,21 @@ export function sortRooms(rooms: RoomView[], viewerId: string): RoomView[] {
       const ca = roomCategory(a.r, viewerId),
         cb = roomCategory(b.r, viewerId);
       if (ca !== cb) return ORDER.indexOf(ca) - ORDER.indexOf(cb);
-      return ca === "finished" ? b.i - a.i : a.i - b.i;
+      if (ca === "finished") return b.r.activityAt - a.r.activityAt;
+      return a.i - b.i;
     })
     .map((x) => x.r);
+}
+
+/** Compact relative time for lobby rows: "just now", "3m", "5h", "2d". */
+export function timeAgo(now: number, then: number): string {
+  const d = Math.max(0, now - then);
+  if (d < 45_000) return "just now";
+  const m = Math.round(d / 60_000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
 }
 
 /** Short, honest status line for one room in the list. */

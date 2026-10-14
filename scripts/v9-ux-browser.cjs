@@ -34,7 +34,12 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.getByRole("button", { name: "Copied", exact: true })).toBeVisible();
   // Material strip starts level
   await expect(a.locator(".online-material-lead")).toHaveText("Level material");
-  // A plays e2e4; the glide overlay must appear, starting at the from-square
+  // B queues a premove while it is still A's turn: e7e5 fires automatically
+  await c.getByRole("button", { name: "e7, black pawn", exact: true }).click();
+  await c.getByRole("button", { name: "e5, empty", exact: true }).click();
+  await expect(c.locator(".square.premove")).toHaveCount(2);
+  await expect(c.locator(".online-premove")).toContainText("Premove set");
+  // A plays e2e4 (this is A's first move; B's premove fires right after)
   await a.evaluate(() => {
     window.__glides = [];
     const iv = setInterval(() => {
@@ -52,18 +57,17 @@ const { chromium, expect } = require("@playwright/test");
   await a.screenshot({ path: "/downloads/v9-glide-check.png" });
   // Last-move ring highlights both touched squares (e2 and e4)
   await expect(a.locator(".square.last-move")).toHaveCount(2);
-  // Numbered move list
+  // Numbered move list: B's premove fired right after A's move
   await expect(a.locator(".online-move-row").first()).toContainText("1.");
   await expect(a.locator(".online-move-row").first()).toContainText("e4");
-  // Live clock: it is Black's turn, so Black's clock must tick down
-  const read = async () => (await c.locator(".online-clocks span").nth(1).textContent()).trim();
+  await expect(a.locator(".online-move-row").first()).toContainText("e5");
+  await expect(c.locator(".square.premove")).toHaveCount(0);
+  // Live clock: after 1.e4 e5 it is White's turn, so White's clock ticks
+  const read = async () => (await a.locator(".online-clocks span").nth(0).textContent()).trim();
   const t1 = await read();
   await c.waitForTimeout(1600);
   const t2 = await read();
   if (t1 === t2) errors.push(`black clock did not tick (${t1})`);
-  // B plays e7e5, A d2d4, B captures exd4 -> Black up a pawn
-  await c.getByRole("button", { name: "e7, black pawn", exact: true }).click();
-  await c.getByRole("button", { name: "e5, empty", exact: true }).click();
   await a.getByRole("button", { name: "d2, white pawn", exact: true }).click();
   await a.getByRole("button", { name: "d4, empty", exact: true }).click();
   await c.getByRole("button", { name: "e5, black pawn", exact: true }).click();
@@ -120,7 +124,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
