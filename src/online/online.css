@@ -324,3 +324,21 @@
   font-size: 0.8rem;
   padding: 0.25rem 0.6rem;
 }
+.online-hints {
+  border: 1px solid #4f5d49;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  margin-top: 0.6rem;
+  background: rgba(235, 204, 130, 0.06);
+  max-width: 34rem;
+}
+.online-hints h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.95rem;
+}
+.online-hints ul {
+  margin: 0 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}

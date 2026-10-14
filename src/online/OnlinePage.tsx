@@ -67,6 +67,9 @@ export default function OnlinePage({
     [muted, setMuted] = useState(
       () => localStorage.getItem("chaturanga-muted") === "1",
     ),
+    [hintsOff, setHintsOff] = useState(
+      () => localStorage.getItem("chaturanga-hints-dismissed") === "1",
+    ),
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
@@ -1356,6 +1359,42 @@ export default function OnlinePage({
                       War (house rules) use the server rule engine.
                       Maths/spells and three/four-player house rules are above.
                     </p>
+                    {!hintsOff && (
+                      <div className="online-hints" role="note">
+                        <h3>Getting started</h3>
+                        <ul>
+                          <li>
+                            Create a room and share its code - your friend
+                            joins from the lobby.
+                          </li>
+                          <li>
+                            Move three ways: click or tap the board, type the
+                            move (e2e4 or Nf3), or use the keyboard - Tab to
+                            the board, arrows, Enter.
+                          </li>
+                          <li>
+                            Casual rooms allow takebacks and draw offers;
+                            either player can decline.
+                          </li>
+                          <li>
+                            Finished a game? Copy its PGN from the result
+                            panel, and step back through it with the arrow
+                            keys.
+                          </li>
+                        </ul>
+                        <button
+                          onClick={() => {
+                            setHintsOff(true);
+                            localStorage.setItem(
+                              "chaturanga-hints-dismissed",
+                              "1",
+                            );
+                          }}
+                        >
+                          Got it
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </section>
