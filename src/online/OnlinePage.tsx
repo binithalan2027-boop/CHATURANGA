@@ -53,12 +53,14 @@ export default function OnlinePage({
     [promotion, setPromotion] = useState<string[]>([]),
     [drop, setDrop] = useState(""),
     [flipped, setFlipped] = useState(false),
+    [copied, setCopied] = useState(false),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
   const clockBase = useRef({ version: -1, at: Date.now() });
   useEffect(() => {
     setFlipped(false);
+    setCopied(false);
     setTickTs(0);
   }, [selectedRoom]);
   useEffect(() => {
@@ -725,13 +727,57 @@ export default function OnlinePage({
                       {room.blackName ?? "waiting for Black"}
                     </h2>
                     <p>
-                      You are {room.yourColor}.{" "}
-                      {room.result ??
-                        (room.status === "waiting"
-                          ? "Share the room code."
-                          : `${room.turn} to move`)}
-                      . Room: <code>{room.id}</code>
+                      You are {room.yourColor}. Room: <code>{room.id}</code>{" "}
+                      <button
+                        className="online-copy"
+                        disabled={busy}
+                        onClick={() => {
+                          void navigator.clipboard
+                            ?.writeText(room.id)
+                            .then(() => setCopied(true));
+                        }}
+                      >
+                        {copied ? "Copied" : "Copy code"}
+                      </button>
                     </p>
+                    {room.result ? (
+                      <div className="online-result" role="status">
+                        <strong>{room.result}</strong>
+                        {room.rule === "chess" &&
+                          room.result !== "Room cancelled" && (
+                            <span>
+                              Both players' provisional ratings were updated.
+                            </span>
+                          )}
+                        {room.black && room.result !== "Room cancelled" && (
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              void run(async () => {
+                                const out = await api<{ room?: string }>(
+                                  "game",
+                                  {
+                                    room: room.id,
+                                    version: room.version,
+                                    action: "rematch",
+                                  },
+                                );
+                                if (out?.room) setSelectedRoom(out.room);
+                              })
+                            }
+                          >
+                            Rematch (colours swap)
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <p>
+                        {room.status === "waiting"
+                          ? "Share the room code."
+                          : `${room.turn} to move`}
+                        .
+                      </p>
+                    )}
                     <div className="online-clocks">
                       <span
                         className={`${room.status === "active" && room.turn === "white" ? "online-clock-active" : ""} ${live && live.whiteMs <= 10000 && room.status === "active" ? "online-clock-low" : ""}`}
@@ -856,28 +902,6 @@ export default function OnlinePage({
                       >
                         Flip board
                       </button>
-                      {room.status === "finished" &&
-                        room.black &&
-                        room.result !== "Room cancelled" && (
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              void run(async () => {
-                                const out = await api<{ room?: string }>(
-                                  "game",
-                                  {
-                                    room: room.id,
-                                    version: room.version,
-                                    action: "rematch",
-                                  },
-                                );
-                                if (out?.room) setSelectedRoom(out.room);
-                              })
-                            }
-                          >
-                            Rematch (colours swap)
-                          </button>
-                        )}
                       {room.status === "active" && (
                         <>
                           <button

@@ -1,6 +1,9 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Position } from "chessops/variant";
 import { makeSquare } from "chessops/util";
 import { usePreferences } from "./preferences";
+import { diffGlides, type Glide, type GlidePiece } from "./pieceGlide";
+import PieceGlideLayer, { GLIDE_MS, motionOK } from "./PieceGlideLayer";
 const glyphs = {
   white: {
     pawn: "♙",
@@ -33,6 +36,27 @@ export default function VariantBoard({
   flip?: boolean;
 }) {
   const { prefs } = usePreferences();
+  const boardArr = useMemo<(GlidePiece | null)[]>(
+    () =>
+      Array.from({ length: 64 }, (_, sq) => {
+        const p = pos.board.get(sq);
+        return p ? { color: p.color as GlidePiece["color"], role: p.role } : null;
+      }),
+    [pos],
+  );
+  const animRef = useRef({ board: boardArr, batch: 0 });
+  const [glides, setGlides] = useState<Glide[]>([]);
+  if (animRef.current.board !== boardArr) {
+    const g = motionOK() ? diffGlides(animRef.current.board, boardArr) : [];
+    animRef.current = { board: boardArr, batch: animRef.current.batch + 1 };
+    if (g.length) setGlides(g);
+  }
+  useEffect(() => {
+    if (!glides.length) return;
+    const t = setTimeout(() => setGlides([]), GLIDE_MS + 60);
+    return () => clearTimeout(t);
+  }, [glides]);
+  const hiding = new Set(glides.map((g) => g.to));
   return (
     <div className="court-board" role="group" aria-label="Variant chess board">
       {Array.from({ length: 64 }, (_, i) => {
@@ -72,7 +96,7 @@ export default function VariantBoard({
                 {name[0]}
               </small>
             )}
-            {p && (
+            {p && !hiding.has(sq) && (
               <span
                 className={`piece ${p.color === "white" ? "w" : "b"}`}
                 aria-hidden="true"
@@ -86,6 +110,17 @@ export default function VariantBoard({
           </button>
         );
       })}
+      <PieceGlideLayer
+        glides={glides}
+        batch={animRef.current.batch}
+        flip={flip}
+        render={(piece) => ({
+          text: glyphs[prefs.pieces === "solid" ? "black" : piece.color][
+            piece.role as keyof (typeof glyphs)["white"]
+          ],
+          cls: `piece ${piece.color === "white" ? "w" : "b"}`,
+        })}
+      />
     </div>
   );
 }

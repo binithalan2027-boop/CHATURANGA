@@ -265,3 +265,26 @@
 .online-move-row span:first-child {
   opacity: 0.6;
 }
+
+.online-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+  border: 1px solid var(--accent, #c9a45c);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  margin: 0.4rem 0;
+  background: rgba(201, 164, 92, 0.08);
+}
+.online-result strong {
+  font-size: 1.05rem;
+}
+.online-result span {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.online-copy {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+}

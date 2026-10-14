@@ -1,4 +1,7 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePreferences } from "./preferences";
+import { diffGlides, type Glide, type GlidePiece } from "./pieceGlide";
+import PieceGlideLayer, { GLIDE_MS, motionOK } from "./PieceGlideLayer";
 import {
   fogFromFen,
   squareName,
@@ -14,6 +17,9 @@ const SOLID: Record<string, string> = {
 };
 const ROLE: Record<string, string> = {
   p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king",
+};
+const LETTER: Record<string, string> = {
+  pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k",
 };
 
 /**
@@ -39,6 +45,32 @@ export default function FogBoard({
   const { prefs } = usePreferences();
   const state = fogFromFen(fen);
   const fog = new Set(fogSquares);
+  const boardArr = useMemo<(GlidePiece | null)[]>(
+    () =>
+      Array.from({ length: 64 }, (_, sq) => {
+        const p: FogPiece | null = state.board[sq];
+        return p
+          ? {
+              color: colorOf(p) === "w" ? "white" : "black",
+              role: ROLE[p.toLowerCase()],
+            }
+          : null;
+      }),
+    [fen],
+  );
+  const animRef = useRef({ board: boardArr, batch: 0 });
+  const [glides, setGlides] = useState<Glide[]>([]);
+  if (animRef.current.board !== boardArr) {
+    const g = motionOK() ? diffGlides(animRef.current.board, boardArr) : [];
+    animRef.current = { board: boardArr, batch: animRef.current.batch + 1 };
+    if (g.length) setGlides(g);
+  }
+  useEffect(() => {
+    if (!glides.length) return;
+    const t = setTimeout(() => setGlides([]), GLIDE_MS + 60);
+    return () => clearTimeout(t);
+  }, [glides]);
+  const hiding = new Set(glides.map((g) => g.to));
   return (
     <div className="court-board" role="group" aria-label="Fog of War chess board">
       {Array.from({ length: 64 }, (_, i) => {
@@ -84,7 +116,7 @@ export default function FogBoard({
                 {name[0]}
               </small>
             )}
-            {p && (
+            {p && !hidden && !hiding.has(sq) && (
               <span
                 className={`piece ${color === "w" ? "w" : "b"}`}
                 aria-hidden="true"
@@ -98,6 +130,19 @@ export default function FogBoard({
           </button>
         );
       })}
+      <PieceGlideLayer
+        glides={glides}
+        batch={animRef.current.batch}
+        flip={flip}
+        render={(piece) => ({
+          text: (
+            prefs.pieces === "solid" || piece.color === "black"
+              ? SOLID
+              : OUTLINE
+          )[LETTER[piece.role]],
+          cls: `piece ${piece.color === "white" ? "w" : "b"}`,
+        })}
+      />
     </div>
   );
 }

@@ -2114,3 +2114,21 @@
     rgba(20, 24, 16, 0.3) 6px 12px
   );
 }
+
+.court-board {
+  position: relative;
+}
+.piece-glide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12.5%;
+  height: 12.5%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 6;
+  transition-property: transform;
+  transition-timing-function: ease-out;
+}

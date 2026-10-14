@@ -35,8 +35,8 @@ const { chromium, expect } = require("@playwright/test");
   // A plays e2e4
   await a.getByRole("button", { name: "e2, white pawn", exact: true }).click();
   await a.getByRole("button", { name: "e4, empty", exact: true }).click();
-  await expect(c.getByText("Moves: ?", { exact: false }).first()).toBeVisible(); // masked move for black
-  await expect(a.getByText("Moves: e2-e4", { exact: false })).toBeVisible();
+  await expect(c.locator(".online-move-row").first()).toContainText("?"); // masked move for black
+  await expect(a.locator(".online-move-row").first()).toContainText("e2-e4");
   // B's pawn on e7 stays fog for A (nothing attacks e7); B plays d7d5, landing in A's e4-pawn sight
   await expect(a.getByRole("button", { name: "e7, fog", exact: true })).toBeVisible();
   await expect(a.getByRole("button", { name: "e5, empty", exact: true })).toBeVisible(); // e4 pawn sees its push square
