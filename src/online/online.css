@@ -353,3 +353,7 @@
   font-weight: 400;
   opacity: 0.7;
 }
+.online-danger {
+  border-color: #a33 !important;
+  color: #a33;
+}

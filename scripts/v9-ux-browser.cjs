@@ -179,8 +179,12 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-draw")).toContainText("You offered a draw");
   await a.locator(".online-draw").getByRole("button", { name: "Withdraw offer", exact: true }).click();
   await expect(a.locator(".online-draw")).toHaveCount(0);
-  // A resigns; result banner with rematch appears on both screens
+  // Resign is a two-step inline confirm: first step can be cancelled
   await a.getByRole("button", { name: "Resign", exact: true }).click();
+  await a.getByRole("button", { name: "Keep playing", exact: true }).click();
+  await expect(a.locator(".online-result")).toHaveCount(0);
+  await a.getByRole("button", { name: "Resign", exact: true }).click();
+  await a.getByRole("button", { name: "Confirm resign", exact: true }).click();
   await expect(a.locator(".online-result")).toContainText("black wins by resignation");
   await expect(c.locator(".online-result")).toContainText("black wins by resignation");
   // Game-end summary: move count and the opening the game followed
@@ -226,8 +230,12 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".square.last-move")).toHaveCount(2);
   await a.getByRole("button", { name: "e7, black pawn", exact: true }).click();
   await a.getByRole("button", { name: "e5, empty", exact: true }).click();
+  // Sync: C must see e5 played before moving (avoids racing the board)
+  await expect(c.getByRole("button", { name: "e5, black pawn", exact: true })).toBeVisible();
   await c.getByRole("button", { name: "g2, white pawn", exact: true }).click();
   await c.getByRole("button", { name: "g4, empty", exact: true }).click();
+  // Sync: A must see g4 before the mating move
+  await expect(a.getByRole("button", { name: "g4, white pawn", exact: true })).toBeVisible();
   await a.getByRole("button", { name: "d8, black queen", exact: true }).click();
   await a.getByRole("button", { name: "h4, empty", exact: true }).click();
   // Checkmate: white king square flagged, result banner on both screens
@@ -236,12 +244,41 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
+  // Crazyhouse: captures fill the pocket; pieces drop back onto the board
+  await a.getByLabel("Variant", { exact: true }).selectOption("crazyhouse");
+  await a.getByLabel("Time per side", { exact: true }).selectOption("5|0");
+  await a.getByRole("button", { name: "Create private room", exact: true }).click();
+  // Wait for the NEW waiting room to render before reading its code -
+  // the finished rematch game still shows its own (dead) code.
+  await expect(a.getByText("Share the room code.", { exact: false })).toBeVisible();
+  const zcode = (await a.locator("code").first().textContent()).trim();
+  await c.getByLabel("Room code", { exact: true }).fill(zcode);
+  await c.getByRole("button", { name: "Join room", exact: true }).click();
+  await expect(c.getByText("You are black.", { exact: false })).toBeVisible();
+  await a.getByRole("button", { name: "e2, white pawn", exact: true }).click();
+  await a.getByRole("button", { name: "e4, empty", exact: true }).click();
+  await c.getByRole("button", { name: "d7, black pawn", exact: true }).click();
+  await c.getByRole("button", { name: "d5, empty", exact: true }).click();
+  await a.getByRole("button", { name: "e4, white pawn", exact: true }).click();
+  await a.getByRole("button", { name: "d5, black pawn", exact: true }).click();
+  // A's pocket now holds the captured pawn
+  await expect(a.getByLabel("Drop from your pocket", { exact: false })).toBeVisible();
+  await c.getByRole("button", { name: "d8, black queen", exact: true }).click();
+  await c.getByRole("button", { name: "d5, white pawn", exact: true }).click();
+  await a.getByLabel("Drop from your pocket", { exact: false }).selectOption("P");
+  await a.getByRole("button", { name: "d6, empty", exact: true }).click();
+  await expect(a.locator(".online-move-row").nth(2)).toContainText("@d6");
+  await expect(c.getByRole("button", { name: "d6, white pawn", exact: true })).toBeVisible();
+  // A resigns the crazyhouse game through the inline confirm
+  await a.getByRole("button", { name: "Resign", exact: true }).click();
+  await a.getByRole("button", { name: "Confirm resign", exact: true }).click();
+  await expect(a.locator(".online-result")).toContainText("resignation");
   // Mobile: standard game fits 375px with no horizontal overflow
   await a.setViewportSize({ width: 375, height: 780 });
   await a.screenshot({ path: "/downloads/v9-mobile.png", fullPage: true });
   if (await a.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push("mobile overflow on standard game");
   await a.setViewportSize({ width: 1366, height: 950 });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, increment: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, increment: true, resignInline: true, crazyhouse: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

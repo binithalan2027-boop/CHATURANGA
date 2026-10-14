@@ -74,6 +74,7 @@ export default function OnlinePage({
     ),
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
+    [confirmResign, setConfirmResign] = useState(false),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
     [moveInput, setMoveInput] = useState(""),
     [moveInputError, setMoveInputError] = useState(""),
@@ -88,6 +89,7 @@ export default function OnlinePage({
     setTickTs(0);
     setReviewPly(null);
     setPremove(null);
+    setConfirmResign(false);
   }, [selectedRoom]);
   useEffect(() => {
     void api<{ mode: string; providers: string[] }>("config")
@@ -1300,15 +1302,33 @@ export default function OnlinePage({
                       </button>
                       {room.status === "active" && (
                         <>
-                          <button
-                            disabled={busy}
-                            onClick={() => {
-                              if (confirm("Resign this game?"))
-                                gameAction("resign");
-                            }}
-                          >
-                            Resign
-                          </button>
+                          {confirmResign ? (
+                            <>
+                              <button
+                                className="online-danger"
+                                disabled={busy}
+                                onClick={() => {
+                                  setConfirmResign(false);
+                                  gameAction("resign");
+                                }}
+                              >
+                                Confirm resign
+                              </button>
+                              <button
+                                disabled={busy}
+                                onClick={() => setConfirmResign(false)}
+                              >
+                                Keep playing
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              disabled={busy}
+                              onClick={() => setConfirmResign(true)}
+                            >
+                              Resign
+                            </button>
+                          )}
                           <button
                             disabled={busy}
                             onClick={() => gameAction("offerDraw")}
