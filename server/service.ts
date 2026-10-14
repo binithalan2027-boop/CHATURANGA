@@ -620,11 +620,12 @@ export class Service {
       }
       const k = this.positionKey(r.fen);
       r.repetition[k] = (r.repetition[k] ?? 0) + 1;
-      if (
-        r.rule === "chess" &&
-        (r.repetition[k] >= 3 || next.pos.halfmoves >= 100)
-      ) {
-        this.finish(r, "Draw (automatic repetition / 50-move rule)", null);
+      if (r.rule === "chess" && r.repetition[k] >= 3) {
+        this.finish(r, "Draw by repetition", null);
+        return;
+      }
+      if (r.rule === "chess" && next.pos.halfmoves >= 100) {
+        this.finish(r, "Draw by fifty-move rule", null);
         return;
       }
     } else throw Error("Unknown game action.");

@@ -163,6 +163,19 @@ describe("authoritative game service", () => {
       (m, i) => s.act(i % 2 ? "b" : "a", r, i + 1, "move", m),
     );
     expect(s.state("a", "local").rooms[0].status).toBe("finished");
+    expect(s.state("a", "local").rooms[0].result).toBe("Draw by repetition");
+  });
+  it("the fifty-move rule ends the match with its own reason", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    // 100 plies of knight shuffles with no pawn move, capture or
+    // threefold repetition (generated walk, verified repeat-safe).
+    const walk = ["b1a3", "b8a6", "g1f3", "a6b4", "a3b1", "b4d5", "b1a3", "d5c3", "a3b1", "c3a4", "b1a3", "a4c3", "a3b1", "c3a4", "b1a3", "a4c5", "a3b1", "c5b3", "b1a3", "b3d4", "a3b1", "d4b3", "b1a3", "b3d4", "a3b1", "d4b5", "b1a3", "b5d6", "a3b1", "d6c4", "b1a3", "c4e3", "a3b1", "e3c4", "b1a3", "c4e3", "a3b1", "e3g4", "b1a3", "g4e5", "a3b1", "e5g4", "b1a3", "g4e5", "a3b1", "e5c6", "b1a3", "c6b4", "a3b1", "b4d5", "b1a3", "d5f4", "a3b1", "f4h3", "b1a3", "h3g1", "a3b1", "g1h3", "b1a3", "h3g1", "a3b1", "g8f6", "b1a3", "g1h3", "a3b1", "h3g1", "b1a3", "g1h3", "a3b1", "h3f4", "b1a3", "f4d5", "a3b1", "d5c3", "b1a3", "c3b1", "a3c4", "b1a3", "f3g1", "a3b1", "g1f3", "b1a3", "f3g1", "a3b1", "g1h3", "b1a3", "h3f4", "a3b1", "c4a3", "b1c3", "a3b1", "c3a4", "b1a3", "a4c3", "a3b1", "c3a4", "b1a3", "a4c5", "a3b1", "c5b3"];
+    walk.forEach((m, i) => s.act(i % 2 ? "b" : "a", r, i + 1, "move", m));
+    const room = s.state("a", "local").rooms[0];
+    expect(room.status).toBe("finished");
+    expect(room.result).toBe("Draw by fifty-move rule");
   });
   it("deletes profile and social data without breaking opponent history", () => {
     const { s } = setup();

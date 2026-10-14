@@ -88,6 +88,25 @@ let a, c;
   await a.getByRole("button", { name: "Resign", exact: true }).click();
   await a.getByRole("button", { name: "Confirm resign", exact: true }).click();
   await expect(a.locator(".online-result")).toContainText("white wins by resignation");
+  // Third game: threefold repetition names its reason too.
+  await c.getByRole("button", { name: /Rematch/ }).click();
+  await a.getByRole("button", { name: "Accept challenge", exact: true }).click();
+  await expect(a.getByText("You are white.", { exact: false })).toBeVisible();
+  await c.reload();
+  await c.getByRole("button", { name: "Online PvP", exact: true }).click();
+  await c.locator(".online-person").getByText(/Ira vs Jai/).first().click();
+  await expect(c.getByText("white to move", { exact: false })).toBeVisible();
+  for (let i = 0; i < 2; i++) {
+    await play(a, "g1, white knight", "f3, empty");
+    await play(c, "g8, black knight", "f6, empty");
+    await play(a, "f3, white knight", "g1, empty");
+    await play(c, "f6, black knight", "g8, empty");
+  }
+  await expect(a.locator(".online-result")).toContainText("Draw by repetition");
+  await expect(c.locator(".online-result")).toContainText("Draw by repetition");
+  await c.waitForTimeout(1200);
+  await c.locator(".online-result").scrollIntoViewIfNeeded();
+  await c.screenshot({ path: "/downloads/v9-draw-repetition.png" });
   console.log(JSON.stringify({ endReasons: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
