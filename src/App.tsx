@@ -47,8 +47,7 @@ interface User {
   email: string;
 }
 
-import { supabase } from "./lib/supabase";
-import { authConfigured } from "./lib/supabase";
+import { authConfigured, getSupabase } from "./lib/supabase";
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>("landing");
@@ -59,7 +58,11 @@ function AppContent() {
 
   useEffect(() => {
     if (!authConfigured) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+    void getSupabase().then((supabase) => {
+      if (cancelled) return;
+      supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -72,9 +75,9 @@ function AppContent() {
       }
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -89,7 +92,12 @@ function AppContent() {
       }
     });
 
-    return () => subscription.unsubscribe();
+      unsubscribe = () => subscription.unsubscribe();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const triggerPlay = () => {
@@ -98,7 +106,7 @@ function AppContent() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await (await getSupabase()).auth.signOut();
     setUser(null);
   };
 

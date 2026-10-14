@@ -1,11 +1,12 @@
-import { supabase } from "../lib/supabase";
+import { authConfigured, getSupabase } from "../lib/supabase";
 import type { OnlineState, Provider } from "./types";
 const base = import.meta.env.VITE_GAME_SERVER_URL ?? "http://127.0.0.1:8787";
 export async function token() {
-  const { data } = await supabase.auth.getSession();
-  return (
-    data.session?.access_token ?? sessionStorage.getItem("chaturanga-dev-token")
-  );
+  if (authConfigured) {
+    const { data } = await (await getSupabase()).auth.getSession();
+    if (data.session?.access_token) return data.session.access_token;
+  }
+  return sessionStorage.getItem("chaturanga-dev-token");
 }
 export async function api<T = unknown>(
   path: string,
@@ -43,7 +44,7 @@ export async function socialSignIn(provider: Provider) {
     !import.meta.env.VITE_SUPABASE_ANON_KEY
   )
     throw Error("Social login has not been configured.");
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await (await getSupabase()).auth.signInWithOAuth({
     provider,
     options: { redirectTo: window.location.origin },
   });
@@ -54,7 +55,7 @@ export async function signOut() {
     await api("logout", {});
   } finally {
     sessionStorage.removeItem("chaturanga-dev-token");
-    await supabase.auth.signOut();
+    if (authConfigured) await (await getSupabase()).auth.signOut();
   }
 }
 export function subscribe(
