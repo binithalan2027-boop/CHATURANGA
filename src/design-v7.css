@@ -71,6 +71,12 @@ html,body,.product-shell{background:var(--court-sand);color:var(--court-ink);fon
 .product-shell.board-contrast .online-game button.square.light{background:#fff!important}
 .product-shell.board-contrast .online-game button.square.dark{background:#565656!important}
 .product-shell .online-game button.square.selected{box-shadow:inset 0 0 0 4px #bf6e28!important}
+/* Last-move trail and check flag: inset rings so they layer over any board
+   skin without clobbering the square colours (the .online-shell button reset
+   strips box-shadow, so these need !important like .selected above). */
+.product-shell .online-game button.square.last-move{box-shadow:inset 0 0 0 4px rgba(224,172,36,.95)!important}
+.product-shell .online-game button.square.last-move.selected{box-shadow:inset 0 0 0 4px #bf6e28,inset 0 0 0 8px rgba(224,172,36,.95)!important}
+.product-shell .online-game button.square.in-check{box-shadow:inset 0 0 0 4px rgba(198,40,40,.95),inset 0 0 18px rgba(198,40,40,.55)!important}
 .product-shell .online-game button.square.fogged{background:#343b36!important;background-image:repeating-linear-gradient(45deg,#ffffff08 0 1px,transparent 1px 8px)!important}
 .product-shell .online-clocks .online-clock-active{background:#e1e8cf;color:#244a35;border:2px solid #244a35;padding:4px 8px;border-radius:6px}
 .product-shell .online-clocks .online-clock-low{color:#ab2929;border-color:#ab2929}

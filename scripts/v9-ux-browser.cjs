@@ -89,8 +89,8 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.getByText("You are white.", { exact: false })).toBeVisible();
   await expect(a.locator(".online-material-lead")).toHaveText("Level material");
   // Lobby labels: C (white) is to move in the rematch, A (black) waits
-  await expect(c.getByRole("button", { name: /Asha vs Biru · chess · your turn/ })).toBeVisible();
-  await expect(a.getByRole("button", { name: /Asha vs Biru · chess · opponent's turn/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /Biru vs Asha · chess · your turn/ })).toBeVisible();
+  await expect(a.getByRole("button", { name: /Biru vs Asha · chess · opponent's turn/ })).toBeVisible();
   // Fool's mate in the rematch: 1.f3 e5 2.g4 Qh4# -> check ring + result
   await c.getByRole("button", { name: "f2, white pawn", exact: true }).click();
   await c.getByRole("button", { name: "f3, empty", exact: true }).click();
