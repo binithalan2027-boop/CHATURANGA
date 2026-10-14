@@ -4,6 +4,8 @@ import {
   variantPlay,
   variantFen,
 } from "../src/chaturanga/variantRules";
+import { parseSan } from "chessops/san";
+import { makeUci } from "chessops/util";
 import { RULE_VARIANTS } from "../src/chaturanga/variantCatalog";
 import type {
   PlayerProfile,
@@ -53,6 +55,8 @@ interface Room {
   updatedAt: number;
   result: string | null;
   drawOffer: string | null;
+  /** Player id asking to undo the last move, awaiting the opponent. */
+  takeback?: string | null;
   initialMs: number;
   /** Last played move in uci ("e2e4", "e7e8q", "n@e4" for drops). */
   lastMove: string | null;
@@ -307,6 +311,7 @@ export class Service {
       initialMs: minutes * 60000,
       result: null,
       drawOffer: null,
+      takeback: null,
       lastMove: null,
       activityAt: this.now(),
       repetition: {},
@@ -355,6 +360,37 @@ export class Service {
   member(id: string, r: Room) {
     if (r.white !== id && r.black !== id)
       throw Error("Not a player in this room.");
+  }
+  /**
+   * Undo the last move by replaying the remaining SAN list from the
+   * variant's initial position. Rebuilds the repetition table so
+   * automatic draws keep counting honestly. Clocks are not restored -
+   * a takeback costs the time already spent, as on chess.com.
+   */
+  undoLastMove(r: Room) {
+    const sans = r.moves.slice(0, -1);
+    const pos = variantPosition(r.rule as never);
+    const rep: Record<string, number> = {
+      [this.positionKey(variantFen(pos))]: 1,
+    };
+    let last: string | null = null;
+    for (const san of sans) {
+      const mv = parseSan(pos, san);
+      if (!mv) throw Error("Cannot rebuild this game for a takeback.");
+      last = makeUci(mv);
+      pos.play(mv);
+      const k = this.positionKey(variantFen(pos));
+      rep[k] = (rep[k] ?? 0) + 1;
+    }
+    r.moves = sans;
+    r.fen = variantFen(pos);
+    r.lastMove = last;
+    r.repetition = rep;
+    r.takeback = null;
+    r.drawOffer = null;
+    r.version++;
+    r.activityAt = this.now();
+    this.store.put("room", r.id, r);
   }
   positionKey(fen: string) {
     return fen.split(" ").slice(0, 4).join(" ");
@@ -491,6 +527,29 @@ export class Service {
         throw Error("No opponent draw offer.");
       this.finish(r, "Draw by agreement", null);
       return;
+    } else if (action === "requestTakeback") {
+      if (r.rule === "fog")
+        throw Error("Takebacks are not available in Fog of War.");
+      if (r.moves.length === 0) throw Error("No moves to take back.");
+      if (r.takeback === id) throw Error("Takeback already requested.");
+      r.takeback = id;
+      r.version++;
+      r.activityAt = this.now();
+      this.store.put("room", r.id, r);
+      return;
+    } else if (action === "declineTakeback") {
+      // The recipient declines, or the requester withdraws their own ask.
+      if (!r.takeback) throw Error("No takeback request to decline.");
+      r.takeback = null;
+      r.version++;
+      r.activityAt = this.now();
+      this.store.put("room", r.id, r);
+      return;
+    } else if (action === "acceptTakeback") {
+      if (!r.takeback || r.takeback === id)
+        throw Error("No opponent takeback request.");
+      this.undoLastMove(r);
+      return;
     } else if (action === "move") {
       if (r.rule === "fog") {
         this.fogMove(r, color, uci);
@@ -507,6 +566,7 @@ export class Service {
       r.version++;
       r.activityAt = this.now();
       r.drawOffer = null;
+      r.takeback = null;
       const outcome = next.pos.outcome();
       if (outcome) {
         this.finish(
@@ -553,6 +613,7 @@ export class Service {
       initialMs: r.initialMs,
       result: r.result,
       drawOffer: r.drawOffer,
+      takeback: r.takeback ?? null,
       yourColor: r.white === id ? "white" : "black",
       invitee: r.invitee,
       lastMove: r.lastMove,

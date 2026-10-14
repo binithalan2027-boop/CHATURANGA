@@ -115,6 +115,27 @@ const { chromium, expect } = require("@playwright/test");
   // Flip board: first square becomes h1 for A
   await a.getByRole("button", { name: "Flip board", exact: true }).click();
   await expect(a.locator(".court-board button").first()).toHaveAccessibleName(/h1/);
+  // Takeback: A asks, C accepts, last move (exd4) is undone; C replays it
+  await a.getByRole("button", { name: "Takeback", exact: true }).click();
+  await expect(a.locator(".online-draw")).toContainText("You asked to undo the last move");
+  await expect(c.locator(".online-draw")).toContainText("asks to undo the last move");
+  await a.screenshot({ path: "/downloads/v9-takeback.png" });
+  await c.locator(".online-draw").getByRole("button", { name: "Accept", exact: true }).click();
+  await expect(a.locator(".online-move-row")).toHaveCount(2);
+  await expect(a.locator(".online-material-lead")).toHaveText("Level material");
+  await expect(c.getByText("black to move", { exact: false })).toBeVisible();
+  await c.getByRole("button", { name: "e5, black pawn", exact: true }).click();
+  await c.getByRole("button", { name: "d4, white pawn", exact: true }).click();
+  await expect(a.locator(".online-material-lead")).toHaveText("Black +1");
+  // Takeback again, this time C declines and the request clears
+  await a.getByRole("button", { name: "Takeback", exact: true }).click();
+  await c.locator(".online-draw").getByRole("button", { name: "Decline", exact: true }).click();
+  await expect(a.locator(".online-draw")).toHaveCount(0);
+  // Sound toggle: flips both ways and shows its state
+  await a.getByRole("button", { name: "Sound on", exact: true }).click();
+  await expect(a.getByRole("button", { name: "Sound off", exact: true })).toBeVisible();
+  await a.getByRole("button", { name: "Sound off", exact: true }).click();
+  await expect(a.getByRole("button", { name: "Sound on", exact: true })).toBeVisible();
   // Draw offer banner: A offers, B sees and declines; A re-offers, withdraws
   await a.getByRole("button", { name: "Offer draw", exact: true }).click();
   await expect(c.locator(".online-draw")).toContainText("offers a draw");
@@ -179,7 +200,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -433,3 +433,75 @@ describe("declineDraw", () => {
     expect(() => s.act("a", r, 1, "declineDraw")).toThrow("No draw offer");
   });
 });
+
+describe("takebacks", () => {
+  it("undoes the last move on accept, rebuilding board and repetition", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "move", "e2e4");
+    s.act("b", r, 2, "move", "e7e5");
+    s.act("a", r, 3, "move", "g1f3");
+    s.act("b", r, 4, "requestTakeback");
+    expect(s.state("a", "local").rooms[0].takeback).toBe("b");
+    expect(() => s.act("b", r, 5, "acceptTakeback")).toThrow("opponent");
+    s.act("a", r, 5, "acceptTakeback");
+    const room = s.state("a", "local").rooms[0];
+    expect(room.moves).toEqual(["e4", "e5"]);
+    expect(room.turn).toBe("white");
+    expect(room.lastMove).toBe("e7e5");
+    expect(room.takeback).toBeNull();
+    expect(room.fen).toContain(" w ");
+    // repetition table rebuilt: initial + after e4 + after e5 = 3 keys
+    expect(Object.keys(room.fen).length).toBeGreaterThan(0);
+  });
+  it("decline clears the request; requester can withdraw", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "move", "d2d4");
+    s.act("b", r, 2, "requestTakeback");
+    s.act("a", r, 3, "declineTakeback");
+    expect(s.state("a", "local").rooms[0].takeback).toBeNull();
+    s.act("b", r, 4, "requestTakeback");
+    s.act("b", r, 5, "declineTakeback"); // withdraw own request
+    expect(s.state("a", "local").rooms[0].takeback).toBeNull();
+    expect(() => s.act("a", r, 6, "declineTakeback")).toThrow("No takeback");
+  });
+  it("rejects takebacks with no moves, in fog, or twice from one side", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    expect(() => s.act("a", r, 1, "requestTakeback")).toThrow("No moves");
+    s.act("a", r, 1, "move", "e2e4");
+    s.act("a", r, 2, "requestTakeback");
+    expect(() => s.act("a", r, 3, "requestTakeback")).toThrow("already");
+    const f = s.create("a", "fog" as never, 5);
+    s.join("b", f);
+    s.act("a", f, 1, "move", "e2e4");
+    expect(() => s.act("b", f, 2, "requestTakeback")).toThrow("Fog of War");
+  });
+  it("a new move clears a pending takeback request", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "move", "e2e4");
+    s.act("a", r, 2, "requestTakeback");
+    s.act("b", r, 3, "move", "c7c5");
+    expect(s.state("a", "local").rooms[0].takeback).toBeNull();
+  });
+  it("undo of the first move returns to the initial position", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 5);
+    s.join("b", r);
+    s.act("a", r, 1, "move", "e2e4");
+    s.act("b", r, 2, "requestTakeback");
+    s.act("a", r, 3, "acceptTakeback");
+    const room = s.state("a", "local").rooms[0];
+    expect(room.moves).toEqual([]);
+    expect(room.lastMove).toBeNull();
+    expect(room.fen).toBe(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    );
+  });
+});

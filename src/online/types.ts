@@ -55,6 +55,8 @@ export interface RoomView {
   initialMs: number;
   result: string | null;
   drawOffer: string | null;
+  /** Player id asking to undo the last move, awaiting the opponent. */
+  takeback?: string | null;
   yourColor: "white" | "black";
   invitee: string | null;
   /** Last played move in uci. Fog of War: only when both its squares are

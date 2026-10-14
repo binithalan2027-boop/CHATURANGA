@@ -9,6 +9,7 @@ import { matchMoveInput } from "./keyboardMove";
 import { makeSan } from "chessops/san";
 import { replayTo } from "./replay";
 import { nextReviewPly } from "./reviewNav";
+import { playSound, soundForSan } from "./sounds";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
@@ -63,6 +64,9 @@ export default function OnlinePage({
     [flipped, setFlipped] = useState(false),
     [copied, setCopied] = useState(false),
     [copiedPgn, setCopiedPgn] = useState(false),
+    [muted, setMuted] = useState(
+      () => localStorage.getItem("chaturanga-muted") === "1",
+    ),
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
@@ -151,6 +155,24 @@ export default function OnlinePage({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [room?.id, room?.rule, room?.moves.length, reviewPly]);
+  // Move sounds: play a cue when a move lands or the game ends. The
+  // baseline is set silently when a room first loads, so opening a
+  // game mid-way never replays its history.
+  const soundBase = useRef({ room: "", moves: 0, result: null as string | null });
+  useEffect(() => {
+    if (!room) return;
+    const prev = soundBase.current;
+    const firstLoad = prev.room !== room.id;
+    const landed = !firstLoad && room.moves.length > prev.moves;
+    const ended = !firstLoad && !prev.result && !!room.result;
+    if ((landed || ended) && !muted)
+      playSound(soundForSan(room.moves[room.moves.length - 1], ended));
+    soundBase.current = {
+      room: room.id,
+      moves: room.moves.length,
+      result: room.result,
+    };
+  }, [room?.id, room?.moves.length, room?.result, muted]);
   const live = room
     ? liveClock(room, Date.now() - clockBase.current.at)
     : null;
@@ -953,6 +975,42 @@ export default function OnlinePage({
                         .
                       </p>
                     )}
+                    {room.status === "active" && room.takeback && (
+                      <div className="online-draw" role="status">
+                        {room.takeback === state.profile.id ? (
+                          <>
+                            <span>You asked to undo the last move.</span>
+                            <button
+                              disabled={busy}
+                              onClick={() => gameAction("declineTakeback")}
+                            >
+                              Withdraw request
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span>
+                              {room.yourColor === "white"
+                                ? room.blackName
+                                : room.whiteName}{" "}
+                              asks to undo the last move.
+                            </span>
+                            <button
+                              disabled={busy}
+                              onClick={() => gameAction("acceptTakeback")}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              disabled={busy}
+                              onClick={() => gameAction("declineTakeback")}
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
                     {room.status === "active" && room.drawOffer && (
                       <div className="online-draw" role="status">
                         {room.drawOffer === state.profile.id ? (
@@ -1182,6 +1240,21 @@ export default function OnlinePage({
                       >
                         Flip board
                       </button>
+                      <button
+                        aria-pressed={!muted}
+                        title="Move sounds. Your choice is remembered on this device."
+                        onClick={() => {
+                          const next = !muted;
+                          setMuted(next);
+                          localStorage.setItem(
+                            "chaturanga-muted",
+                            next ? "1" : "0",
+                          );
+                          if (!next) playSound("move");
+                        }}
+                      >
+                        {muted ? "Sound off" : "Sound on"}
+                      </button>
                       {room.status === "active" && (
                         <>
                           <button
@@ -1199,6 +1272,15 @@ export default function OnlinePage({
                           >
                             Offer draw
                           </button>
+                          {!isFog && room.moves.length > 0 && (
+                            <button
+                              disabled={busy || room.takeback === state.profile.id}
+                              title="Ask your opponent to undo the last move. Casual rooms only - the clock time already spent is not restored."
+                              onClick={() => gameAction("requestTakeback")}
+                            >
+                              Takeback
+                            </button>
+                          )}
                         </>
                       )}
                       {room.status === "waiting" &&
