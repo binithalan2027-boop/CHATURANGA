@@ -338,9 +338,10 @@
 }
 .online-hints ul {
   margin: 0 0 0.5rem;
-  padding-left: 1.1rem;
+  padding-left: 1.2rem;
   font-size: 0.85rem;
   line-height: 1.45;
+  list-style: disc;
 }
 .online-opening {
   margin: 0.3rem 0 0;

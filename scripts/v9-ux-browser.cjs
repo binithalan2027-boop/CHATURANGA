@@ -232,7 +232,12 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, errors }, null, 2));
+  // Mobile: standard game fits 375px with no horizontal overflow
+  await a.setViewportSize({ width: 375, height: 780 });
+  await a.screenshot({ path: "/downloads/v9-mobile.png", fullPage: true });
+  if (await a.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push("mobile overflow on standard game");
+  await a.setViewportSize({ width: 1366, height: 950 });
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, takeback: true, sound: true, boardKeys: true, hints: true, opening: true, endSummary: true, mobile: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
