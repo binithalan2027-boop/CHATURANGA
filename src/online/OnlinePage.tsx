@@ -978,12 +978,22 @@ export default function OnlinePage({
                     )}
                   </div>
                 ))}
+                {filterRooms(sortedRooms, state.profile.id, lobbyFilter)
+                  .length === 0 && (
+                  <p className="online-empty" role="status">
+                    {sortedRooms.length === 0
+                      ? "No games yet. Create a private room above, or join one with a friend's code."
+                      : lobbyFilter === "needsYou"
+                        ? "Nothing waiting on your move."
+                        : lobbyFilter === "waiting"
+                          ? "No games waiting on your opponent."
+                          : lobbyFilter === "finished"
+                            ? "No finished games yet."
+                            : "No games in this view."}
+                  </p>
+                )}
               </section>
               <section className="online-card online-game">
-                {filterRooms(sortedRooms, state.profile.id, lobbyFilter).length ===
-                  0 && (
-                  <p className="fine-print">No games in this view.</p>
-                )}
                 {room && (pos || isFog) ? (
                   <>
                     <h2>

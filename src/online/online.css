@@ -120,6 +120,11 @@
   display: grid;
   gap: 6px;
 }
+.online-empty {
+  margin: 14px 0 4px;
+  color: #c4c9b9;
+  line-height: 1.5;
+}
 .online-game .court-board {
   max-width: 560px;
   width: 100%;
