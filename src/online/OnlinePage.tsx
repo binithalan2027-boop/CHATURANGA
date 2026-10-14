@@ -191,13 +191,23 @@ export default function OnlinePage({
     () => (state ? sortRooms(state.rooms, state.profile.id) : []),
     [state],
   );
-  const opening = useMemo(
-    () =>
-      room && room.rule === "chess" && room.moves.length > 0
-        ? openingForMoves(room.moves)
-        : null,
-    [room?.id, room?.rule, room?.moves],
-  );
+  const [opening, setOpening] = useState<{
+    eco: string;
+    name: string;
+  } | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!room || room.rule !== "chess" || room.moves.length === 0) {
+      setOpening(null);
+      return;
+    }
+    void openingForMoves(room.moves).then((o) => {
+      if (live) setOpening(o);
+    });
+    return () => {
+      live = false;
+    };
+  }, [room?.id, room?.rule, room?.moves]);
   const review = useMemo(
     () =>
       room && room.rule !== "fog" && reviewPly

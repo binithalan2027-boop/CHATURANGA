@@ -8,9 +8,13 @@
  */
 import { parseSan } from "chessops/san";
 import { variantPosition, variantFen } from "../chaturanga/variantRules";
-import { findOpening } from "../chaturanga/openingLookup";
 
-export function openingForMoves(moves: string[]): { eco: string; name: string } | null {
+/**
+ * Async because the ECO table is 750KB: it must load on demand for a
+ * standard-chess game, not with every visit to the online lobby.
+ */
+export async function openingForMoves(moves: string[]): Promise<{ eco: string; name: string } | null> {
+  const { findOpening } = await import("../chaturanga/openingLookup");
   if (moves.length === 0) return null;
   const pos = variantPosition("chess" as never);
   const fens: string[] = [];
