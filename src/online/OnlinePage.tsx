@@ -1320,7 +1320,13 @@ export default function OnlinePage({
                             disabled={busy}
                             onClick={() => doMove(m)}
                           >
-                            Promote to {m[4]}
+                            Promote to{" "}
+                            {{
+                              q: "queen",
+                              r: "rook",
+                              b: "bishop",
+                              n: "knight",
+                            }[m[4]] ?? m[4]}
                           </button>
                         ))}
                       </div>
