@@ -74,6 +74,19 @@ const { chromium, expect } = require("@playwright/test");
   // Move list shows both rows
   await expect(a.locator(".online-move-row").nth(1)).toContainText("d4");
   await expect(a.locator(".online-move-row").nth(1)).toContainText("xd4");
+  // Move-list step-through: click "e4" (ply 1) -> board rewinds read-only
+  await a.locator(".online-moves").getByRole("button", { name: "e4", exact: true }).click();
+  await expect(a.locator(".online-review")).toContainText("Viewing move 1 of 4");
+  await expect(a.locator(".online-material-lead")).toHaveText("Level material");
+  // Read-only while reviewing: board clicks must not select a piece
+  await a.getByRole("button", { name: "e4, white pawn", exact: true }).click();
+  await expect(a.locator(".square.selected")).toHaveCount(0);
+  // Last-move ring follows the reviewed ply (e2/e4)
+  await expect(a.locator(".square.last-move")).toHaveCount(2);
+  await a.screenshot({ path: "/downloads/v9-review.png" });
+  // Back to live restores the real board and material
+  await a.getByRole("button", { name: "Back to live", exact: true }).click();
+  await expect(a.locator(".online-material-lead")).toHaveText("Black +1");
   // Flip board: first square becomes h1 for A
   await a.getByRole("button", { name: "Flip board", exact: true }).click();
   await expect(a.locator(".court-board button").first()).toHaveAccessibleName(/h1/);
@@ -107,7 +120,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

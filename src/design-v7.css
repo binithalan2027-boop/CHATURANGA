@@ -77,6 +77,12 @@ html,body,.product-shell{background:var(--court-sand);color:var(--court-ink);fon
 .product-shell .online-game button.square.last-move{box-shadow:inset 0 0 0 4px rgba(224,172,36,.95)!important}
 .product-shell .online-game button.square.last-move.selected{box-shadow:inset 0 0 0 4px #bf6e28,inset 0 0 0 8px rgba(224,172,36,.95)!important}
 .product-shell .online-game button.square.in-check{box-shadow:inset 0 0 0 4px rgba(198,40,40,.95),inset 0 0 18px rgba(198,40,40,.55)!important}
+/* Move-list step-through: plain text cells, not green pills (the .online-shell
+   button reset would otherwise paint them). */
+.product-shell .online-shell .online-moves button{background:none!important;border:0!important;box-shadow:none!important;color:inherit!important;padding:0 2px!important;min-width:0!important;min-height:0!important;font:inherit;cursor:pointer;text-align:left;border-radius:3px!important}
+.product-shell .online-shell .online-moves button:hover{text-decoration:underline}
+.product-shell .online-shell .online-moves button.reviewing{color:#bf6e28!important;font-weight:700}
+.product-shell .online-shell .online-review-exit{background:none!important;border:0!important;box-shadow:none!important;color:#bf6e28!important;padding:0!important;min-width:0!important;min-height:0!important;font:inherit;cursor:pointer;text-decoration:underline}
 .product-shell .online-game button.square.fogged{background:#343b36!important;background-image:repeating-linear-gradient(45deg,#ffffff08 0 1px,transparent 1px 8px)!important}
 .product-shell .online-clocks .online-clock-active{background:#e1e8cf;color:#244a35;border:2px solid #244a35;padding:4px 8px;border-radius:6px}
 .product-shell .online-clocks .online-clock-low{color:#ab2929;border-color:#ab2929}

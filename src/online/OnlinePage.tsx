@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
 import { roomLabel, sortRooms, lastMoveSquares } from "./roomList";
+import { replayTo } from "./replay";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
 import FogBoard from "../chaturanga/FogBoard";
 import { colorOf, fogFromFen } from "../online/fogRules";
 const fogState = fogFromFen;
-import { variantPosition, variantMoves } from "../chaturanga/variantRules";
+import { variantPosition, variantFen, variantMoves } from "../chaturanga/variantRules";
 import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
 import {
   api,
@@ -55,6 +56,7 @@ export default function OnlinePage({
     [drop, setDrop] = useState(""),
     [flipped, setFlipped] = useState(false),
     [copied, setCopied] = useState(false),
+    [reviewPly, setReviewPly] = useState<number | null>(null),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
@@ -63,6 +65,7 @@ export default function OnlinePage({
     setFlipped(false);
     setCopied(false);
     setTickTs(0);
+    setReviewPly(null);
   }, [selectedRoom]);
   useEffect(() => {
     void api<{ mode: string; providers: string[] }>("config")
@@ -120,7 +123,6 @@ export default function OnlinePage({
   const live = room
     ? liveClock(room, Date.now() - clockBase.current.at)
     : null;
-  const material = room?.rule === "chess" ? materialFromFen(room.fen) : null;
   const boardFlip = (room?.yourColor === "black") !== flipped;
   const isFog = room?.rule === "fog";
   const pos = useMemo(() => room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null, [room?.id, room?.rule, room?.fen]),
@@ -129,20 +131,36 @@ export default function OnlinePage({
     () => (state ? sortRooms(state.rooms, state.profile.id) : []),
     [state],
   );
-  const lastMove = useMemo(() => lastMoveSquares(room?.lastMove), [room?.lastMove]);
+  const review = useMemo(
+    () =>
+      room && room.rule !== "fog" && reviewPly
+        ? replayTo(room.rule, room.moves, reviewPly)
+        : null,
+    [room?.id, room?.rule, room?.moves, reviewPly],
+  );
+  const displayPos = review?.pos ?? pos;
+  const lastMove = useMemo(
+    () => (review ? review.last : lastMoveSquares(room?.lastMove)),
+    [review, room?.lastMove],
+  );
   const checkSq = useMemo(() => {
-    if (!pos) return null;
+    if (!displayPos) return null;
     try {
-      if (typeof pos.isCheck === "function" && pos.isCheck()) {
-        const k = pos.board.kingOf(pos.turn);
+      if (typeof displayPos.isCheck === "function" && displayPos.isCheck()) {
+        const k = displayPos.board.kingOf(displayPos.turn);
         return typeof k === "number" ? k : null;
       }
     } catch {
       // Kingless variants (antichess) throw or lack kings - no check UI.
     }
     return null;
-  }, [pos]);
+  }, [displayPos]);
+  const material =
+    room?.rule === "chess"
+      ? materialFromFen(review ? variantFen(review.pos) : room.fen)
+      : null;
   const active =
+    !review &&
     room?.status === "active" &&
     room.yourColor === room.turn &&
     notice === "Connected";
@@ -835,7 +853,7 @@ export default function OnlinePage({
                     ) : pos ? (
                       <VariantBoard
                         flip={boardFlip}
-                        pos={pos}
+                        pos={displayPos!}
                         selected={selected}
                         dests={active ? dests : []}
                         onSquare={square}
@@ -962,13 +980,48 @@ export default function OnlinePage({
                           </button>
                         )}
                     </div>
+                    {reviewPly && (
+                      <p className="online-review" role="status">
+                        Viewing move {reviewPly} of {room.moves.length} - the
+                        board is read-only.{" "}
+                        <button
+                          className="online-review-exit"
+                          onClick={() => setReviewPly(null)}
+                        >
+                          Back to live
+                        </button>
+                      </p>
+                    )}
                     <div className="online-moves" aria-label="Move list">
                       {room.moves.length === 0 && <p>No moves yet</p>}
-                      {moveRows(room.moves).map(([n, w, b]) => (
+                      {moveRows(room.moves).map(([n, w, b], i) => (
                         <div className="online-move-row" key={n}>
                           <span>{n}</span>
-                          <span>{w}</span>
-                          <span>{b ?? ""}</span>
+                          {isFog ? (
+                            <>
+                              <span>{w}</span>
+                              <span>{b ?? ""}</span>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className={reviewPly === i * 2 + 1 ? "reviewing" : ""}
+                                title="View the board after this move"
+                                onClick={() => setReviewPly(i * 2 + 1)}
+                              >
+                                {w}
+                              </button>
+                              {b !== null && (
+                                <button
+                                  className={reviewPly === i * 2 + 2 ? "reviewing" : ""}
+                                  title="View the board after this move"
+                                  onClick={() => setReviewPly(i * 2 + 2)}
+                                >
+                                  {b}
+                                </button>
+                              )}
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
