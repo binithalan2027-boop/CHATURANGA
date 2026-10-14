@@ -68,6 +68,10 @@ export interface RoomView {
   fogSquares?: number[];
   /** Fog of War only: viewer's legal moves (uci) when it is their turn. */
   fogMoves?: string[];
+  /** True while that seat has at least one live connection to the server.
+   * Undefined when the server predates presence reporting - treat as online. */
+  whiteOnline?: boolean;
+  blackOnline?: boolean;
 }
 export interface EntitlementStatus {
   unlocked: boolean;

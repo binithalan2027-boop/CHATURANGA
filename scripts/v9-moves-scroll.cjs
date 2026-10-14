@@ -51,7 +51,10 @@ const { chromium, expect } = require("@playwright/test");
   // Back to live pins the tail again
   await a.getByRole("button", { name: "Back to live", exact: true }).click();
   await expect.poll(atBottom, { timeout: 10_000 }).toBeLessThan(4);
-  console.log(JSON.stringify({ movesScroll: true, errors }, null, 2));
+  // Presence: closing B's tab marks the seat offline on A's screen within a few seconds
+  await c.context().close();
+  await expect(a.locator(".online-offline")).toContainText("Jai is offline", { timeout: 20_000 });
+  console.log(JSON.stringify({ movesScroll: true, presence: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => {

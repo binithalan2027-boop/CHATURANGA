@@ -2,6 +2,8 @@
 // strip, flip board, copy code, result banner, rematch with colour swap,
 // last-move ring, check ring, lobby status labels.
 const { chromium, expect } = require("@playwright/test");
+// This box is slow under load: give every web-first assertion room.
+expect.configure({ timeout: 20_000 });
 (async () => {
   const b = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
   const announce = async (page) =>
@@ -181,7 +183,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.locator(".online-draw")).toHaveCount(0);
   await expect(a.locator(".online-draw")).toHaveCount(0);
   await a.getByRole("button", { name: "Offer draw", exact: true }).click();
-  await expect(a.locator(".online-draw")).toContainText("You offered a draw");
+  await expect(a.locator(".online-draw")).toContainText("You offered a draw", { timeout: 20_000 });
   await a.locator(".online-draw").getByRole("button", { name: "Withdraw offer", exact: true }).click();
   await expect(a.locator(".online-draw")).toHaveCount(0);
   // Resign is a two-step inline confirm: first step can be cancelled

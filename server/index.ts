@@ -141,12 +141,32 @@ async function auth(token: unknown, ip: string) {
   return session.user;
 }
 
+/** A user counts as online while any of their tabs holds a live socket. */
+function isOnline(userId: string | null): boolean {
+  if (!userId) return false;
+  for (const [ws, identity] of clients)
+    if (
+      identity.id === userId &&
+      identity.expires > Date.now() &&
+      ws.readyState === WebSocket.OPEN
+    )
+      return true;
+  return false;
+}
+
 function stateFor(id: string) {
-  return store.transaction(() => ({
-    ...service.state(id, mode as "local" | "supabase"),
-    customRooms: custom.state(id),
-    entitlement: entitlements.status(id),
-  }));
+  return store.transaction(() => {
+    const state = {
+      ...service.state(id, mode as "local" | "supabase"),
+      customRooms: custom.state(id),
+      entitlement: entitlements.status(id),
+    };
+    for (const room of state.rooms) {
+      room.whiteOnline = isOnline(room.white);
+      room.blackOnline = room.black ? isOnline(room.black) : false;
+    }
+    return state;
+  });
 }
 
 function publish() {
@@ -415,6 +435,8 @@ wss.on("connection", (ws, req: IncomingMessage) => {
     clearTimeout(timeout);
     clients.delete(ws);
     wsPerIp.release(ip);
+    // Opponents see the seat go offline promptly, not on the next action.
+    publish();
   });
 });
 

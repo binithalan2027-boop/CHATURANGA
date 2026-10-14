@@ -970,6 +970,18 @@ export default function OnlinePage({
                       {room.whiteName} vs{" "}
                       {room.blackName ?? "waiting for Black"}
                     </h2>
+                    {room.status === "active" &&
+                      (room.yourColor === "white"
+                        ? room.black !== null && room.blackOnline === false
+                        : room.whiteOnline === false) && (
+                        <p className="online-offline" role="status">
+                          {room.yourColor === "white"
+                            ? room.blackName
+                            : room.whiteName}{" "}
+                          is offline - their clock keeps running and they can
+                          rejoin anytime.
+                        </p>
+                      )}
                     <p>
                       You are {room.yourColor}. Room: <code>{room.id}</code>{" "}
                       <button
