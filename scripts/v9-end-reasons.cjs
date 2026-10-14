@@ -74,6 +74,9 @@ let a, c;
   await expect(a.locator(".online-result")).toContainText("black wins by checkmate");
   await expect(c.locator(".online-result")).toContainText("black wins by checkmate");
   await expect(a.locator(".online-result")).toContainText("4 moves played");
+  // Equal fresh ratings: the loser drops 12, the winner gains 12.
+  await expect(a.locator(".online-result")).toContainText("Rating change: -12");
+  await expect(c.locator(".online-result")).toContainText("Rating change: +12");
   await a.waitForTimeout(1200);
   await a.locator(".online-result").scrollIntoViewIfNeeded();
   await a.screenshot({ path: "/downloads/v9-end-reasons.png" });

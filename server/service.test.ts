@@ -209,6 +209,17 @@ describe("special moves and persistent storage", () => {
     s.act("a", r, v, "move", "a7a8n");
     expect(s.getRoom(r).fen.startsWith("N3k3")).toBe(true);
   });
+  it("rated games report the rating change on the finished room", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    s.act("a", r, 1, "resign");
+    const room = s.state("a", "local").rooms[0];
+    // Equal 1200s: the loser drops 12, the winner gains 12.
+    expect(room.ratingDelta).toEqual({ white: -12, black: 12 });
+    expect(s.requireUser("a").rating).toBe(1188);
+    expect(s.requireUser("b").rating).toBe(1212);
+  });
   it("does not allow changing app rating through profile or duplicate result", () => {
     const { s } = setup();
     const r = s.create("a", "chess", 3);

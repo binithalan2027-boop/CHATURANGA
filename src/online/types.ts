@@ -64,6 +64,8 @@ export interface RoomView {
   /** Last played move in uci. Fog of War: only when both its squares are
    * visible to the viewer; drops (crazyhouse) have no from-square. */
   lastMove?: string | null;
+  /** Rating change applied when this rated game finished, per colour. */
+  ratingDelta?: { white: number; black: number } | null;
   /** Fog of War only: squares hidden from the viewer (0=a1..63=h8). */
   fogSquares?: number[];
   /** Fog of War only: viewer's legal moves (uci) when it is their turn. */

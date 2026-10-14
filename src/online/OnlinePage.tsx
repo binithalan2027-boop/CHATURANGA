@@ -1041,7 +1041,16 @@ export default function OnlinePage({
                           room.result !== "Room cancelled" &&
                           room.result !== "Game aborted" && (
                             <span>
-                              Standard chess uses provisional private-match ratings.
+                              Standard chess uses provisional private-match
+                              ratings.
+                              {room.ratingDelta &&
+                                (() => {
+                                  const d =
+                                    room.ratingDelta[room.yourColor];
+                                  return ` Rating change: ${
+                                    d > 0 ? `+${d}` : d === 0 ? "no change" : d
+                                  }.`;
+                                })()}
                             </span>
                           )}
                         {room.black && room.result !== "Room cancelled" && (

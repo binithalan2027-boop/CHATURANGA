@@ -62,6 +62,8 @@ interface Room {
   incrementMs?: number;
   /** Last played move in uci ("e2e4", "e7e8q", "n@e4" for drops). */
   lastMove: string | null;
+  /** Rating change applied when a rated game finished, per colour. */
+  ratingDelta?: { white: number; black: number } | null;
   /** Last meaningful state change (join, move, offer, finish). Unlike
    * updatedAt, which the clock tick touches on every view. */
   activityAt: number;
@@ -439,6 +441,7 @@ export class Service {
         score = winner === "white" ? 1 : winner === "black" ? 0 : 0.5,
         expected = 1 / (1 + 10 ** ((black.rating - white.rating) / 400)),
         delta = Math.round(24 * (score - expected));
+      r.ratingDelta = { white: delta, black: -delta };
       white.rating = Math.max(1, white.rating + delta);
       black.rating = Math.max(1, black.rating - delta);
       white.ratedGames++;
@@ -661,6 +664,7 @@ export class Service {
       yourColor: r.white === id ? "white" : "black",
       invitee: r.invitee,
       lastMove: r.lastMove,
+      ratingDelta: r.ratingDelta ?? null,
     };
   }
   state(id: string, mode: "local" | "supabase"): OnlineState {
