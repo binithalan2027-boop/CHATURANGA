@@ -76,10 +76,39 @@ const clean = (v: unknown, max: number) => {
   return v.trim();
 };
 export class Service {
+  /** Last contact with each player (API call or live socket), epoch ms.
+   * In-memory only: a restart simply starts the grace window fresh. */
+  private seenAt = new Map<string, number>();
   constructor(
     public store: Store,
     private now = () => Date.now(),
+    /** Grace before a gone player forfeits, chess.com style (ms). */
+    private abandonMs = 60_000,
   ) {}
+  touch(id: string) {
+    this.seenAt.set(id, this.now());
+  }
+  /** Forfeit active rooms where one player has been gone past the grace
+   * window while the opponent is still around. Both gone pauses the
+   * game instead - whoever returns first finds it waiting. */
+  sweep() {
+    const now = this.now();
+    for (const r of this.store.all<Room>("room")) {
+      if (r.status !== "active" || !r.black) continue;
+      for (const [gone, present] of [
+        [r.white, r.black],
+        [r.black, r.white],
+      ] as const) {
+        const g = this.seenAt.get(gone);
+        if (g === undefined || now - g <= this.abandonMs) continue;
+        const p = this.seenAt.get(present);
+        if (p === undefined || now - p > this.abandonMs) continue;
+        const winner = r.white === present ? "white" : "black";
+        this.finish(r, `${winner} wins (opponent disconnected)`, winner);
+        break;
+      }
+    }
+  }
   requireUser(id: string) {
     const u = this.store.get<PlayerProfile>("profile", id);
     if (!u) throw Error("Player profile not found.");

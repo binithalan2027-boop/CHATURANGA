@@ -57,7 +57,11 @@ const supabase =
 
 mkdirSync("data", { recursive: true });
 const store = new Store(process.env.DB_PATH ?? "data/chaturanga.sqlite"),
-  service = new Service(store);
+  service = new Service(
+    store,
+    undefined,
+    Number(process.env.ABANDON_MS) || 60_000,
+  );
 const custom = new CustomService(
   store,
   () => Date.now(),
@@ -181,8 +185,10 @@ function publish() {
     list.push(ws);
     byUser.set(identity.id, list);
   }
+  service.sweep();
   // Compute each player's state once per tick, then fan out to their tabs.
   for (const [id, sockets] of byUser) {
+    service.touch(id);
     let payload: string;
     try {
       payload = JSON.stringify({ state: stateFor(id) });
@@ -307,6 +313,7 @@ const server = createServer(async (req, res) => {
     }
     const token = req.headers.authorization?.replace(/^Bearer /, "");
     const id = await auth(token, ip);
+    service.touch(id);
     if (req.method === "GET" && path === "/api/state") {
       reply(res, 200, stateFor(id));
       return;
@@ -424,6 +431,7 @@ wss.on("connection", (ws, req: IncomingMessage) => {
       authenticated = true;
       const { token } = JSON.parse(raw.toString());
       const id = await auth(token, ip);
+    service.touch(id);
       clearTimeout(timeout);
       clients.set(ws, { id, expires: Date.now() + WS_REAUTH_MS });
       publish();

@@ -274,6 +274,40 @@ it("timeout is a draw if opponent cannot mate", () => {
   expect(s.state("a", "local").rooms[0].result).toMatch("Draw on time");
 });
 
+describe("abandonment", () => {
+  it("forfeits a player gone past the grace window while the opponent stays", () => {
+    const { s, advance } = setup();
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    s.touch("a");
+    s.touch("b");
+    advance(30_000);
+    s.touch("a"); // b quiet 30s: inside the grace window, nothing happens
+    s.sweep();
+    expect(s.getRoom(r).status).toBe("active");
+    advance(31_000); // b now 61s gone, a just seen: the flag falls
+    s.touch("a");
+    s.sweep();
+    const room = s.getRoom(r);
+    expect(room.status).toBe("finished");
+    expect(room.result).toBe("white wins (opponent disconnected)");
+  });
+  it("pauses instead of forfeiting while both players are away", () => {
+    const { s, advance } = setup();
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    s.touch("a");
+    s.touch("b");
+    advance(120_000);
+    s.sweep();
+    expect(s.getRoom(r).status).toBe("active");
+    // When one returns and the other never does, the game is awarded.
+    s.touch("a");
+    s.sweep();
+    expect(s.getRoom(r).result).toBe("white wins (opponent disconnected)");
+  });
+});
+
 describe("profile deletion fairness", () => {
   it("finishes active games unrated so deletion cannot farm rating", () => {
     const { s } = setup();
