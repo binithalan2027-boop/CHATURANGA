@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { roomCategory, sortRooms, roomLabel, lastMoveSquares, timeAgo } from "./roomList";
+import { roomCategory, sortRooms, roomLabel, lastMoveSquares, timeAgo, filterRooms } from "./roomList";
 import type { RoomView } from "./types";
 
 const base: RoomView = {
@@ -100,5 +100,22 @@ describe("timeAgo invalid input", () => {
     expect(timeAgo(1000, NaN)).toBe("");
     expect(timeAgo(1000, 0)).toBe("");
     expect(timeAgo(1000, -50)).toBe("");
+  });
+});
+
+describe("filterRooms", () => {
+  const mk = (id: string, over: Partial<RoomView>) => room({ id, ...over });
+  const list = [
+    mk("t1", { turn: "white", yourColor: "white" }),
+    mk("t2", { turn: "black", yourColor: "white" }),
+    mk("t3", { status: "waiting", invitee: "me" }),
+    mk("t4", { status: "waiting", black: null, blackName: null }),
+    mk("t5", { status: "finished", result: "Draw" }),
+  ];
+  it("groups actionable, waiting and finished games", () => {
+    expect(filterRooms(list, "me", "all").map((r) => r.id)).toEqual(["t1", "t2", "t3", "t4", "t5"]);
+    expect(filterRooms(list, "me", "needsYou").map((r) => r.id)).toEqual(["t1", "t3"]);
+    expect(filterRooms(list, "me", "waiting").map((r) => r.id)).toEqual(["t2", "t4"]);
+    expect(filterRooms(list, "me", "finished").map((r) => r.id)).toEqual(["t5"]);
   });
 });

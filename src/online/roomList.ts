@@ -95,3 +95,27 @@ export function lastMoveSquares(uci: string | null | undefined): number[] {
     to = sq(uci.slice(2, 4));
   return from >= 0 && to >= 0 ? [from, to] : [];
 }
+
+export type LobbyFilter = "all" | "needsYou" | "waiting" | "finished";
+
+/** Filter the sorted lobby list. "Needs you" folds challenges and your-turn
+ * games into one bucket; "waiting" covers both challenges-to-accept and your
+ * own open rooms so nothing actionable hides. */
+export function filterRooms(
+  rooms: RoomView[],
+  viewerId: string,
+  filter: LobbyFilter,
+): RoomView[] {
+  if (filter === "all") return rooms;
+  return rooms.filter((r) => {
+    const c = roomCategory(r, viewerId);
+    switch (filter) {
+      case "needsYou":
+        return c === "accept" || c === "yourTurn";
+      case "waiting":
+        return c === "waiting" || c === "opponentTurn";
+      default:
+        return c === "finished";
+    }
+  });
+}

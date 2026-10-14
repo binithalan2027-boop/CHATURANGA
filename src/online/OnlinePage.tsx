@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
-import { roomLabel, sortRooms, lastMoveSquares, timeAgo } from "./roomList";
+import { roomLabel, sortRooms, filterRooms, lastMoveSquares, timeAgo } from "./roomList";
+import type { LobbyFilter } from "./roomList";
 import { premoveUci } from "./premove";
 import { replayTo } from "./replay";
 import { materialFromFen } from "./material";
@@ -59,6 +60,7 @@ export default function OnlinePage({
     [copied, setCopied] = useState(false),
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
+    [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
@@ -765,7 +767,26 @@ export default function OnlinePage({
                   challenges are restricted to the invited friend.
                 </p>
                 <h2>Your games</h2>
-                {sortedRooms.map((r) => (
+                <div className="online-chips" role="group" aria-label="Filter games">
+                  {(
+                    [
+                      ["all", "All"],
+                      ["needsYou", "Needs you"],
+                      ["waiting", "Waiting"],
+                      ["finished", "Finished"],
+                    ] as [LobbyFilter, string][]
+                  ).map(([f, label]) => (
+                    <button
+                      key={f}
+                      aria-pressed={lobbyFilter === f}
+                      className={lobbyFilter === f ? "chip-active" : ""}
+                      onClick={() => setLobbyFilter(f)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {filterRooms(sortedRooms, state.profile.id, lobbyFilter).map((r) => (
                   <div className="online-person" key={r.id}>
                     <button
                       onClick={() => {
@@ -796,6 +817,10 @@ export default function OnlinePage({
                 ))}
               </section>
               <section className="online-card online-game">
+                {filterRooms(sortedRooms, state.profile.id, lobbyFilter).length ===
+                  0 && (
+                  <p className="fine-print">No games in this view.</p>
+                )}
                 {room && (pos || isFog) ? (
                   <>
                     <h2>

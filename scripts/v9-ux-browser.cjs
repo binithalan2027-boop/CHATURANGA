@@ -124,6 +124,16 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.getByText("NaN", { exact: false })).toHaveCount(0);
   // (two lobby rows match - strict mode needs .first())
   await expect(c.getByRole("button", { name: /just now|ago/ }).first()).toBeVisible();
+  // Lobby filter chips: Finished shows only the resigned game; Needs you
+  // shows the active rematch for C (white to move)
+  await c.getByRole("button", { name: "Finished", exact: true }).click();
+  await expect(c.getByRole("button", { name: /black wins by resignation/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /your turn/ })).toHaveCount(0);
+  await c.getByRole("button", { name: "Needs you", exact: true }).click();
+  await expect(c.getByRole("button", { name: /Biru vs Asha · chess · your turn/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /resignation/ })).toHaveCount(0);
+  await c.getByRole("button", { name: "All", exact: true }).click();
+  await expect(c.getByRole("button", { name: /resignation/ })).toBeVisible();
   // Fool's mate in the rematch: 1.f3 e5 2.g4 Qh4# -> check ring + result
   await c.getByRole("button", { name: "f2, white pawn", exact: true }).click();
   await c.getByRole("button", { name: "f3, empty", exact: true }).click();
@@ -140,7 +150,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
