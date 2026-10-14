@@ -142,6 +142,15 @@ describe("authoritative game service", () => {
     expect(() => s.act("a", r, 2, "acceptDraw")).toThrow();
     s.act("b", r, 2, "acceptDraw");
     expect(s.requireUser("a").draws).toBe(1);
+    // Offering back against an open offer accepts it, chess.com style.
+    const r3 = s.create("a", "chess", 3);
+    s.join("b", r3);
+    s.act("a", r3, 1, "offerDraw");
+    s.act("b", r3, 2, "offerDraw");
+    const room = s.state("a", "local").rooms[0];
+    expect(room.status).toBe("finished");
+    expect(room.result).toBe("Draw by agreement");
+    expect(s.requireUser("b").draws).toBe(2); // the accept above + this one
     const r2 = s.create("a", "chess", 5);
     s.act("a", r2, 0, "cancel");
     expect(() => s.join("b", r2)).toThrow();

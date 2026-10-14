@@ -531,6 +531,12 @@ export class Service {
       return;
     }
     if (action === "offerDraw") {
+      // Offering back while an opponent offer is open accepts it,
+      // chess.com style - mutual offers settle the game at once.
+      if (r.drawOffer && r.drawOffer !== id) {
+        this.finish(r, "Draw by agreement", null);
+        return;
+      }
       r.drawOffer = id;
       r.version++;
       r.activityAt = this.now();
