@@ -116,8 +116,8 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.getByText("You are white.", { exact: false })).toBeVisible();
   await expect(a.locator(".online-material-lead")).toHaveText("Level material");
   // Lobby labels: C (white) is to move in the rematch, A (black) waits
-  await expect(c.getByRole("button", { name: /Biru vs Asha · chess · your turn/ })).toBeVisible();
-  await expect(a.getByRole("button", { name: /Biru vs Asha · chess · opponent's turn/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min · your turn/ })).toBeVisible();
+  await expect(a.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min · opponent's turn/ })).toBeVisible();
   // Lobby rows carry a valid relative time - never NaN (regression: rooms
   // persisted before activityAt existed produced "NaNd ago")
   await expect(a.getByText("NaN", { exact: false })).toHaveCount(0);
@@ -130,7 +130,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(c.getByRole("button", { name: /black wins by resignation/ })).toBeVisible();
   await expect(c.getByRole("button", { name: /your turn/ })).toHaveCount(0);
   await c.getByRole("button", { name: "Needs you", exact: true }).click();
-  await expect(c.getByRole("button", { name: /Biru vs Asha · chess · your turn/ })).toBeVisible();
+  await expect(c.getByRole("button", { name: /Biru vs Asha · Standard chess · 5 min · your turn/ })).toBeVisible();
   await expect(c.getByRole("button", { name: /resignation/ })).toHaveCount(0);
   await c.getByRole("button", { name: "All", exact: true }).click();
   await expect(c.getByRole("button", { name: /resignation/ })).toBeVisible();

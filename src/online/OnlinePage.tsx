@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
-import { roomLabel, sortRooms, filterRooms, lastMoveSquares, timeAgo } from "./roomList";
+import { roomLabel, sortRooms, filterRooms, lastMoveSquares, timeAgo, ruleLabel, timeControlLabel } from "./roomList";
 import type { LobbyFilter } from "./roomList";
 import { premoveUci } from "./premove";
 import { replayTo } from "./replay";
@@ -795,7 +795,8 @@ export default function OnlinePage({
                         setPromotion([]);
                       }}
                     >
-                      {r.whiteName} vs {r.blackName ?? "waiting"} · {r.rule} ·{" "}
+                      {r.whiteName} vs {r.blackName ?? "waiting"} ·{" "}
+                      {ruleLabel(r.rule)} · {timeControlLabel(r.initialMs)} ·{" "}
                       {roomLabel(r, state.profile.id)}
                       {timeAgo(Date.now(), r.activityAt) &&
                         ` · ${timeAgo(Date.now(), r.activityAt)}`}

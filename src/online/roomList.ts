@@ -119,3 +119,27 @@ export function filterRooms(
     }
   });
 }
+
+/** Friendly variant name for the lobby (the raw rule key is jargon). */
+export function ruleLabel(rule: string): string {
+  const names: Record<string, string> = {
+    chess: "Standard chess",
+    crazyhouse: "Crazyhouse",
+    kingofthehill: "King of the Hill",
+    "3check": "3-Check",
+    antichess: "Antichess",
+    atomic: "Atomic",
+    horde: "Horde",
+    racingkings: "Racing Kings",
+    fog: "Fog of War",
+  };
+  return names[rule] ?? rule;
+}
+
+/** Compact time control for lobby rows ("5 min"). Rooms are created with
+ * whole-minute clocks, so no increment suffix is needed. */
+export function timeControlLabel(initialMs: number): string {
+  if (!Number.isFinite(initialMs) || initialMs <= 0) return "";
+  const m = Math.round(initialMs / 60000);
+  return m >= 1 ? `${m} min` : `${Math.round(initialMs / 1000)}s`;
+}

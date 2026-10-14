@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { roomCategory, sortRooms, roomLabel, lastMoveSquares, timeAgo, filterRooms } from "./roomList";
+import { roomCategory, sortRooms, roomLabel, lastMoveSquares, timeAgo, filterRooms, ruleLabel, timeControlLabel } from "./roomList";
 import type { RoomView } from "./types";
 
 const base: RoomView = {
@@ -18,6 +18,7 @@ const base: RoomView = {
   blackMs: 300000,
   serverTime: 0,
   activityAt: 0,
+  initialMs: 300000,
   result: null,
   drawOffer: null,
   yourColor: "white",
@@ -117,5 +118,24 @@ describe("filterRooms", () => {
     expect(filterRooms(list, "me", "needsYou").map((r) => r.id)).toEqual(["t1", "t3"]);
     expect(filterRooms(list, "me", "waiting").map((r) => r.id)).toEqual(["t2", "t4"]);
     expect(filterRooms(list, "me", "finished").map((r) => r.id)).toEqual(["t5"]);
+  });
+});
+
+describe("ruleLabel", () => {
+  it("translates rule keys into friendly names", () => {
+    expect(ruleLabel("chess")).toBe("Standard chess");
+    expect(ruleLabel("kingofthehill")).toBe("King of the Hill");
+    expect(ruleLabel("3check")).toBe("3-Check");
+    expect(ruleLabel("fog")).toBe("Fog of War");
+    expect(ruleLabel("something-new")).toBe("something-new");
+  });
+});
+
+describe("timeControlLabel", () => {
+  it("formats whole-minute clocks and tolerates bad input", () => {
+    expect(timeControlLabel(300000)).toBe("5 min");
+    expect(timeControlLabel(900000)).toBe("15 min");
+    expect(timeControlLabel(0)).toBe("");
+    expect(timeControlLabel(NaN)).toBe("");
   });
 });

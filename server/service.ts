@@ -550,6 +550,7 @@ export class Service {
       serverTime: this.now(),
       // Rooms persisted before activityAt existed fall back to updatedAt.
       activityAt: r.activityAt ?? r.updatedAt,
+      initialMs: r.initialMs,
       result: r.result,
       drawOffer: r.drawOffer,
       yourColor: r.white === id ? "white" : "black",
@@ -599,6 +600,7 @@ export class Service {
       serverTime: this.now(),
       // Rooms persisted before activityAt existed fall back to updatedAt.
       activityAt: r.activityAt ?? r.updatedAt,
+      initialMs: r.initialMs,
       result: null,
       drawOffer: null,
       yourColor: "black",
@@ -685,6 +687,7 @@ export class Service {
       serverTime: this.now(),
       // Rooms persisted before activityAt existed fall back to updatedAt.
       activityAt: r.activityAt ?? r.updatedAt,
+      initialMs: r.initialMs,
       result: r.result,
       drawOffer: r.drawOffer,
       yourColor,

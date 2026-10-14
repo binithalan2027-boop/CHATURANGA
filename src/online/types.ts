@@ -51,6 +51,8 @@ export interface RoomView {
   serverTime: number;
   /** Last meaningful state change (join, move, offer, finish), ms epoch. */
   activityAt: number;
+  /** Initial clock per player in ms (the room's time control). */
+  initialMs: number;
   result: string | null;
   drawOffer: string | null;
   yourColor: "white" | "black";
