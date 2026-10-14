@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
+import { buildPgn } from "./pgn";
 import { roomLabel, sortRooms, filterRooms, lastMoveSquares, timeAgo, ruleLabel, timeControlLabel } from "./roomList";
 import type { LobbyFilter } from "./roomList";
 import { premoveUci } from "./premove";
@@ -60,6 +61,7 @@ export default function OnlinePage({
     [drop, setDrop] = useState(""),
     [flipped, setFlipped] = useState(false),
     [copied, setCopied] = useState(false),
+    [copiedPgn, setCopiedPgn] = useState(false),
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
@@ -72,6 +74,7 @@ export default function OnlinePage({
   useEffect(() => {
     setFlipped(false);
     setCopied(false);
+    setCopiedPgn(false);
     setTickTs(0);
     setReviewPly(null);
     setPremove(null);
@@ -903,6 +906,25 @@ export default function OnlinePage({
                             Rematch (colours swap)
                           </button>
                         )}
+                        {room.rule !== "fog" &&
+                          room.result !== "Room cancelled" &&
+                          room.moves.length > 0 && (
+                            <button
+                              className="online-copy-pgn"
+                              disabled={busy}
+                              title="Copy this game's score in PGN, the standard chess record format. Not offered for Fog of War: players only see a filtered move list there."
+                              onClick={() => {
+                                void navigator.clipboard
+                                  ?.writeText(buildPgn(room))
+                                  .then(() => setCopiedPgn(true))
+                                  .catch(() =>
+                                    setError("Copy failed - your browser blocked clipboard access."),
+                                  );
+                              }}
+                            >
+                              {copiedPgn ? "PGN copied" : "Copy PGN"}
+                            </button>
+                          )}
                       </div>
                     ) : (
                       <p>

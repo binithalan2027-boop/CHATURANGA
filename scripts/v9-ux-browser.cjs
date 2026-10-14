@@ -113,6 +113,14 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins by resignation");
   await expect(c.locator(".online-result")).toContainText("black wins by resignation");
   await a.screenshot({ path: "/downloads/v9-gameover.png" });
+  // Copy PGN: exports the game score; button flips to "PGN copied"
+  await a.locator(".online-result").getByRole("button", { name: "Copy PGN", exact: true }).click();
+  await expect(a.locator(".online-result").getByRole("button", { name: "PGN copied", exact: true })).toBeVisible();
+  const pgn = await a.evaluate(() => navigator.clipboard.readText());
+  if (!pgn.includes('[Result "0-1"]') || !pgn.includes("1. e4 e5") || !pgn.trimEnd().endsWith("0-1")) errors.push("pgn export missing result or moves");
+  if (pgn.includes("[Variant")) errors.push("standard chess PGN should not carry a Variant header");
+  if (!pgn.includes('[White "') || !pgn.includes("[TimeControl ")) errors.push("pgn export missing headers");
+  await a.screenshot({ path: "/downloads/v9-pgn.png" });
   // A requests a rematch; B accepts; A is now Black
   await a.locator(".online-result").getByRole("button", { name: /Rematch/ }).click();
   await c.getByRole("button", { name: "Accept challenge", exact: true }).click();
@@ -154,7 +162,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });
