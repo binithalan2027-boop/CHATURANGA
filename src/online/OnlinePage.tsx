@@ -75,6 +75,7 @@ export default function OnlinePage({
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
     [confirmResign, setConfirmResign] = useState(false),
+    [confirmAbort, setConfirmAbort] = useState(false),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
     [moveInput, setMoveInput] = useState(""),
     [moveInputError, setMoveInputError] = useState(""),
@@ -90,6 +91,7 @@ export default function OnlinePage({
     setReviewPly(null);
     setPremove(null);
     setConfirmResign(false);
+    setConfirmAbort(false);
   }, [selectedRoom]);
   useEffect(() => {
     void api<{ mode: string; providers: string[] }>("config")
@@ -1036,7 +1038,8 @@ export default function OnlinePage({
                           {opening ? ` · ${opening.name}` : ""}
                         </span>
                         {room.rule === "chess" &&
-                          room.result !== "Room cancelled" && (
+                          room.result !== "Room cancelled" &&
+                          room.result !== "Game aborted" && (
                             <span>
                               Standard chess uses provisional private-match ratings.
                             </span>
@@ -1407,6 +1410,35 @@ export default function OnlinePage({
                               Resign
                             </button>
                           )}
+                          {room.moves.length < 2 &&
+                            (confirmAbort ? (
+                              <>
+                                <button
+                                  className="online-danger"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setConfirmAbort(false);
+                                    gameAction("abort");
+                                  }}
+                                >
+                                  Confirm abort
+                                </button>
+                                <button
+                                  disabled={busy}
+                                  onClick={() => setConfirmAbort(false)}
+                                >
+                                  Keep playing
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                disabled={busy}
+                                title="End the game with no result. Only available before each player has moved."
+                                onClick={() => setConfirmAbort(true)}
+                              >
+                                Abort
+                              </button>
+                            ))}
                           <button
                             disabled={busy}
                             onClick={() => gameAction("offerDraw")}

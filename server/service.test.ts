@@ -197,6 +197,31 @@ describe("special moves and persistent storage", () => {
     expect(() => s.act("a", r, 2, "resign")).toThrow();
     expect(s.requireUser("b").rating).toBe(1212);
   });
+  it("abort is unrated, uncounted and only before each side moved", () => {
+    const { s } = setup();
+    const r = s.create("a", "chess", 3);
+    s.join("b", r);
+    s.act("b", r, 1, "abort");
+    expect(s.getRoom(r).result).toBe("Game aborted");
+    expect(s.requireUser("a").rating).toBe(1200);
+    expect(s.requireUser("b").rating).toBe(1200);
+    expect(s.requireUser("a").games).toBe(0);
+    expect(s.requireUser("b").games).toBe(0);
+    // Mid-window (a single move played) abort still works
+    const r2 = s.create("a", "chess", 3);
+    s.join("b", r2);
+    s.act("a", r2, 1, "move", "e2e4");
+    s.act("b", r2, 2, "abort");
+    expect(s.getRoom(r2).result).toBe("Game aborted");
+    // Once both sides have moved the window has closed
+    const r3 = s.create("a", "chess", 3);
+    s.join("b", r3);
+    s.act("a", r3, 1, "move", "e2e4");
+    s.act("b", r3, 2, "move", "e7e5");
+    expect(() => s.act("a", r3, 3, "abort")).toThrow(
+      "Abort is only available",
+    );
+  });
   it("profile deletion cancels waiting rooms", () => {
     const { s } = setup();
     const r = s.create("a", "chess", 3);

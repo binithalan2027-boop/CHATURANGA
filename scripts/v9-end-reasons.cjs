@@ -45,16 +45,24 @@ let a, c;
   await c.getByLabel("Room code", { exact: true }).press("Enter");
   await expect(c.getByText("You are black.", { exact: false })).toBeVisible();
   await expect(a.getByText("white to move", { exact: false })).toBeVisible();
-  // Slow-box safe: the first click can land before the board hydrates,
-  // so retry the selection once when no highlight appears.
+  // Slow-box safe: clicks can land before the board hydrates, so retry
+  // the selection a few times when no highlight appears.
   const play = async (p, from, to) => {
     const src = p.getByRole("button", { name: from, exact: true });
-    await src.click();
-    try {
-      await expect(p.locator(".square.selected")).toHaveCount(1, { timeout: 3000 });
-    } catch {
+    // Board clicks are ignored while the live socket is reconnecting, so
+    // sync on the Connected banner, then retry while no selection appears.
+    await expect(p.getByText(/· Connected/)).toBeVisible();
+    await p.waitForTimeout(600);
+    for (let attempt = 0; attempt < 5; attempt++) {
       await src.click();
-      await expect(p.locator(".square.selected")).toHaveCount(1);
+      try {
+        await expect(p.locator(".square.selected")).toHaveCount(1, { timeout: 2500 });
+        break;
+      } catch {
+        if (attempt === 4)
+          await expect(p.locator(".square.selected")).toHaveCount(1);
+        else await p.waitForTimeout(500);
+      }
     }
     await p.getByRole("button", { name: to, exact: true }).click();
   };

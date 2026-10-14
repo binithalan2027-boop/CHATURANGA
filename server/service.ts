@@ -425,7 +425,7 @@ export class Service {
     r: Room,
     result: string,
     winner: "white" | "black" | null,
-    opts: { rated?: boolean } = {},
+    opts: { rated?: boolean; counted?: boolean } = {},
   ) {
     if (r.status === "finished") return;
     r.status = "finished";
@@ -446,10 +446,12 @@ export class Service {
       this.store.put("profile", white.id, white);
       this.store.put("profile", black.id, black);
     }
-    for (const [id, color] of [
-      [r.white, "white"],
-      [r.black, "black"],
-    ] as const)
+    for (const [id, color] of opts.counted === false
+      ? []
+      : [
+          [r.white, "white"],
+          [r.black, "black"],
+        ] as const)
       if (id) {
         const p = this.requireUser(id);
         p.games++;
@@ -518,6 +520,14 @@ export class Service {
         `${color === "white" ? "black" : "white"} wins by resignation`,
         color === "white" ? "black" : "white",
       );
+      return;
+    }
+    if (action === "abort") {
+      // Either player may walk away before each side has moved once;
+      // aborted games are unrated and do not touch the players' records.
+      if (r.moves.length >= 2)
+        throw Error("Abort is only available before each player has moved.");
+      this.finish(r, "Game aborted", null, { rated: false, counted: false });
       return;
     }
     if (action === "offerDraw") {
