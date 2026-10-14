@@ -208,6 +208,19 @@ export default function OnlinePage({
     if (san === "?") return `${mover} moved.`;
     return `${mover} played ${san}.`;
   }, [room?.id, room?.result, room?.moves, room?.whiteName, room?.blackName]);
+  // Move list follows the game: it auto-scrolls to the newest move while
+  // live, and scrolls the reviewed move into view while stepping through
+  // history. While reviewing, live moves never yank the scroll away.
+  const movesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = movesRef.current;
+    if (!el) return;
+    if (reviewPly) {
+      el.querySelector(".reviewing")?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    el.scrollTop = el.scrollHeight;
+  }, [room?.id, room?.moves.length, reviewPly]);
   const [opening, setOpening] = useState<{
     eco: string;
     name: string;
@@ -1390,7 +1403,7 @@ export default function OnlinePage({
                         {opening.name} <small>{opening.eco}</small>
                       </p>
                     )}
-                    <div className="online-moves" aria-label="Move list">
+                    <div className="online-moves" aria-label="Move list" ref={movesRef}>
                       {room.moves.length === 0 && <p>No moves yet</p>}
                       {moveRows(room.moves).map(([n, w, b], i) => (
                         <div className="online-move-row" key={n}>
