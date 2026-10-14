@@ -33,8 +33,9 @@ const { chromium, expect } = require("@playwright/test");
     .click();
   await expect(a.locator("code")).toBeVisible();
   const code = await a.locator("code").textContent();
-  await c.getByLabel("Room code", { exact: true }).fill(code);
-  await c.getByRole("button", { name: "Join room", exact: true }).click();
+  // Join by pressing Enter; typed case is normalized (codes are lowercase hex)
+  await c.getByLabel("Room code", { exact: true }).fill(code.toUpperCase());
+  await c.getByLabel("Room code", { exact: true }).press("Enter");
   await expect(
     a.getByText("white to move", { exact: false }),
   ).toBeVisible();

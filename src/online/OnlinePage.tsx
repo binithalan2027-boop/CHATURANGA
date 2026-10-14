@@ -895,7 +895,21 @@ export default function OnlinePage({
                     Room code
                     <input
                       value={code}
-                      onChange={(e) => setCode(e.target.value.trim())}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      onChange={(e) =>
+                        setCode(e.target.value.trim().toLowerCase())
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && code && !busy) {
+                          e.preventDefault();
+                          void run(async () => {
+                            await api("join", { room: code });
+                            setSelectedRoom(code);
+                          });
+                        }
+                      }}
                     />
                   </label>
                   <button
