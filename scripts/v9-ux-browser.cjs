@@ -95,6 +95,23 @@ const { chromium, expect } = require("@playwright/test");
   // Back to live restores the real board and material
   await a.getByRole("button", { name: "Back to live", exact: true }).click();
   await expect(a.locator(".online-material-lead")).toHaveText("Black +1");
+  // Arrow-key review: Left from live enters one move back, Home/End jump
+  await a.keyboard.press("ArrowLeft");
+  await expect(a.locator(".online-review")).toContainText("Viewing move 3 of 4");
+  await a.keyboard.press("ArrowLeft");
+  await expect(a.locator(".online-review")).toContainText("Viewing move 2 of 4");
+  await a.keyboard.press("Home");
+  await expect(a.locator(".online-review")).toContainText("Viewing move 1 of 4");
+  await a.keyboard.press("ArrowRight");
+  await expect(a.locator(".online-review")).toContainText("Viewing move 2 of 4");
+  await a.keyboard.press("End");
+  await expect(a.locator(".online-review")).toHaveCount(0);
+  await expect(a.locator(".online-material-lead")).toHaveText("Black +1");
+  await a.keyboard.press("ArrowLeft");
+  await expect(a.locator(".online-review")).toContainText("Viewing move 3 of 4");
+  await a.keyboard.press("Escape");
+  await expect(a.locator(".online-review")).toHaveCount(0);
+  await a.screenshot({ path: "/downloads/v9-review-keys.png" });
   // Flip board: first square becomes h1 for A
   await a.getByRole("button", { name: "Flip board", exact: true }).click();
   await expect(a.locator(".court-board button").first()).toHaveAccessibleName(/h1/);
@@ -162,7 +179,7 @@ const { chromium, expect } = require("@playwright/test");
   await expect(a.locator(".online-result")).toContainText("black wins");
   await expect(c.locator(".online-result")).toContainText("black wins");
   await a.screenshot({ path: "/downloads/v9-checkmate.png" });
-  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, errors }, null, 2));
+  console.log(JSON.stringify({ ux: true, glide: true, clocks: true, material: true, rematch: true, lastMove: true, check: true, lobby: true, review: true, premove: true, drawBanner: true, lobbyChips: true, keyboard: true, pgn: true, reviewKeys: true, errors }, null, 2));
   await b.close();
   if (errors.length) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

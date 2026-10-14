@@ -56,6 +56,10 @@ const { chromium, expect } = require("@playwright/test");
   await a.setViewportSize({ width: 1366, height: 950 });
   await a.screenshot({ path: "/downloads/v8-fog-white.png" });
   await c.screenshot({ path: "/downloads/v8-fog-black.png" });
-  console.log(JSON.stringify({ fogOnline: true, masked: true, projection: true, errors }, null, 2));
+  // Fog privacy: arrow keys must NOT open move-list review (masked list)
+  await a.keyboard.press("ArrowLeft");
+  await a.keyboard.press("Home");
+  if (await a.locator(".online-review").count()) errors.push("fog: arrow key opened review");
+  console.log(JSON.stringify({ fogOnline: true, masked: true, projection: true, noReviewKeys: true, errors }, null, 2));
   await b.close();
 })().catch((e) => { console.error(e); process.exit(1); });

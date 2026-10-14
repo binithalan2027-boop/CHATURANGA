@@ -8,6 +8,7 @@ import { premoveUci } from "./premove";
 import { matchMoveInput } from "./keyboardMove";
 import { makeSan } from "chessops/san";
 import { replayTo } from "./replay";
+import { nextReviewPly } from "./reviewNav";
 import { materialFromFen } from "./material";
 import { makeSquare, parseUci } from "chessops/util";
 import VariantBoard from "../chaturanga/VariantBoard";
@@ -132,6 +133,24 @@ export default function OnlinePage({
     const t = setInterval(() => setTickTs((x) => x + 1), 200);
     return () => clearInterval(t);
   }, [room?.status]);
+  // Arrow-key review: step through the move list without the mouse.
+  // Fog of War is excluded (masked move list); typing in a field, or
+  // holding a modifier, leaves the key to the browser.
+  useEffect(() => {
+    if (!room || room.rule === "fog") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable))
+        return;
+      const next = nextReviewPly(reviewPly, room.moves.length, e.key);
+      if (next === undefined) return;
+      e.preventDefault();
+      setReviewPly(next);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [room?.id, room?.rule, room?.moves.length, reviewPly]);
   const live = room
     ? liveClock(room, Date.now() - clockBase.current.at)
     : null;
@@ -1195,7 +1214,7 @@ export default function OnlinePage({
                     {reviewPly && (
                       <p className="online-review" role="status">
                         Viewing move {reviewPly} of {room.moves.length} - the
-                        board is read-only.{" "}
+                        board is read-only. Arrow keys step through moves.{" "}
                         <button
                           className="online-review-exit"
                           onClick={() => setReviewPly(null)}
