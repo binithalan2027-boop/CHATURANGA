@@ -1,0 +1,13 @@
+# Convenience wrapper; plain `docker run` works too (see Dockerfile header).
+services:
+  chaturanga:
+    build: .
+    ports:
+      # Loopback only: the reverse proxy (Caddy/nginx) terminates TLS.
+      - "127.0.0.1:8787:8787"
+    env_file: .env
+    volumes:
+      - chaturanga-data:/app/data
+    restart: unless-stopped
+volumes:
+  chaturanga-data:

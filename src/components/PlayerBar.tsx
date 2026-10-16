@@ -1,7 +1,13 @@
-import React from 'react';
+import React from "react";
+import { usePreferences } from "../chaturanga/preferences";
 
 const PIECE_SYMBOLS: Record<string, string> = {
-  'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚',
+  p: "♟",
+  n: "♞",
+  b: "♝",
+  r: "♜",
+  q: "♛",
+  k: "♚",
 };
 
 interface PlayerBarProps {
@@ -14,9 +20,20 @@ interface PlayerBarProps {
   elo?: number;
 }
 
-export default function PlayerBar({ name, avatar, isThinking, capturedPieces, materialAdvantage, isActive, elo }: PlayerBarProps) {
+export default function PlayerBar({
+  name,
+  avatar,
+  isThinking,
+  capturedPieces,
+  materialAdvantage,
+  isActive,
+  elo,
+}: PlayerBarProps) {
+  const { prefs } = usePreferences();
   return (
-    <div className={`bg-surface-card border transition-colors p-3 rounded flex items-center justify-between font-headline-md text-bone-ivory ${isActive ? 'border-primary-container shadow-[0_0_15px_rgba(var(--color-primary-container),0.2)]' : 'border-surface-container-high'}`}>
+    <div
+      className={`bg-surface-card border transition-colors p-3 rounded flex items-center justify-between font-headline-md text-bone-ivory ${isActive ? "border-primary-container shadow-[0_0_15px_rgba(var(--color-primary-container),0.2)]" : "border-surface-container-high"}`}
+    >
       <div className="flex items-center gap-3">
         <div className="text-3xl relative">
           {avatar}
@@ -25,12 +42,23 @@ export default function PlayerBar({ name, avatar, isThinking, capturedPieces, ma
           )}
         </div>
         <div className="flex flex-col">
-          <span className="font-headline-sm tracking-wide">{name} {elo ? <span className="text-xs text-on-surface-variant ml-1 font-mono">({elo})</span> : null}</span>
+          <span className="font-headline-sm tracking-wide">
+            {name}{" "}
+            {elo && !prefs.hideRatings ? (
+              <span className="text-xs text-on-surface-variant ml-1 font-mono">
+                ({elo})
+              </span>
+            ) : null}
+          </span>
           <div className="flex text-sm text-on-surface-variant font-mono h-5">
             {capturedPieces.map((p, i) => (
-              <span key={i} className="text-bone-ivory/70">{PIECE_SYMBOLS[p]}</span>
+              <span key={i} className="text-bone-ivory/70">
+                {PIECE_SYMBOLS[p]}
+              </span>
             ))}
-            {materialAdvantage > 0 && <span className="text-green-400 ml-1">+{materialAdvantage}</span>}
+            {materialAdvantage > 0 && (
+              <span className="text-green-400 ml-1">+{materialAdvantage}</span>
+            )}
           </div>
         </div>
       </div>

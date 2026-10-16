@@ -1,0 +1,40 @@
+[
+  {
+    "elo": 1320,
+    "bestmove": "bestmove e7e6 ponder d2d4",
+    "cmds": [
+      "uci",
+      "setoption name Hash value 16",
+      "setoption name UCI_LimitStrength value true",
+      "setoption name UCI_Elo value 1320",
+      "isready",
+      "position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+      "go depth 10"
+    ]
+  },
+  {
+    "elo": 3190,
+    "bestmove": "bestmove e7e5 ponder g1f3",
+    "cmds": [
+      "uci",
+      "setoption name Hash value 16",
+      "setoption name UCI_LimitStrength value true",
+      "setoption name UCI_Elo value 3190",
+      "isready",
+      "position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+      "go depth 10"
+    ]
+  },
+  {
+    "elo": null,
+    "bestmove": "bestmove e7e6 ponder b1c3",
+    "cmds": [
+      "uci",
+      "setoption name Hash value 16",
+      "setoption name UCI_LimitStrength value false",
+      "isready",
+      "position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+      "go depth 10"
+    ]
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "server",
+    "src/online/types.ts",
+    "src/chaturanga/variantRules.ts",
+    "src/chaturanga/variantCatalog.ts"
+  ]
+}

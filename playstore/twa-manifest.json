@@ -1,0 +1,23 @@
+{
+  "packageId": "com.chaturanga.app",
+  "host": "YOUR-DOMAIN",
+  "name": "Chaturanga",
+  "launcherName": "Chaturanga",
+  "display": "standalone",
+  "themeColor": "#f4f1e8",
+  "navigationColor": "#1c2418",
+  "backgroundColor": "#f4f1e8",
+  "startUrl": "/",
+  "iconUrl": "https://YOUR-DOMAIN/icons/icon-512.png",
+  "maskableIconUrl": "https://YOUR-DOMAIN/icons/icon-maskable-512.png",
+  "appVersionName": "0.1.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "chaturanga"
+  },
+  "fallbackType": "customtabs",
+  "enableNotifications": false,
+  "orientation": "portrait"
+}

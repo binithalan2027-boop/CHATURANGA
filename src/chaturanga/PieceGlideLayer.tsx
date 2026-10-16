@@ -1,0 +1,68 @@
+import { useEffect, useState } from "react";
+import type { Glide, GlidePiece } from "./pieceGlide";
+
+export const GLIDE_MS = 160;
+
+/**
+ * Overlay that glides moved pieces from their previous square to the new
+ * one, like the piece motion on major chess sites. The static piece at
+ * the destination is hidden by the caller until the glide lands.
+ */
+export default function PieceGlideLayer({
+  glides,
+  batch,
+  flip,
+  render,
+}: {
+  glides: Glide[];
+  batch: number;
+  flip: boolean;
+  render: (piece: GlidePiece) => { text: string; cls: string };
+}) {
+  const [landed, setLanded] = useState(false);
+  useEffect(() => {
+    setLanded(false);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setLanded(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [batch]);
+  const screen = (sq: number) => {
+    const row = Math.floor(sq / 8),
+      col = sq % 8;
+    return flip ? { x: 7 - col, y: row } : { x: col, y: 7 - row };
+  };
+  return (
+    <>
+      {glides.map((g, i) => {
+        const at = screen(landed ? g.to : g.from);
+        const { text, cls } = render(g.piece);
+        return (
+          <span
+            key={`${batch}-${i}`}
+            aria-hidden="true"
+            className={`${cls} piece-glide`}
+            style={{
+              transform: `translate(${at.x * 100}%, ${at.y * 100}%)`,
+              transitionDuration: `${GLIDE_MS}ms`,
+            }}
+          >
+            {text}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
+/** Skips animation entirely when the user prefers reduced motion. */
+export function motionOK(): boolean {
+  return (
+    typeof matchMedia === "undefined" ||
+    !matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}

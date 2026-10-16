@@ -1,0 +1,93 @@
+@font-face{font-family:Courtyard Sans;src:url('/fonts/NotoSansDevanagari.ttf') format('truetype');font-weight:100 900;font-display:swap}
+@font-face{font-family:Courtyard Serif;src:url('/fonts/NotoSerifDevanagari.ttf') format('truetype');font-weight:100 900;font-display:swap}
+:root{--court-sand:#f2eadb;--court-ink:#242d25;--court-leaf:#284c38;--court-copper:#9a5737;--court-line:#cbbda7;color-scheme:light}
+html,body,.product-shell{background:var(--court-sand);color:var(--court-ink);font-family:Courtyard Sans,system-ui,sans-serif;font-size:16px;line-height:1.65}
+.product-shell :is(button,input,select,textarea,p,small,label,nav){font-family:Courtyard Sans,system-ui,sans-serif}
+.product-shell :is(h1,h2,h3,.court-brand,.nav-logo){font-family:Courtyard Serif,Georgia,serif;font-weight:600;letter-spacing:-.025em;line-height:1.25}
+.product-shell h1{font-size:clamp(2rem,4.6vw,4.4rem)}
+.product-shell h2{font-size:clamp(1.4rem,2.4vw,2.15rem)}
+.product-shell h3{font-size:1.25rem}
+.product-shell button{min-height:44px;cursor:pointer;transition:background .15s,color .15s;border-radius:7px}
+.product-shell :is(input,select,textarea){font-size:1rem;border-radius:6px;min-height:44px}
+.product-shell button:focus-visible,.product-shell :is(input,select,textarea):focus-visible{outline:3px solid #bf773e;outline-offset:3px}
+.courtyard,.online-shell{background:var(--court-sand);color:var(--court-ink);--court-bg:var(--court-sand);--court-panel:#fbf7ef;--court-text:var(--court-ink);--court-muted:#536053;--court-border:var(--court-line);--court-accent:var(--court-leaf)}
+.court-header,.court-footer,.product-nav{background:#efe5d1!important;color:var(--court-ink)!important;border-color:var(--court-line)!important}
+.court-brand small{color:#526052;font-size:.8rem;letter-spacing:.015em}
+.court-panel,.online-card,.home-mode-grid>button{background:#fbf7ef!important;border:1px solid var(--court-line)!important;border-radius:12px!important;box-shadow:0 4px 18px #5d452509!important;color:var(--court-ink)!important}
+.home-hero{padding-block:48px!important;gap:48px!important}
+.home-hero h1{max-width:12ch}.home-hero p{font-size:1.08rem;max-width:44ch;color:#536053}
+.home-actions .primary,.online-shell button,.courtyard button.primary{background:var(--court-leaf)!important;color:#fffaf0!important;border:1px solid var(--court-leaf)!important;box-shadow:none!important}
+.online-shell .tab-nav button{background:#e6ddcb!important;color:var(--court-ink)!important}
+.online-shell .tab-nav button.active{background:var(--court-leaf)!important;color:#fff!important}
+.online-shell :is(input,select,textarea){background:#fffaf2!important;color:var(--court-ink)!important;border:1px solid #ae9e84!important}
+.online-shell :is(p,small,label,.online-muted){color:#445243}
+.online-header{border-bottom:1px solid var(--court-line);padding-bottom:22px}
+.eyebrow,.section-kicker,.mode-number{font-family:Courtyard Sans,system-ui,sans-serif!important;font-size:.7rem!important;letter-spacing:.12em!important;font-weight:700;color:#805035!important;text-transform:uppercase}
+.home-mode-grid>button h3{margin-top:20px}.home-mode-grid>button{text-align:left;padding:26px!important}
+.nav-logo{font-size:1.15rem!important}.product-nav-links button{color:#344735!important;background:transparent!important}
+.home-bottom{border-top:1px solid var(--court-line);padding-top:36px}
+.brand-origin{font-family:Courtyard Serif,serif;font-size:1.2rem;color:#805035;margin-bottom:16px}
+.custom-room-list{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.custom-game{border-top:1px solid var(--court-line);padding-top:18px;margin-top:20px}
+.cross-board,.math-online-board{display:grid;width:min(100%,620px);aspect-ratio:1;margin:20px auto;border:8px solid #70513a;background:#70513a;gap:0;border-radius:5px;overflow:hidden}
+.cross-board{grid-template-columns:repeat(14,minmax(0,1fr))}.math-online-board{grid-template-columns:repeat(8,minmax(0,1fr));width:min(100%,480px)}
+.online-shell .cross-cell{padding:0!important;margin:0!important;min-height:0!important;border:0!important;border-radius:0!important;aspect-ratio:1;display:grid;place-items:center;font-family:Georgia,'DejaVu Sans',serif!important;line-height:1;font-size:clamp(13px,2.5vw,30px);position:relative;text-shadow:0 1px #fff8}
+.online-shell .cross-cell.light{background:#e6d4ae!important}.online-shell .cross-cell.dark{background:#9b815a!important}
+.online-shell .cross-cell.south{color:#143e31!important}.online-shell .cross-cell.west{color:#682629!important}.online-shell .cross-cell.north{color:#182c52!important}.online-shell .cross-cell.east{color:#543518!important}
+.online-shell .cross-cell.chosen{box-shadow:inset 0 0 0 3px #fff4a3!important}.online-shell .cross-cell.destination{box-shadow:inset 0 0 0 2px #284c38!important}
+.cross-corner{background:#70513a}.seat-roster{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0}.seat-roster span{font-size:.86rem}
+.custom-panel details{margin:16px 0;padding:12px;border:1px solid var(--court-line);border-radius:6px}summary{cursor:pointer;font-weight:600}
+.online-card form{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.online-card form label{flex:1;min-width:180px}
+.policy-section{scroll-margin:24px}.policy-nav{display:flex;gap:10px;flex-wrap:wrap}.policy-nav a{color:#284c38;text-decoration:underline}.legal-warning{padding:14px;background:#f8e6c8;border-left:4px solid #9a5737}
+@media(max-width:600px){.home-hero{gap:26px!important;padding-block:24px!important}.court-brand small{font-size:.7rem}.online-shell{padding:16px 10px!important}.online-card{padding:16px 12px!important}.cross-board{border-width:3px}.custom-panel .online-actions{display:flex;flex-wrap:wrap}.custom-panel select{max-width:100%}.cross-cell{font-size:16px!important}.custom-room-list button{font-size:.8rem}.court-home{padding-inline:12px!important}.online-card p{overflow-wrap:anywhere}.online-header{flex-wrap:wrap}.home-actions{gap:10px}.home-footnote{font-size:.8rem}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+/* Explicit scope wins over lazy-loaded legacy dark styles. */
+.product-shell .courtyard,.product-shell .online-shell{background:var(--court-sand)!important;color:var(--court-ink)!important;--bg:#f2eadb!important;--panel:#fbf7ef!important;--text:#242d25!important;--muted:#536053!important;--line:#cbbda7!important;--accent:#284c38!important}
+.product-shell .courtyard :is(p,small,.home-footnote,.mode-link),.product-shell .court-brand small,.product-shell .nav-logo,.product-shell .product-nav>button{color:#485647!important}
+.product-shell .courtyard :is(h1,h2,h3){color:#242d25!important}
+.product-shell .home-board-heading,.product-shell .home-board-status{color:#242d25!important}
+.product-shell .courtyard button:not(.primary){background:#eee5d4!important;color:#284332!important;border-color:#bba98d!important}
+.product-shell .home-mode-grid>button{background:#fbf7ef!important}
+.product-shell .product-nav .nav-logo,.product-shell .product-nav button{color:#344735!important}
+.product-shell .court-brand small{color:#526052!important}
+.product-shell .courtyard button.square.light{background:#eadbb9!important}.product-shell .courtyard button.square.dark{background:#a48b60!important}
+.product-shell .courtyard button.square{border:0!important;border-radius:0!important}
+.product-shell .section-line>span{color:#536053!important}
+.product-shell .online-shell .online-status{color:#fff9ee!important;background:#284332!important}
+.product-shell .courtyard :is(.square.light,.square-light){background:#eadbb9!important}.product-shell .courtyard :is(.square.dark,.square-dark){background:#a48b60!important}
+/* Preserve the player's board palette choices. */
+.product-shell.board-sage .courtyard .square.light{background:#e1e8cf!important}.product-shell.board-sage .courtyard .square.dark{background:#809b65!important}
+.product-shell.board-teak .courtyard .square.light{background:#eadbb9!important}.product-shell.board-teak .courtyard .square.dark{background:#a48b60!important}
+.product-shell.board-slate .courtyard .square.light{background:#dde5e8!important}.product-shell.board-slate .courtyard .square.dark{background:#72858f!important}
+.product-shell.board-contrast .courtyard .square.light{background:#fff!important}.product-shell.board-contrast .courtyard .square.dark{background:#565656!important}
+
+/* Board squares must win over the generic online action-button skin. */
+.product-shell .online-game button.square{border:0!important;border-radius:0!important;padding:0!important;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;aspect-ratio:1}
+.product-shell .online-game button.square.light{background:#eadbb9!important}
+.product-shell .online-game button.square.dark{background:#a48b60!important}
+.product-shell.board-sage .online-game button.square.light{background:#e1e8cf!important}
+.product-shell.board-sage .online-game button.square.dark{background:#809b65!important}
+.product-shell.board-slate .online-game button.square.light{background:#dde5e8!important}
+.product-shell.board-slate .online-game button.square.dark{background:#72858f!important}
+.product-shell.board-contrast .online-game button.square.light{background:#fff!important}
+.product-shell.board-contrast .online-game button.square.dark{background:#565656!important}
+.product-shell .online-game button.square.selected{box-shadow:inset 0 0 0 4px #bf6e28!important}
+/* Last-move trail and check flag: inset rings so they layer over any board
+   skin without clobbering the square colours (the .online-shell button reset
+   strips box-shadow, so these need !important like .selected above). */
+.product-shell .online-game button.square.last-move{box-shadow:inset 0 0 0 4px rgba(224,172,36,.95)!important}
+.product-shell .online-game button.square.last-move.selected{box-shadow:inset 0 0 0 4px #bf6e28,inset 0 0 0 8px rgba(224,172,36,.95)!important}
+.product-shell .online-game button.square.in-check{box-shadow:inset 0 0 0 4px rgba(198,40,40,.95),inset 0 0 18px rgba(198,40,40,.55)!important}
+/* Move-list step-through: plain text cells, not green pills (the .online-shell
+   button reset would otherwise paint them). */
+.product-shell .online-shell .online-moves button{background:none!important;border:0!important;box-shadow:none!important;color:inherit!important;padding:0 2px!important;min-width:0!important;min-height:0!important;font:inherit;cursor:pointer;text-align:left;border-radius:3px!important}
+.product-shell .online-shell .online-moves button:hover{text-decoration:underline}
+.product-shell .online-shell .online-moves button.reviewing{color:#bf6e28!important;font-weight:700}
+.product-shell .online-shell .online-review-exit{background:none!important;border:0!important;box-shadow:none!important;color:#bf6e28!important;padding:0!important;min-width:0!important;min-height:0!important;font:inherit;cursor:pointer;text-decoration:underline}
+.product-shell .online-game button.square.fogged{background:#343b36!important;background-image:repeating-linear-gradient(45deg,#ffffff08 0 1px,transparent 1px 8px)!important}
+.product-shell .online-clocks .online-clock-active{background:#e1e8cf;color:#244a35;border:2px solid #244a35;padding:4px 8px;border-radius:6px}
+.product-shell .online-clocks .online-clock-low{color:#ab2929;border-color:#ab2929}
+.product-shell .online-game button.square.premove{box-shadow:inset 0 0 0 4px rgba(60,120,220,.9)!important}
+/* Lobby filter chips: small neutral pills, active one in court green. */
+.product-shell .online-shell .online-chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.product-shell .online-shell .online-chips button{background:#e9e2d2!important;border:1px solid #c9bda4!important;color:#3d4a3a!important;box-shadow:none!important;padding:4px 10px!important;min-height:0!important;min-width:0!important;font-size:.85rem;border-radius:999px!important}
+.product-shell .online-shell .online-chips button.chip-active{background:#284c38!important;color:#fffaf0!important;border-color:#284c38!important}

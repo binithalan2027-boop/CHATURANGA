@@ -4,3 +4,9 @@ dist/
 **/dist/
 .env
 .DS_Store
+
+# Online service runtime state
+data/
+.env
+.env.*
+!.env.example
