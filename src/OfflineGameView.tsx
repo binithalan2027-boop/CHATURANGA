@@ -2,14 +2,13 @@ import StandardMode from './modes/StandardMode';
 import AtomicMode from './modes/AtomicMode';
 import FogMode from './modes/FogMode';
 import Chess960Mode from './modes/Chess960Mode';
-import SpellMode from './modes/SpellMode';
 import MathChessMode from './modes/MathChessMode';
 
 interface OfflineGameViewProps {
   onExit: () => void;
   botElo?: number;
   timeMinutes?: number;
-  gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic' | 'spell' | 'math' | 'matiks';
+  gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic' | 'math' | 'matiks';
 }
 
 export default function OfflineGameView({ onExit, botElo = 250, gameMode = 'standard' }: OfflineGameViewProps) {
@@ -27,10 +26,6 @@ export default function OfflineGameView({ onExit, botElo = 250, gameMode = 'stan
 
   if (gameMode === 'chess960') {
     return <Chess960Mode onExit={onExit} botElo={botElo} />;
-  }
-
-  if (gameMode === 'spell') {
-    return <SpellMode onExit={onExit} botElo={botElo} />;
   }
 
   // Fallback to Standard

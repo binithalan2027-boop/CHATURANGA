@@ -27,14 +27,9 @@ const variants = [
     text: "Captures explode. Keep your king out of the blast.",
   },
   {
-    id: "spell",
-    name: "Original Spell",
-    text: "The existing freeze-and-jump variant.",
-  },
-  {
     id: "math",
-    name: "Original Maths",
-    text: "The existing maths-against-AI game.",
+    name: "Chess MM",
+    text: "Mind and magic in one game. Solve quick maths, win duels, cast freeze and jump.",
   },
 ];
 export default function BotSelectScreen({

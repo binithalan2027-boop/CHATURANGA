@@ -1,9 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
-import ChessBoard from '../components/ChessBoard';
-import PlayerBar from '../components/PlayerBar';
-import MoveHistory from '../components/MoveHistory';
+import CourtyardMatch from './CourtyardMatch';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -13,7 +11,6 @@ export interface GameModeProps {
   onExit: () => void;
   botElo: number;
 }
-
 
 function generateChess960Fen() {
   const pieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
@@ -159,82 +156,52 @@ export default function Chess960Mode({ onExit, botElo }: GameModeProps) {
   };
 
   return (
-    <div className="min-h-screen bg-void-black flex flex-col lg:flex-row items-center justify-center p-space-md gap-gutter w-full text-bone-ivory font-body-md">
-      <div className="flex flex-col gap-4 w-full max-w-[600px]">
-        {/* HEADER */}
-        <div className="flex items-center justify-between bg-surface-card p-3 rounded-lg border border-surface-container-high shadow-xl">
-          <div className="flex items-center gap-2">
-            <span className={`w-3 h-3 rounded-full ${isReady ? (engineError ? 'bg-yellow-400' : 'bg-green-500') : 'bg-red-500'}`}></span>
-            <span className="font-headline-sm uppercase tracking-wide">Fischer Chaos (Chess960)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1 bg-surface-container-high hover:bg-surface-container-highest rounded text-sm transition-colors uppercase tracking-wider" onClick={handleNewGame}>New Game</button>
-            <button className="px-3 py-1 bg-crimson-glow hover:bg-red-700 text-white font-bold rounded text-sm transition-colors uppercase tracking-wider shadow-[0_0_10px_rgba(255,0,0,0.2)]" onClick={onExit}>Surrender</button>
-          </div>
-        </div>
-
-        {/* OPPONENT INFO BAR */}
-        <PlayerBar
-          name={currentBot.name}
-          avatar={currentBot.avatar}
-          isThinking={isThinking}
-          capturedPieces={capturedByBlack}
-          materialAdvantage={-materialAdvantage}
-          isActive={chess.turn() === 'b' && !winner}
-          elo={currentBotElo}
-        />
-
-        {/* CHESS BOARD */}
-        <div className="relative">
-          <ChessBoard
-            board={chess.board()}
-            selectedSquare={selectedSquare}
-            legalMoves={legalMoves}
-            lastMove={lastMove}
-            checkSquare={checkSquare}
-            onSquareClick={handleSquareClick}
-          />
-          {winner && (
-            <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
-              <h2 className="font-display-lg text-6xl text-crimson-glow uppercase tracking-tighter mb-4 animate-pulse drop-shadow-[0_0_20px_rgba(255,0,0,0.5)]">
-                {winner === 'w' ? 'VICTORY' : 'DEFEATED'}
-              </h2>
-              <button className="px-6 py-2 bg-bone-ivory text-void-black font-bold uppercase tracking-widest rounded hover:bg-white transition-colors" onClick={handleNewGame}>
-                PLAY AGAIN
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* ELO SLIDER */}
-        <div className="flex flex-col gap-1 mt-2">
-          <div className="flex justify-between font-label-sm text-[10px] text-on-surface-variant uppercase">
-            <span>Mindless (1)</span>
-            <span>Godlike (3500)</span>
-          </div>
-          <input 
-            type="range" 
-            min="1" 
-            max="3500" 
-            value={currentBotElo} 
-            onChange={(e) => setCurrentBotElo(parseInt(e.target.value))}
-            disabled={isThinking || chess.history().length > 0}
-            className="w-full h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-secondary"
-            title={`Adjust AI ELO: ${currentBotElo}`}
-          />
-        </div>
-
-        {/* PLAYER INFO BAR */}
-        <PlayerBar
-          name="You"
-          avatar="👤"
-          capturedPieces={capturedByWhite}
-          materialAdvantage={materialAdvantage}
-          isActive={chess.turn() === 'w' && !winner}
-        />
-      </div>
-
-      <MoveHistory history={chess.history()} />
-    </div>
+    <CourtyardMatch
+      eyebrow="CHESS960 · THE CLASSIC COLLECTION"
+      title="Chess960"
+      board={chess.board()}
+      selectedSquare={selectedSquare}
+      legalMoves={legalMoves}
+      lastMove={lastMove}
+      checkSquare={checkSquare}
+      onSquareClick={handleSquareClick}
+      botName={currentBot.name}
+      botElo={currentBotElo}
+      isBotThinking={isThinking}
+      capturedByWhite={capturedByWhite}
+      capturedByBlack={capturedByBlack}
+      materialAdvantage={materialAdvantage}
+      botActive={chess.turn() === 'b' && !winner}
+      playerActive={chess.turn() === 'w' && !winner}
+      status={
+        engineError
+          ? 'The engine could not start. You can still set up a new game.'
+          : isReady
+            ? 'A shuffled back rank. Castling uses the standard final squares.'
+            : 'Loading the engine…'
+      }
+      sidePanels={
+        <section className="court-panel">
+          <div className="eyebrow">BOT STRENGTH</div>
+          <label>
+            Engine target {currentBotElo}
+            <input
+              type="range"
+              min={1}
+              max={3500}
+              value={currentBotElo}
+              onChange={(e) => setCurrentBotElo(parseInt(e.target.value))}
+              disabled={isThinking || chess.history().length > 0}
+              aria-label="Bot strength"
+            />
+          </label>
+          <p>Locked once the game starts. New game shuffles a fresh back rank.</p>
+        </section>
+      }
+      history={chess.history()}
+      winner={winner}
+      onNewGame={handleNewGame}
+      onExit={onExit}
+    />
   );
 }

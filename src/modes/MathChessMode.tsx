@@ -1,9 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
-import ChessBoard from '../components/ChessBoard';
-import PlayerBar from '../components/PlayerBar';
-import MoveHistory from '../components/MoveHistory';
+import CourtyardMatch, { SquareMark } from './CourtyardMatch';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -110,6 +108,15 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
 
   const [pawnPromoteActive, setPawnPromoteActive] = useState<boolean>(false);
 
+  // SPELL DECK (merged from Original Spell): Freeze + Jump with charges and a
+  // shared cooldown. Charges are also awarded for winning maths showdowns.
+  const [freezeCharges, setFreezeCharges] = useState(2);
+  const [jumpCharges, setJumpCharges] = useState(1);
+  const [spellCooldown, setSpellCooldown] = useState(0);
+  const [activeSpell, setActiveSpell] = useState<'freeze' | 'jump' | null>(null);
+  const [spellFrozen, setSpellFrozen] = useState<Set<string>>(new Set());
+  const [jumpedPiece, setJumpedPiece] = useState<{ square: string; piece: { type: any; color: any } } | null>(null);
+
   const { getBestMove } = useStockfish();
   const currentBot = getBotByElo(botElo);
 
@@ -201,6 +208,42 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
     }
     const chosen = pool[Math.floor(Math.random() * pool.length)];
     setInventory(inv => [...inv, chosen]);
+    // Winning a duel also recharges the spell deck (Chess MM merge).
+    if (Math.random() < 0.5) {
+      setFreezeCharges(c => Math.min(5, c + 1));
+    } else {
+      setJumpCharges(c => Math.min(2, c + 1));
+    }
+  };
+
+  // Cast Freeze: a 3x3 area cannot move for the bot's next turn.
+  const castFreeze = (centerSq: string) => {
+    const fileIdx = FILES.indexOf(centerSq[0]);
+    const rankIdx = RANKS.indexOf(centerSq[1]);
+    const newlyFrozen = new Set<string>();
+    for (let df = -1; df <= 1; df++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        if (fileIdx + df >= 0 && fileIdx + df < 8 && rankIdx + dr >= 0 && rankIdx + dr < 8) {
+          newlyFrozen.add(`${FILES[fileIdx + df]}${RANKS[rankIdx + dr]}`);
+        }
+      }
+    }
+    setSpellFrozen(newlyFrozen);
+    setFreezeCharges(c => c - 1);
+    setSpellCooldown(3);
+    setActiveSpell(null);
+  };
+
+  // Cast Jump: lift one non-king piece off the board until after your next move.
+  const castJump = (sq: string) => {
+    const piece = chess.get(sq as Square);
+    if (!piece || piece.type === 'k') return;
+    setJumpedPiece({ square: sq, piece });
+    chess.remove(sq as Square);
+    setFen(chess.fen());
+    setJumpCharges(c => c - 1);
+    setSpellCooldown(3);
+    setActiveSpell(null);
   };
 
   // Activate power-up from inventory
@@ -241,14 +284,28 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const legalMoves = useMemo(() => {
     if (!selectedSquare || winner || inMathShowdown) return new Set<string>();
     if (frozenSquares.has(selectedSquare) && chess.turn() === 'w') return new Set<string>();
+    if (spellFrozen.has(selectedSquare) && chess.turn() === 'w') return new Set<string>();
 
     try {
       const moves = chess.moves({ square: selectedSquare as Square, verbose: true });
-      return new Set(moves.map((m: Move) => m.to));
+      const valid = moves.filter(m => !jumpedPiece || m.to !== jumpedPiece.square);
+      return new Set(valid.map((m: Move) => m.to));
     } catch (e) {
       return new Set<string>();
     }
-  }, [selectedSquare, fen, chess, winner, frozenSquares, inMathShowdown]);
+  }, [selectedSquare, fen, chess, winner, frozenSquares, spellFrozen, jumpedPiece, inMathShowdown]);
+
+  const displayBoard = useMemo(() => {
+    const b = chess.board();
+    if (jumpedPiece) {
+      const f = FILES.indexOf(jumpedPiece.square[0]);
+      const r = RANKS.indexOf(jumpedPiece.square[1]);
+      if (b[r] && f >= 0) {
+        b[r][f] = { ...jumpedPiece.piece, square: jumpedPiece.square as Square } as any;
+      }
+    }
+    return b;
+  }, [fen, chess, jumpedPiece]);
 
   const checkSquare = useMemo(() => {
     if (winner) return null;
@@ -289,10 +346,15 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const executePlayerMove = (from: string, to: string) => {
     try {
       const move = chess.move({ from, to, promotion: 'q' });
+      if (jumpedPiece) {
+        chess.put(jumpedPiece.piece as any, jumpedPiece.square as Square);
+        setJumpedPiece(null);
+      }
       recordCapture(move);
       setFen(chess.fen());
       setLastMove({ from, to });
       setSelectedSquare(null);
+      if (spellCooldown > 0) setSpellCooldown(c => c - 1);
 
       // Check Poison Bed status
       if (poisonSquare) {
@@ -340,6 +402,16 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
 
   const handleSquareClick = (sq: string) => {
     if (winner || chess.turn() !== 'w' || inMathShowdown) return;
+
+    // Casting a spell from the deck
+    if (activeSpell === 'freeze') {
+      castFreeze(sq);
+      return;
+    }
+    if (activeSpell === 'jump') {
+      castJump(sq);
+      return;
+    }
 
     // Apply Freeze Grid powerup
     if (activePowerUp === 'freeze_grid') {
@@ -431,10 +503,21 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
     let isActive = true;
 
     const playBotMove = async () => {
-      const moveStr = await getBestMove(chess.fen(), currentBot);
+      let moveStr = await getBestMove(chess.fen(), currentBot);
       if (!isActive || !moveStr) return;
 
       try {
+        // Spell freeze: the bot cannot move frozen pieces this turn.
+        if (spellFrozen.has(moveStr.slice(0, 2))) {
+          const validMoves = chess.moves({ verbose: true }).filter(m => !spellFrozen.has(m.from));
+          if (validMoves.length > 0) {
+            const m = validMoves[Math.floor(Math.random() * validMoves.length)];
+            moveStr = m.from + m.to + (m.promotion || '');
+          }
+        }
+        // The freeze lifts once the bot has moved.
+        setSpellFrozen(new Set());
+
         const from = moveStr.slice(0, 2);
         const to = moveStr.slice(2, 4);
         const promotion = moveStr.length > 4 ? moveStr[4] : undefined;
@@ -462,7 +545,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
     playBotMove();
 
     return () => { isActive = false; };
-  }, [fen, chess, getBestMove, currentBot, winner, inMathShowdown, doubleMoveActive, frozenMovesLeft]);
+  }, [fen, chess, getBestMove, currentBot, winner, inMathShowdown, doubleMoveActive, frozenMovesLeft, spellFrozen]);
 
   const handleNewGame = () => {
     const newChess = new Chess();
@@ -480,14 +563,26 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
     setFrozenSquares(new Set());
     setPoisonSquare(null);
     setDoubleMoveActive(false);
+    setFreezeCharges(2);
+    setJumpCharges(1);
+    setSpellCooldown(0);
+    setActiveSpell(null);
+    setSpellFrozen(new Set());
+    setJumpedPiece(null);
   };
 
-  const customSquareStyles: Record<string, string> = {};
+  const squareMarks: Record<string, SquareMark> = {};
   frozenSquares.forEach(sq => {
-    customSquareStyles[sq] = 'bg-cyan-900/60 border border-cyan-400/40 shadow-[inset_0_0_10px_rgba(0,255,255,0.4)]';
+    squareMarks[sq] = { className: 'frozen', icon: '❄' };
+  });
+  spellFrozen.forEach(sq => {
+    squareMarks[sq] = { className: 'frozen', icon: '❄' };
   });
   if (poisonSquare) {
-    customSquareStyles[poisonSquare] = 'bg-emerald-950/80 border-2 border-emerald-500 animate-pulse';
+    squareMarks[poisonSquare] = { className: 'poison', icon: '☠' };
+  }
+  if (jumpedPiece) {
+    squareMarks[jumpedPiece.square] = { className: 'jumped', icon: '↺' };
   }
 
   const formatTime = (secs: number) => {
@@ -496,274 +591,169 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const powerLabels: Record<PowerUpType, { name: string; desc: string }> = {
+    time_boost: { name: '+20s time boost', desc: 'Add 20 seconds to your clock.' },
+    time_drain: { name: '-20s time drain', desc: 'Take 20 seconds off the bot clock.' },
+    freeze_grid: { name: 'Freeze grid (2x3)', desc: 'Freeze a 2x3 area for 2 bot moves.' },
+    poison_bed: { name: 'Poison bed', desc: 'A piece that stays 3 moves on the square is lost.' },
+    double_move: { name: 'Double move', desc: 'Play two moves in one turn.' },
+    redo: { name: 'Redo', desc: 'Take back your last move and the bot reply.' },
+    pawn_promote: { name: 'Royal ascension', desc: 'Promote one pawn to a queen at once.' },
+  };
+
   return (
-    <div className="min-h-screen bg-ink-black flex flex-col justify-between p-space-md text-bone-ivory font-body-md select-none">
-      
-      {/* HEADER HUD BAR */}
-      <header className="w-full bg-void-surface border border-void-border p-space-sm flex flex-wrap items-center justify-between gap-space-md shadow-xl">
-        <div className="flex items-center gap-space-md">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-pumpkin-orange animate-ping" />
-            <span className="font-headline-sm text-sm uppercase tracking-wider text-bone-ivory">CHESS MM // MATIKS</span>
-          </div>
-          <span className="text-void-border font-mono text-xs">/</span>
-          
-          {/* Submode Switcher */}
-          <div className="flex items-center gap-1 bg-ink-black p-0.5 border border-void-border">
-            <button
-              onClick={() => setSubMode('gate')}
-              className={`px-2 py-0.5 font-label-sm text-[10px] uppercase ${subMode === 'gate' ? 'bg-blood-crimson text-bone-ivory font-bold' : 'text-bone-ivory-dim'}`}
-            >
-              MODE 1: MATH GATE
-            </button>
-            <button
-              onClick={() => setSubMode('showdown')}
-              className={`px-2 py-0.5 font-label-sm text-[10px] uppercase ${subMode === 'showdown' ? 'bg-blood-crimson text-bone-ivory font-bold' : 'text-bone-ivory-dim'}`}
-            >
-              MODE 2: SPEED SHOWDOWN &amp; POWER-UPS
-            </button>
-          </div>
-        </div>
-
-        {/* Clocks & Showdown Timer */}
-        <div className="flex items-center gap-space-lg font-mono text-xs">
-          <div className="flex items-center gap-2 bg-ink-black px-3 py-1 border border-void-border">
-            <span className="text-bone-ivory-dim">YOU:</span>
-            <span className="text-pumpkin-orange font-bold text-sm">{formatTime(playerTime)}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-ink-black px-3 py-1 border border-void-border">
-            <span className="text-bone-ivory-dim">BOT:</span>
-            <span className="text-cursed-violet-bright font-bold text-sm">{formatTime(botTime)}</span>
-          </div>
-          {subMode === 'showdown' && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-blood-crimson/20 border border-blood-crimson text-blood-crimson font-bold text-xs">
-              <span>MATH DUEL IN:</span>
-              <span className="text-bone-ivory font-mono">{formatTime(showdownTimer)}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-space-md">
-          <button onClick={handleNewGame} className="px-3 py-1 bg-surface-container hover:bg-surface-container-high text-xs font-headline-sm uppercase border border-void-border">
-            RESTART
-          </button>
-          <button onClick={onExit} className="px-3 py-1 bg-blood-crimson hover:bg-blood-crimson-bright text-bone-ivory text-xs font-headline-sm uppercase tracking-widest shadow-[0_0_12px_rgba(163,19,43,0.5)]">
-            SURRENDER
-          </button>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT COCKPIT */}
-      <main className="w-full max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-gutter my-space-md items-start">
-        
-        {/* COLUMN 1: POWER-UP VAULT & INVENTORY (3 COLS) */}
-        <div className="lg:col-span-3 flex flex-col gap-space-md">
-          <div className="bg-void-surface border border-void-border p-space-md flex flex-col gap-space-sm shadow-md">
-            <div className="flex items-center justify-between border-b border-void-border pb-space-xs">
-              <span className="font-headline-sm text-xs uppercase tracking-wider text-bone-ivory flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-pumpkin-orange text-[18px]">bolt</span>
-                CURSED POWER-UP VAULT
-              </span>
-              <span className="font-mono text-[10px] text-pumpkin-orange font-bold">{inventory.length} AVAILABLE</span>
-            </div>
-
-            {subMode === 'showdown' && (
-              <p className="font-body-sm text-[11px] text-bone-ivory-dim leading-relaxed">
-                Win the 10-Question Speed Math Showdown every 1.5 minutes to unlock random power-ups!
+      <CourtyardMatch
+        eyebrow="CHESS MM · MIND & MAGIC · THE CLASSIC COLLECTION"
+        title="Chess MM"
+        board={displayBoard}
+        selectedSquare={selectedSquare}
+        legalMoves={legalMoves}
+        lastMove={lastMove}
+        checkSquare={checkSquare}
+        onSquareClick={handleSquareClick}
+        squareMarks={squareMarks}
+        botName={currentBot.name}
+        botElo={botElo}
+        isBotThinking={false}
+        capturedByWhite={capturedByWhite}
+        capturedByBlack={capturedByBlack}
+        materialAdvantage={materialAdvantage}
+        botActive={chess.turn() === 'b' && !winner}
+        playerActive={chess.turn() === 'w' && !winner && !inMathShowdown}
+        status={
+          inMathShowdown
+            ? 'Maths duel in progress - the clocks are paused.'
+            : subMode === 'gate'
+              ? 'Solve a quick question to unlock each move.'
+              : `Next maths duel in ${formatTime(showdownTimer)}.`
+        }
+        sidePanels={
+          <>
+            <section className="court-panel">
+              <div className="eyebrow">HOW IT PLAYS</div>
+              <div className="answer-actions">
+                <button
+                  className={subMode === 'gate' ? 'primary' : ''}
+                  onClick={() => setSubMode('gate')}
+                >
+                  Mind gate
+                </button>
+                <button
+                  className={subMode === 'showdown' ? 'primary' : ''}
+                  onClick={() => setSubMode('showdown')}
+                >
+                  Speed duel
+                </button>
+              </div>
+              <p>
+                {subMode === 'gate'
+                  ? 'Every move asks one quick maths question. A wrong answer costs 5 seconds.'
+                  : 'Every 90 seconds, a 10-question duel. Beat the bot to win a power-up and a spell charge.'}
               </p>
-            )}
+              <div className="clock-line">
+                <span>You {formatTime(playerTime)}</span>
+                <span>Bot {formatTime(botTime)}</span>
+              </div>
+            </section>
 
-            {/* Inventory List */}
-            <div className="flex flex-col gap-2 mt-1">
-              {inventory.map((p, idx) => {
-                const labels: Record<PowerUpType, { name: string; desc: string; icon: string }> = {
-                  time_boost: { name: '+20s TIME BOOST', desc: 'Adds +20 seconds to your match clock', icon: 'hourglass_top' },
-                  time_drain: { name: '-20s TIME DRAIN', desc: 'Deducts 20s from opponent clock', icon: 'hourglass_bottom' },
-                  freeze_grid: { name: 'FREEZE SPELL (2x3)', desc: 'Freeze a 2x3 grid for 2 opponent moves', icon: 'ac_unit' },
-                  poison_bed: { name: 'POISON BED', desc: 'Piece dies if staying 3 moves on square', icon: 'skull' },
-                  double_move: { name: 'DOUBLE MOVE', desc: 'Execute 2 chess moves in 1 turn', icon: 'double_arrow' },
-                  redo: { name: 'CHRONO REDO', desc: 'Undo your last move', icon: 'undo' },
-                  pawn_promote: { name: 'ROYAL ASCENSION', desc: 'Instantly promote any pawn to Queen', icon: 'crown' },
-                };
-                const item = labels[p];
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleUsePowerUp(p)}
-                    className="w-full text-left p-2.5 bg-ink-black hover:bg-surface-container border border-void-border hover:border-pumpkin-orange transition-all flex items-center gap-2 group"
-                  >
-                    <span className="material-symbols-outlined text-pumpkin-orange group-hover:scale-110 transition-transform">{item.icon}</span>
-                    <div className="flex flex-col">
-                      <span className="font-headline-sm text-xs text-bone-ivory uppercase">{item.name}</span>
-                      <span className="font-label-sm text-[9px] text-bone-ivory-dim">{item.desc}</span>
-                    </div>
-                  </button>
-                );
-              })}
+            <section className="court-panel spell-deck">
+              <div className="eyebrow">SPELL DECK</div>
+              <button
+                className={activeSpell === 'freeze' ? 'armed' : ''}
+                disabled={spellCooldown > 0 || freezeCharges === 0 || winner !== null}
+                onClick={() => setActiveSpell(activeSpell === 'freeze' ? null : 'freeze')}
+              >
+                ❄ Freeze spell ×{freezeCharges}
+                <small>
+                  Freeze a 3x3 area for the bot's next move.
+                  {activeSpell === 'freeze' ? ' Now tap a square.' : ''}
+                </small>
+              </button>
+              <button
+                className={activeSpell === 'jump' ? 'armed' : ''}
+                disabled={spellCooldown > 0 || jumpCharges === 0 || winner !== null}
+                onClick={() => setActiveSpell(activeSpell === 'jump' ? null : 'jump')}
+              >
+                ↺ Jump spell ×{jumpCharges}
+                <small>
+                  Lift one non-king piece until after your next move.
+                  {activeSpell === 'jump' ? ' Now tap its square.' : ''}
+                </small>
+              </button>
+              <p>
+                {spellCooldown > 0
+                  ? `Spells recover in ${spellCooldown} move${spellCooldown > 1 ? 's' : ''}.`
+                  : 'Spells are ready. Winning duels recharges the deck.'}
+              </p>
+            </section>
 
+            <section className="court-panel vault">
+              <div className="eyebrow">POWER-UPS · {inventory.length}</div>
               {inventory.length === 0 && (
-                <div className="p-4 bg-ink-black border border-void-border text-center font-mono text-xs text-bone-ivory-dim italic">
-                  No power-ups collected yet. Win the Math Showdowns!
-                </div>
+                <p>No power-ups yet. Win a maths duel to earn one.</p>
               )}
-            </div>
-          </div>
-
-          {/* Active Status Effects */}
-          <div className="bg-void-surface border border-void-border p-space-md flex flex-col gap-space-xs shadow-md font-mono text-[11px]">
-            <span className="text-bone-ivory font-bold uppercase tracking-wider border-b border-void-border pb-1">
-              ACTIVE FIELD EFFECT PROTOCOLS
-            </span>
-            {doubleMoveActive && (
-              <div className="text-pumpkin-orange font-bold animate-pulse">
-                ⚡ DOUBLE MOVE ACTIVE ({doubleMoveCount}/2 MOVES USED)
-              </div>
-            )}
-            {activePowerUp && (
-              <div className="text-cyan-400 font-bold animate-pulse">
-                🎯 CLICK TARGET SQUARE TO APPLY {activePowerUp.toUpperCase()}
-              </div>
-            )}
-            {frozenMovesLeft > 0 && (
-              <div className="text-cyan-300">
-                ❄️ GRID FROZEN FOR {frozenMovesLeft} OPPONENT TURNS
-              </div>
-            )}
-            {poisonSquare && (
-              <div className="text-emerald-400">
-                ☠️ POISON BED ACTIVE AT {poisonSquare} (STAY COUNT: {poisonStayCount}/3)
-              </div>
-            )}
-            {!doubleMoveActive && !activePowerUp && frozenMovesLeft === 0 && !poisonSquare && (
-              <span className="text-bone-ivory-dim italic">Standard grid rules active.</span>
-            )}
-          </div>
-        </div>
-
-        {/* COLUMN 2: CHESS BOARD (6 COLS) */}
-        <div className="lg:col-span-6 flex flex-col gap-space-md items-center relative">
-          <div className="w-full bg-void-surface border border-void-border px-space-md py-space-xs flex items-center justify-between shadow-md">
-            <span className="font-mono text-xs text-bone-ivory font-bold">
-              {subMode === 'gate' ? 'MODE 1: SOLVE MATH TO UNLOCK MOVES' : 'MODE 2: 10-MIN MATCH + MATH SPEED SHOWDOWN'}
-            </span>
-            <span className="font-mono text-xs text-pumpkin-orange font-bold uppercase">
-              TURN #{chess.history().length}
-            </span>
-          </div>
-
-          <div className="relative w-full flex items-center justify-center">
-            <ChessBoard
-              board={chess.board()}
-              selectedSquare={selectedSquare}
-              legalMoves={legalMoves}
-              lastMove={lastMove}
-              checkSquare={checkSquare}
-              onSquareClick={handleSquareClick}
-              customSquareStyles={customSquareStyles}
-            />
-
-            {winner && (
-              <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center backdrop-blur-md animate-fadeIn">
-                <h2 className="font-display-xl text-6xl text-blood-crimson uppercase tracking-tighter mb-4 animate-pulse drop-shadow-[0_0_30px_rgba(163,19,43,1)]">
-                  {winner === 'w' ? 'VICTORY' : 'DEFEATED'}
-                </h2>
-                <button 
-                  onClick={handleNewGame} 
-                  className="px-8 py-3 bg-bone-ivory text-void-black font-display-sm text-lg uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_30px_rgba(255,255,255,0.4)]"
-                >
-                  PLAY AGAIN
+              {inventory.map((pw, idx) => (
+                <button key={idx} onClick={() => handleUsePowerUp(pw)}>
+                  {powerLabels[pw].name}
+                  <small>{powerLabels[pw].desc}</small>
                 </button>
-              </div>
-            )}
-          </div>
-
-          <PlayerBar
-            name="You"
-            avatar="👤"
-            capturedPieces={capturedByWhite}
-            materialAdvantage={materialAdvantage}
-            isActive={chess.turn() === 'w' && !winner}
-          />
-        </div>
-
-        {/* COLUMN 3: MOVE HISTORY & STATS (3 COLS) */}
-        <div className="lg:col-span-3 flex flex-col gap-space-md">
-          <PlayerBar
-            name={currentBot.name}
-            avatar={currentBot.avatar}
-            isThinking={false}
-            capturedPieces={capturedByBlack}
-            materialAdvantage={-materialAdvantage}
-            isActive={chess.turn() === 'b' && !winner}
-            elo={botElo}
-          />
-          <MoveHistory history={chess.history()} />
-        </div>
-
-      </main>
-
-      {/* MODE 1: MENTAL MATH QUESTION GATE MODAL */}
+              ))}
+              {(doubleMoveActive || activePowerUp || frozenMovesLeft > 0 || poisonSquare) && (
+                <p>
+                  {doubleMoveActive && `Double move active (${doubleMoveCount}/2 used). `}
+                  {activePowerUp && `Tap a target square for ${powerLabels[activePowerUp].name}. `}
+                  {frozenMovesLeft > 0 && `Grid frozen for ${frozenMovesLeft} bot moves. `}
+                  {poisonSquare && `Poison bed on ${poisonSquare} (${poisonStayCount}/3).`}
+                </p>
+              )}
+            </section>
+          </>
+        }
+        history={chess.history()}
+        winner={winner}
+        onNewGame={handleNewGame}
+        onExit={onExit}
+        overlays={<>
+      {/* Mind gate: one question unlocks the pending move. */}
       {gateQuestion && (
-        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-space-md animate-fadeIn">
-          <div className="bg-void-surface border-2 border-blood-crimson p-space-lg max-w-md w-full shadow-[0_0_50px_rgba(163,19,43,0.8)] text-center flex flex-col gap-space-md">
-            <span className="font-label-sm text-xs text-blood-crimson uppercase tracking-widest font-bold">
-              MENTAL MATH GATE // SOLVE TO UNLOCK MOVE
-            </span>
-            <div className="font-display-xl text-5xl text-bone-ivory font-black tracking-tight bg-ink-black py-4 border border-void-border">
-              {gateQuestion.question} = ?
-            </div>
-            <div className="grid grid-cols-2 gap-space-xs mt-2">
+        <div className="court-overlay" role="dialog" aria-modal="true" aria-label="Maths question">
+          <div className="court-panel" style={{ maxWidth: 420, width: '100%' }}>
+            <div className="eyebrow">MIND GATE · SOLVE TO MOVE</div>
+            <div className="mm-question">{gateQuestion.question} = ?</div>
+            <div className="mm-options">
               {gateQuestion.options.map((opt, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleAnswerGate(opt)}
-                  className="py-3 bg-surface-container hover:bg-blood-crimson hover:text-bone-ivory font-display-sm text-xl border border-void-border transition-all"
-                >
+                <button key={i} onClick={() => handleAnswerGate(opt)}>
                   {opt}
                 </button>
               ))}
             </div>
+            <p className="local-note">A wrong answer costs 5 seconds and brings a new question.</p>
           </div>
         </div>
       )}
 
-      {/* MODE 2: 10-QUESTION SPEED MATH SHOWDOWN MODAL */}
+      {/* Speed duel: 10 questions against the clock and the bot. */}
       {inMathShowdown && showdownQuestions.length > 0 && (
-        <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-space-md animate-fadeIn">
-          <div className="bg-void-surface border-2 border-pumpkin-orange p-space-lg max-w-lg w-full shadow-[0_0_50px_rgba(230,106,24,0.8)] text-center flex flex-col gap-space-md">
-            <div className="flex items-center justify-between border-b border-void-border pb-space-xs font-mono text-xs">
-              <span className="text-pumpkin-orange font-bold uppercase">⚡ SPEED MATH SHOWDOWN (ROUND #{showdownRoundCount + 1})</span>
-              <span className="text-bone-ivory font-bold">QUESTION {showdownIdx + 1} / 10</span>
+        <div className="court-overlay" role="dialog" aria-modal="true" aria-label="Maths duel">
+          <div className="court-panel" style={{ maxWidth: 460, width: '100%' }}>
+            <div className="eyebrow">
+              MATHS DUEL · ROUND {showdownRoundCount + 1} · QUESTION {showdownIdx + 1}/10
             </div>
-
-            <div className="font-display-xl text-6xl text-bone-ivory font-black tracking-tight bg-ink-black py-6 border border-void-border my-2">
-              {showdownQuestions[showdownIdx].question} = ?
-            </div>
-
-            <div className="grid grid-cols-2 gap-space-sm">
+            <div className="mm-question">{showdownQuestions[showdownIdx].question} = ?</div>
+            <div className="mm-options">
               {showdownQuestions[showdownIdx].options.map((opt, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleShowdownAnswer(opt)}
-                  className="py-4 bg-surface-container hover:bg-pumpkin-orange hover:text-void-black font-display-sm text-2xl border border-void-border transition-all shadow-md"
-                >
+                <button key={i} onClick={() => handleShowdownAnswer(opt)}>
                   {opt}
                 </button>
               ))}
             </div>
-
-            <div className="font-mono text-xs text-bone-ivory-dim mt-2">
-              CURRENT SCORE: <strong className="text-pumpkin-orange">{showdownScore}</strong> / {showdownIdx}
-            </div>
+            <p className="local-note">
+              Score {showdownScore}/{showdownIdx}. A wrong answer costs 3 seconds.
+            </p>
           </div>
         </div>
       )}
-
-      {/* FOOTER SYSTEM TELEMETRY */}
-      <footer className="w-full bg-ink-black border-t border-void-border px-margin py-space-xs font-mono text-[10px] text-bone-ivory-dim flex flex-wrap items-center justify-between gap-space-md">
-        <div>CHESS MM ENGINE // MENTAL MATH GAUNTLET ACTIVE</div>
-        <div className="text-pumpkin-orange font-bold">[MOAT SYSTEM: ACTIVE]</div>
-      </footer>
-    </div>
+    </>}
+      />
   );
 }

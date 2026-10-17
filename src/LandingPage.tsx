@@ -127,8 +127,8 @@ export default function LandingPage(props: LandingPageProps) {
               <span className="mode-number">02 / FAMILIAR, REIMAGINED</span>
               <h3>Classic variants</h3>
               <p>
-                Standard chess, Chess960, Atomic, Fog and the original Spell
-                mode. Existing games stay available.
+                Standard chess, Chess960, Atomic, Fog and Chess MM, the merged
+                maths-and-spell game.
               </p>
               <span className="mode-link">Choose a board ↗</span>
             </button>

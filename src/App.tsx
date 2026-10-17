@@ -200,7 +200,6 @@ function AppContent() {
               | "chess960"
               | "fog"
               | "atomic"
-              | "spell"
               | "math"
               | "matiks"
           }

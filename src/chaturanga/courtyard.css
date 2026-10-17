@@ -2151,3 +2151,82 @@
   transition-property: transform;
   transition-timing-function: ease-out;
 }
+
+/* Classic-collection modes (Standard, Chess960, Fog, Atomic, Chess MM)
+   on the shared courtyard template. */
+.courtyard .match-status {
+  font-size: 12px;
+  color: #665748;
+  margin: -6px 0 10px;
+}
+.courtyard .board-wrap {
+  position: relative;
+}
+.courtyard .square.fogged {
+  background: #463b2e;
+}
+.courtyard .square.fogged .piece,
+.courtyard .square.fogged .move-dot {
+  display: none;
+}
+.courtyard .square.frozen {
+  box-shadow: inset 0 0 0 3px #7fa9bf;
+}
+.courtyard .square.jumped {
+  box-shadow: inset 0 0 0 3px #53634f;
+  opacity: 0.75;
+}
+.courtyard .square.poison {
+  box-shadow: inset 0 0 0 3px #7a5f8f;
+}
+.courtyard .square.boom {
+  background: #d9a05b;
+}
+.courtyard .effect.jump {
+  background: #dfe8d7;
+  color: #33502f;
+}
+.courtyard .spell-deck button,
+.courtyard .vault button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 6px 0;
+  padding: 10px;
+  font-size: 12px;
+}
+.courtyard .spell-deck button small,
+.courtyard .vault button small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.4;
+  margin-top: 4px;
+  color: #665748;
+}
+.courtyard .spell-deck button.armed {
+  border: 2px solid var(--sage);
+  background: #e8ecdf;
+}
+.courtyard .clock-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.courtyard .mm-question {
+  font-family: Georgia, serif;
+  font-size: 42px;
+  text-align: center;
+  margin: 16px 0;
+  font-variant-numeric: tabular-nums;
+}
+.courtyard .mm-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.courtyard .mm-options button {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}

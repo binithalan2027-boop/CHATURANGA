@@ -16,13 +16,13 @@ export interface BotConfig {
 }
 
 export const AI_TIERS = [
-  { maxElo: 500, id: 'thrall', name: 'Cursed Thrall', avatar: '💀', desc: 'A mindless vessel of the dark arts. Sacrifices pieces without reason.', contempt: -50, multiPv: 4, blunderRate: 0.6 },
-  { maxElo: 1000, id: 'fiend', name: 'Shadow Fiend', avatar: '🦇', desc: 'Erratic and unpredictable. Barely understands strategy.', contempt: -20, multiPv: 3, blunderRate: 0.4 },
-  { maxElo: 1500, id: 'mage', name: 'Blood Mage', avatar: '🧛', desc: 'Highly aggressive and predatory. Strikes fast, seeking early decimation.', contempt: 100, multiPv: 3, blunderRate: 0.2 },
-  { maxElo: 2000, id: 'assassin', name: 'Nightmare Assassin', avatar: '🥷', desc: 'Lethal precision. Will punish every tactical blunder.', contempt: 50, multiPv: 2, blunderRate: 0.1 },
-  { maxElo: 2500, id: 'lich', name: 'Lich King', avatar: '👑', desc: 'An immortal grandmaster. Commands the board with absolute control.', contempt: 0, multiPv: 1, blunderRate: 0.05 },
-  { maxElo: 3000, id: 'voidweaver', name: 'The Voidweaver', avatar: '👁️', desc: 'An ancient tactical intelligence from the abyss.', contempt: 0, multiPv: 1, blunderRate: 0.01 },
-  { maxElo: 3500, id: 'eldritch', name: 'Eldritch God', avatar: '🐙', desc: 'Flawless execution. Perfect foresight. Resistance is futile.', contempt: 0, multiPv: 1, blunderRate: 0 }
+  { maxElo: 500, id: 'thrall', name: 'Novice', avatar: '🌱', desc: 'Learning the moves. Sacrifices pieces without reason.', contempt: -50, multiPv: 4, blunderRate: 0.6 },
+  { maxElo: 1000, id: 'fiend', name: 'Casual', avatar: '☕', desc: 'Erratic and unpredictable. Barely understands strategy.', contempt: -20, multiPv: 3, blunderRate: 0.4 },
+  { maxElo: 1500, id: 'mage', name: 'Club Player', avatar: '♟', desc: 'Aggressive and quick. Strikes fast, seeking early wins.', contempt: 100, multiPv: 3, blunderRate: 0.2 },
+  { maxElo: 2000, id: 'assassin', name: 'Tournament Player', avatar: '🎯', desc: 'Precise. Will punish every tactical blunder.', contempt: 50, multiPv: 2, blunderRate: 0.1 },
+  { maxElo: 2500, id: 'lich', name: 'Expert', avatar: '🏆', desc: 'Commands the board with absolute control.', contempt: 0, multiPv: 1, blunderRate: 0.05 },
+  { maxElo: 3000, id: 'voidweaver', name: 'Master', avatar: '🧠', desc: 'A deep tactical intelligence.', contempt: 0, multiPv: 1, blunderRate: 0.01 },
+  { maxElo: 3500, id: 'eldritch', name: 'Grandmaster', avatar: '👑', desc: 'Flawless execution. Resistance is futile.', contempt: 0, multiPv: 1, blunderRate: 0 }
 ];
 
 export function getBotByElo(elo: number): BotConfig {
@@ -48,6 +48,7 @@ export function getBotByElo(elo: number): BotConfig {
 
 export function useStockfish() {
   const workerRef = useRef<Worker | null>(null);
+  const readyRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [engineError, setEngineError] = useState(false);
@@ -67,11 +68,13 @@ export function useStockfish() {
         const msg = e.data;
 
         if (typeof msg === 'string' && msg.includes('uciok')) {
+          readyRef.current = true;
           setIsReady(true);
         }
 
         if (typeof msg === 'string' && msg.includes('readyok')) {
-          if (!isReady) setIsReady(true);
+          readyRef.current = true;
+          setIsReady(true);
         }
 
         // Parse MultiPV lines
@@ -129,7 +132,7 @@ export function useStockfish() {
       worker.postMessage('isready');
 
       const initTimeout = setTimeout(() => {
-        if (!isReady) {
+        if (!readyRef.current) {
           console.warn('Stockfish did not respond in 5s, using fallback');
           setEngineError(true);
           setIsReady(true);
