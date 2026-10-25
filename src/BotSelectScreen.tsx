@@ -3,6 +3,7 @@ import { useState } from 'react';
 export interface BotSelectScreenProps {
   onStart: (elo: number, timeMinutes: number, gameMode: string) => void;
   onBack: () => void;
+  initialTimeMinutes?: number;
 }
 
 interface GameModeOption {
@@ -84,10 +85,10 @@ const BOTS: BotProfile[] = [
   { name: 'Stockfish Singular', elo: 3000, tier: 'MAX', quote: 'Inhuman calculation with near-zero blunders.' },
 ];
 
-export default function BotSelectScreen({ onStart, onBack }: BotSelectScreenProps) {
+export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 10 }: BotSelectScreenProps) {
   const [selectedMode, setSelectedMode] = useState<string>('standard');
   const [elo, setElo] = useState<number>(1850);
-  const [timeMinutes, setTimeMinutes] = useState<number>(10);
+  const [timeMinutes, setTimeMinutes] = useState<number>(initialTimeMinutes);
   const [category, setCategory] = useState<'bots' | 'local' | 'online'>('bots');
 
   const currentBot = BOTS.reduce((prev, curr) => 

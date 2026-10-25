@@ -1843,51 +1843,23 @@
 .product-nav {
   width: 186px;
 }
-.product-content {
-  margin-left: 186px;
+.product-content.landing-layout {
+  margin-left: 0 !important;
 }
-.product-nav button {
-  padding: 10px;
-  font-size: 15px;
+.product-content.app-layout {
+  margin-left: 0;
 }
-.product-nav button span {
-  min-width: 0;
-}
-.product-nav .nav-logo span {
-  font-size: 15px;
-}
-.court-home .home-hero h1 {
-  letter-spacing: -0.045em;
-}
-.court-home .home-mode-grid button {
-  border-radius: 10px;
-}
-.courtyard .court-panel :focus-visible {
-  outline-offset: 2px;
-}
-@media (max-width: 1000px) {
-  .product-nav {
-    width: 76px;
-  }
-  .product-content {
-    margin-left: 76px;
-  }
-  .product-nav button {
-    font-size: 23px;
+@media (min-width: 1024px) {
+  .product-content.app-layout {
+    margin-left: 224px !important;
   }
 }
-@media (max-width: 800px) {
-  .product-nav {
-    width: 100%;
-    height: 62px;
+@media (max-width: 1023px) {
+  .product-content.app-layout {
+    margin-left: 0 !important;
+    padding-bottom: 64px;
   }
-  .product-content {
-    margin-left: 0;
-  }
-  .product-nav button {
-    font-size: 22px;
-    padding: 7px 8px;
-  }
+}
   .product-nav .nav-settings {
     padding: 7px 8px;
   }

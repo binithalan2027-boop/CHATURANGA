@@ -13,6 +13,7 @@ const START_COUNTS: Record<string, number> = { p: 8, n: 2, b: 2, r: 2, q: 1, k: 
 export interface GameModeProps {
   onExit: () => void;
   botElo: number;
+  timeMinutes?: number;
 }
 
 // Rebuild capture lists from the board so takebacks stay accurate.
@@ -48,7 +49,7 @@ export function capturedFromBoard(chess: Chess) {
   return { capturedByWhite, capturedByBlack };
 }
 
-export default function StandardMode({ onExit, botElo }: GameModeProps) {
+export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameModeProps) {
   const [chess, setChess] = useState(() => new Chess());
   const [fen, setFen] = useState(chess.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
@@ -56,10 +57,52 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
   const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]);
   const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]);
   const [winner, setWinner] = useState<'w' | 'b' | null>(null);
+  const [resultReason, setResultReason] = useState<string | null>(null);
+
+  const initialTime = Math.max(60, timeMinutes * 60);
+  const [playerTime, setPlayerTime] = useState<number>(initialTime);
+  const [botTime, setBotTime] = useState<number>(initialTime);
 
   const [currentBotElo, setCurrentBotElo] = useState<number>(botElo);
-  const { isReady, isThinking, getBestMove, engineError } = useStockfish();
+  const { isReady, isThinking, getBestMove, engineError, stopThinking } = useStockfish();
   const currentBot = getBotByElo(currentBotElo);
+
+  // Active game clock countdown
+  useEffect(() => {
+    if (winner) return;
+    const interval = setInterval(() => {
+      if (chess.turn() === 'w') {
+        setPlayerTime((t) => {
+          if (t <= 1) {
+            setWinner('b');
+            setResultReason('DEFEAT · TIME FORFEIT');
+            recordGameResult('loss');
+            return 0;
+          }
+          return t - 1;
+        });
+      } else {
+        setBotTime((t) => {
+          if (t <= 1) {
+            setWinner('w');
+            setResultReason('VICTORY · WON ON TIME');
+            unlockAchievement('first-win');
+            recordGameResult('win');
+            return 0;
+          }
+          return t - 1;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [chess, winner]);
+
+  const formatClock = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const legalMoves = useMemo(() => {
     if (!selectedSquare || winner) return new Set<string>();
@@ -152,7 +195,7 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
     let isActive = true;
 
     const playBotMove = async () => {
-      const moveStr = await getBestMove(chess.fen(), currentBot);
+      const moveStr = await getBestMove(chess.fen(), currentBot, botTime);
       if (!isActive || !moveStr) return;
 
       try {
@@ -168,6 +211,7 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
         if (chess.isGameOver()) {
           if (chess.isCheckmate()) {
             setWinner('b');
+            setResultReason('DEFEAT · CHECKMATE');
             recordGameResult('loss');
           } else if (chess.isDraw()) {
             recordGameResult('draw');
@@ -180,9 +224,10 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
     playBotMove();
 
     return () => { isActive = false; };
-  }, [fen, chess, getBestMove, currentBot, winner]);
+  }, [fen, chess, getBestMove, currentBot, winner, botTime]);
 
   const handleNewGame = () => {
+    stopThinking();
     const newChess = new Chess();
     setChess(newChess);
     setFen(newChess.fen());
@@ -191,11 +236,15 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
     setCapturedByWhite([]);
     setCapturedByBlack([]);
     setWinner(null);
+    setResultReason(null);
+    setPlayerTime(initialTime);
+    setBotTime(initialTime);
   };
 
   // Take back the last full move (bot reply plus your move).
   const handleTakeback = () => {
     if (chess.history().length === 0) return;
+    stopThinking();
     chess.undo();
     if (chess.turn() === 'b' && chess.history().length > 0) chess.undo();
     setFen(chess.fen());
@@ -224,6 +273,9 @@ export default function StandardMode({ onExit, botElo }: GameModeProps) {
       materialAdvantage={materialAdvantage}
       botActive={chess.turn() === 'b' && !winner}
       playerActive={chess.turn() === 'w' && !winner}
+      playerClock={formatClock(playerTime)}
+      botClock={formatClock(botTime)}
+      resultTitle={resultReason || undefined}
       status={
         engineError
           ? 'The engine could not start. You can still set up a new game.'

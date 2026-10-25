@@ -5,7 +5,7 @@ import ModesSection from './components/landing/ModesSection';
 
 export interface LandingPageProps {
   user: { name: string; email: string } | null;
-  onPlay: () => void;
+  onPlay: (timeMinutes?: number) => void;
   onRuleVariants?: () => void;
   onQuick?: () => void;
   onTraining?: () => void;

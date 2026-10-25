@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Glide, GlidePiece } from "./pieceGlide";
 
-export const GLIDE_MS = 160;
+export const GLIDE_MS = 180;
 
 /**
  * Overlay that glides moved pieces from their previous square to the new
@@ -11,13 +11,13 @@ export const GLIDE_MS = 160;
 export default function PieceGlideLayer({
   glides,
   batch,
-  flip,
+  flip = false,
   render,
 }: {
   glides: Glide[];
   batch: number;
-  flip: boolean;
-  render: (piece: GlidePiece) => { text: string; cls: string };
+  flip?: boolean;
+  render: (piece: GlidePiece) => { text: ReactNode; cls?: string };
 }) {
   const [landed, setLanded] = useState(false);
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function PieceGlideLayer({
           <span
             key={`${batch}-${i}`}
             aria-hidden="true"
-            className={`${cls} piece-glide`}
+            className={`${cls || ""} piece-glide`}
             style={{
               transform: `translate(${at.x * 100}%, ${at.y * 100}%)`,
               transitionDuration: `${GLIDE_MS}ms`,

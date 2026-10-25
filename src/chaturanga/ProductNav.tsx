@@ -117,82 +117,86 @@ export default function ProductNav({
         </div>
       </header>
 
-      {/* Persistent Left Rail Navigation for Desktop (hidden on screens < 1024px) */}
-      <aside className="hidden lg:flex flex-col w-56 fixed top-16 bottom-0 left-0 bg-[#1A1A1A] border-r border-white/5 p-4 z-30 justify-between">
-        <nav className="flex flex-col gap-1.5">
-          {navItems.map((item) => {
+      {/* Persistent Left Rail Navigation for Desktop (hidden on screens < 1024px and on landing home) */}
+      {active !== 'home' && (
+        <aside className="hidden lg:flex flex-col w-56 fixed top-16 bottom-0 left-0 bg-[#1A1A1A] border-r border-white/5 p-4 z-30 justify-between">
+          <nav className="flex flex-col gap-1.5">
+            {navItems.map((item) => {
+              const isActive = active === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={item.action}
+                  className={`flex items-center gap-3.5 px-4 py-3 rounded-xl font-body text-sm font-medium transition-all text-left border-none cursor-pointer ${
+                    isActive
+                      ? 'bg-[#262626] text-[#AFF65B] shadow-sm'
+                      : 'bg-transparent text-[#8A8A8A] hover:text-[#F4F4F4] hover:bg-[#262626]/50'
+                  }`}
+                >
+                  <img
+                    src={item.icon}
+                    alt=""
+                    className={`w-5 h-5 transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}
+                    style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(175, 246, 91, 0.6))' } : undefined}
+                  />
+                  <span className="tracking-wide">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Footer info in rail */}
+          <div className="pt-4 border-t border-white/5 px-2">
+            <div className="text-[10px] font-body text-[#AFF65B] font-semibold tracking-widest uppercase">
+              MATIKS WEB
+            </div>
+            <div className="text-[10px] font-body text-[#8A8A8A] mt-0.5">
+              Client-Side Offline Ready
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* Fixed Bottom Tab Bar for Mobile Phone Browsers (< 1024px and not on landing home) */}
+      {active !== 'home' && (
+        <nav
+          aria-label="Mobile Navigation"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1A1A1A] border-t border-white/10 flex items-center justify-around px-2 py-1"
+          style={{ minHeight: '56px' }}
+        >
+          {[
+            { id: 'home', label: 'Home', icon: '/icons/home.svg', action: onHome },
+            { id: 'play', label: 'Play', icon: '/icons/play.svg', action: onPlay },
+            { id: 'bots', label: 'Bots', icon: '/icons/swap.svg', action: onBots },
+            ...(onOnline ? [{ id: 'online', label: 'Online', icon: '/icons/swap.svg', action: onOnline }] : []),
+            ...(onStamps ? [{ id: 'stamps', label: 'Stamps', icon: '/icons/stamp.svg', action: onStamps }] : []),
+            { id: 'profile', label: 'Profile', icon: '/icons/user.svg', action: onProfile },
+          ].map((item) => {
             const isActive = active === item.id;
             return (
               <button
                 key={item.id}
                 onClick={item.action}
-                className={`flex items-center gap-3.5 px-4 py-3 rounded-xl font-body text-sm font-medium transition-all text-left border-none cursor-pointer ${
-                  isActive
-                    ? 'bg-[#262626] text-[#AFF65B] shadow-sm'
-                    : 'bg-transparent text-[#8A8A8A] hover:text-[#F4F4F4] hover:bg-[#262626]/50'
-                }`}
+                className="flex flex-col items-center justify-center flex-1 py-1 bg-transparent border-none cursor-pointer"
+                style={{ minHeight: '44px' }}
               >
                 <img
                   src={item.icon}
                   alt=""
-                  className={`w-5 h-5 transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}
-                  style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(175, 246, 91, 0.6))' } : undefined}
+                  className={`w-5 h-5 ${isActive ? 'opacity-100' : 'opacity-50'}`}
                 />
-                <span className="tracking-wide">{item.label}</span>
+                <span
+                  className={`text-[10px] font-body mt-1 ${
+                    isActive ? 'text-[#AFF65B] font-semibold' : 'text-[#8A8A8A]'
+                  }`}
+                >
+                  {item.label}
+                </span>
               </button>
             );
           })}
         </nav>
-
-        {/* Footer info in rail */}
-        <div className="pt-4 border-t border-white/5 px-2">
-          <div className="text-[10px] font-body text-[#AFF65B] font-semibold tracking-widest uppercase">
-            MATIKS WEB
-          </div>
-          <div className="text-[10px] font-body text-[#8A8A8A] mt-0.5">
-            Client-Side Offline Ready
-          </div>
-        </div>
-      </aside>
-
-      {/* Fixed Bottom Tab Bar for Mobile Phone Browsers (< 1024px) */}
-      <nav
-        aria-label="Mobile Navigation"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1A1A1A] border-t border-white/10 flex items-center justify-around px-2 py-1"
-        style={{ minHeight: '56px' }}
-      >
-        {[
-          { id: 'home', label: 'Home', icon: '/icons/home.svg', action: onHome },
-          { id: 'play', label: 'Play', icon: '/icons/play.svg', action: onPlay },
-          { id: 'bots', label: 'Bots', icon: '/icons/swap.svg', action: onBots },
-          ...(onOnline ? [{ id: 'online', label: 'Online', icon: '/icons/swap.svg', action: onOnline }] : []),
-    ...(onStamps ? [{ id: 'stamps', label: 'Stamps', icon: '/icons/stamp.svg', action: onStamps }] : []),
-          { id: 'profile', label: 'Profile', icon: '/icons/user.svg', action: onProfile },
-        ].map((item) => {
-          const isActive = active === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={item.action}
-              className="flex flex-col items-center justify-center flex-1 py-1 bg-transparent border-none cursor-pointer"
-              style={{ minHeight: '44px' }}
-            >
-              <img
-                src={item.icon}
-                alt=""
-                className={`w-5 h-5 ${isActive ? 'opacity-100' : 'opacity-50'}`}
-              />
-              <span
-                className={`text-[10px] font-body mt-1 ${
-                  isActive ? 'text-[#AFF65B] font-semibold' : 'text-[#8A8A8A]'
-                }`}
-              >
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      )}
     </>
   );
 }

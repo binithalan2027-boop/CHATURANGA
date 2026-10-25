@@ -11,23 +11,23 @@ interface OfflineGameViewProps {
   gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic' | 'math' | 'matiks';
 }
 
-export default function OfflineGameView({ onExit, botElo = 250, gameMode = 'standard' }: OfflineGameViewProps) {
+export default function OfflineGameView({ onExit, botElo = 250, timeMinutes = 10, gameMode = 'standard' }: OfflineGameViewProps) {
   if (gameMode === 'math' || gameMode === 'matiks') {
     return <MathChessMode onExit={onExit} botElo={botElo} />;
   }
 
   if (gameMode === 'atomic') {
-    return <AtomicMode onExit={onExit} botElo={botElo} />;
+    return <AtomicMode onExit={onExit} botElo={botElo} timeMinutes={timeMinutes} />;
   }
   
   if (gameMode === 'fog') {
-    return <FogMode onExit={onExit} botElo={botElo} />;
+    return <FogMode onExit={onExit} botElo={botElo} timeMinutes={timeMinutes} />;
   }
 
   if (gameMode === 'chess960') {
-    return <Chess960Mode onExit={onExit} botElo={botElo} />;
+    return <Chess960Mode onExit={onExit} botElo={botElo} timeMinutes={timeMinutes} />;
   }
 
   // Fallback to Standard
-  return <StandardMode onExit={onExit} botElo={botElo} />;
+  return <StandardMode onExit={onExit} botElo={botElo} timeMinutes={timeMinutes} />;
 }

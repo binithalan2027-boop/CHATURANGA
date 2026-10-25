@@ -1,9 +1,29 @@
-import { ReactNode } from "react";
+import { useState, useEffect, useRef, useMemo, ReactNode } from "react";
 import { usePreferences } from "../chaturanga/preferences";
 import MatiksPiece from "../components/MatiksPiece";
+import PieceGlideLayer, { GLIDE_MS, motionOK } from "../chaturanga/PieceGlideLayer";
+import { diffGlides, type Glide, type GlidePiece } from "../chaturanga/pieceGlide";
+import { playSound } from "../online/sounds";
 
 const FILES = [..."abcdefgh"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
+
+function flattenBoard(board: ({ type: string; color: string } | null)[][]): (GlidePiece | null)[] {
+  const flat: (GlidePiece | null)[] = new Array(64).fill(null);
+  for (let r = 0; r < 8; r++) {
+    for (let f = 0; f < 8; f++) {
+      const p = board[r]?.[f];
+      const sq = (7 - r) * 8 + f;
+      flat[sq] = p
+        ? {
+            color: p.color === "w" ? "white" : "black",
+            role: p.type.toLowerCase(),
+          }
+        : null;
+    }
+  }
+  return flat;
+}
 
 export interface SquareMark {
   className?: string;
@@ -101,6 +121,72 @@ export default function CourtyardMatch({
 }: CourtyardMatchProps) {
   const { prefs, open } = usePreferences();
 
+  const flatBoard = useMemo(() => flattenBoard(board), [board]);
+  const prevFlatBoard = useRef<(GlidePiece | null)[]>(flatBoard);
+  const [glides, setGlides] = useState<Glide[]>([]);
+  const [batch, setBatch] = useState<number>(0);
+  const [justMovedSq, setJustMovedSq] = useState<string | null>(null);
+  const [justCapturedSq, setJustCapturedSq] = useState<string | null>(null);
+  const prevCapturedCount = useRef<number>(0);
+
+  useEffect(() => {
+    if (prevFlatBoard.current === flatBoard) return;
+    const g = motionOK() ? diffGlides(prevFlatBoard.current, flatBoard) : [];
+    prevFlatBoard.current = flatBoard;
+
+    const currentCaptures = capturedByWhite.length + capturedByBlack.length;
+    const wasCapture = currentCaptures > prevCapturedCount.current;
+    prevCapturedCount.current = currentCaptures;
+
+    if (lastMove) {
+      setJustMovedSq(lastMove.to);
+      if (wasCapture) {
+        setJustCapturedSq(lastMove.to);
+      }
+      if (prefs.sound) {
+        if (checkSquare) {
+          playSound("check");
+        } else if (wasCapture) {
+          playSound("capture");
+        } else {
+          playSound("move");
+        }
+      }
+    }
+
+    if (g.length > 0) {
+      setGlides(g);
+      setBatch((b) => b + 1);
+    }
+  }, [flatBoard, lastMove, checkSquare, prefs.sound, capturedByWhite.length, capturedByBlack.length]);
+
+  useEffect(() => {
+    if (!glides.length) return;
+    const t = setTimeout(() => {
+      setGlides([]);
+    }, GLIDE_MS + 40);
+    return () => clearTimeout(t);
+  }, [glides]);
+
+  useEffect(() => {
+    if (!justMovedSq && !justCapturedSq) return;
+    const timer = setTimeout(() => {
+      setJustMovedSq(null);
+      setJustCapturedSq(null);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [justMovedSq, justCapturedSq]);
+
+  const hidingSquares = useMemo(() => {
+    const set = new Set<string>();
+    for (const g of glides) {
+      const row = Math.floor(g.to / 8);
+      const col = g.to % 8;
+      set.add(`${FILES[col]}${RANKS[7 - row]}`);
+    }
+    return set;
+  }, [glides]);
+
   const pairs: { num: number; white: string; black?: string }[] = [];
   for (let i = 0; i < history.length; i += 2) {
     pairs.push({ num: i / 2 + 1, white: history[i], black: history[i + 1] });
@@ -157,7 +243,14 @@ export default function CourtyardMatch({
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#8A8A8A]">
-                  <span>{isBotThinking ? "Thinking…" : botActive ? "To move" : "Waiting"}</span>
+                  {isBotThinking ? (
+                    <span className="inline-flex items-center gap-1.5 text-[#AFF65B] font-semibold bg-[#AFF65B]/10 px-2.5 py-0.5 rounded-full border border-[#AFF65B]/30 shadow-sm animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#AFF65B] animate-ping" />
+                      Thinking…
+                    </span>
+                  ) : (
+                    <span>{botActive ? "To move" : "Waiting"}</span>
+                  )}
                   {capturedByBlack.length > 0 && (
                     <>
                       <span>·</span>
@@ -169,7 +262,11 @@ export default function CourtyardMatch({
             </div>
             <div className="flex items-center gap-2">
               {botClock && (
-                <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-[#262626] border border-white/5 text-[#F4F4F4] font-semibold">
+                <span className={`font-mono text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                  botActive
+                    ? "bg-[#262626] border-[#AFF65B]/40 text-[#AFF65B] shadow-sm"
+                    : "bg-[#262626] border-white/5 text-[#F4F4F4]"
+                }`}>
                   {botClock}
                 </span>
               )}
@@ -184,7 +281,7 @@ export default function CourtyardMatch({
           {/* Chess Board */}
           <div className="matiks-board-wrap w-full max-w-[640px]">
             <div
-              className="matiks-board court-board"
+              className="matiks-board court-board relative"
               role="group"
               aria-label={`${title} chess board`}
             >
@@ -199,6 +296,9 @@ export default function CourtyardMatch({
                     (lastMove?.from === sq || lastMove?.to === sq);
                   const isLegal = legalMoves.has(sq) && !hidden;
                   const isCapture = isLegal && Boolean(piece);
+                  const isHiding = hidingSquares.has(sq);
+                  const isJustMoved = justMovedSq === sq;
+                  const isJustCaptured = justCapturedSq === sq;
 
                   return (
                     <button
@@ -207,7 +307,9 @@ export default function CourtyardMatch({
                         selectedSquare === sq ? "selected" : ""
                       } ${isLast ? "last-move last" : ""} ${
                         checkSquare === sq ? "in-check check" : ""
-                      } ${hidden ? "fogged" : ""} ${mark?.className || ""}`}
+                      } ${hidden ? "fogged" : ""} ${isHiding ? "hiding-piece" : ""} ${
+                        isJustMoved ? "just-moved" : ""
+                      } ${isJustCaptured ? "just-captured" : ""} ${mark?.className || ""}`}
                       aria-label={`${sq}, ${
                         hidden
                           ? "hidden by fog"
@@ -275,6 +377,19 @@ export default function CourtyardMatch({
                   );
                 }),
               )}
+
+              {/* Smooth Vector Piece Glide Layer Overlay */}
+              <PieceGlideLayer
+                glides={glides}
+                batch={batch}
+                render={(p) => ({
+                  text: (
+                    <div className="piece-wrapper" aria-hidden="true">
+                      <MatiksPiece type={p.role} color={p.color === "white" ? "w" : "b"} />
+                    </div>
+                  ),
+                })}
+              />
             </div>
 
             {/* Main Screen In-Place Overlay (Maths Duel / Mind Gate) */}
@@ -355,7 +470,11 @@ export default function CourtyardMatch({
             </div>
             <div className="flex items-center gap-2">
               {playerClock && (
-                <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-[#262626] border border-white/5 text-[#F4F4F4] font-semibold">
+                <span className={`font-mono text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                  playerActive
+                    ? "bg-[#262626] border-[#AFF65B]/40 text-[#AFF65B] shadow-sm"
+                    : "bg-[#262626] border-white/5 text-[#F4F4F4]"
+                }`}>
                   {playerClock}
                 </span>
               )}

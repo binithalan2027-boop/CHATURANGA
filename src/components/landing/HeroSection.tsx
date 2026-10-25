@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 interface HeroSectionProps {
-  onPlay: () => void;
+  onPlay: (timeMinutes?: number) => void;
   onSearchMatch: () => void;
   onCancelMatch: () => void;
   matchStatus: 'idle' | 'searching' | 'found';
@@ -51,7 +51,7 @@ export default function HeroSection({
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-8 w-full sm:w-auto">
             <button
-              onClick={onPlay}
+              onClick={() => onPlay(parseInt(timeControl, 10))}
               className="btn-lime text-base py-3.5 sm:py-4 px-6 sm:px-8 uppercase font-semibold tracking-wider shadow-xl text-center"
             >
               Play a Bot Free

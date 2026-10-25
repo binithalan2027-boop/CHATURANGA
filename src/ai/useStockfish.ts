@@ -54,10 +54,31 @@ export function useStockfish() {
   const [engineError, setEngineError] = useState(false);
   const resolveMoveRef = useRef<((move: string) => void) | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingMoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const moveStartTimeRef = useRef<number>(0);
+  const targetDelayRef = useRef<number>(0);
   
   // To track MultiPV lines during a search
   const pvLinesRef = useRef<Record<number, string>>({});
   const activeBotConfigRef = useRef<BotConfig | null>(null);
+
+  const stopThinking = useCallback(() => {
+    if (pendingMoveTimerRef.current) {
+      clearTimeout(pendingMoveTimerRef.current);
+      pendingMoveTimerRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    resolveMoveRef.current = null;
+    setIsThinking(false);
+    if (workerRef.current && readyRef.current) {
+      try {
+        workerRef.current.postMessage('stop');
+      } catch (e) {}
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -109,15 +130,27 @@ export function useStockfish() {
             }
           }
 
-          if (finalMove && finalMove !== '(none)' && resolveMoveRef.current) {
-            resolveMoveRef.current(finalMove);
-            resolveMoveRef.current = null;
-          }
-          setIsThinking(false);
-          
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
+          }
+
+          const elapsed = Date.now() - moveStartTimeRef.current;
+          const waitRemaining = Math.max(0, targetDelayRef.current - elapsed);
+
+          const finalizeMove = () => {
+            if (finalMove && finalMove !== '(none)' && resolveMoveRef.current) {
+              resolveMoveRef.current(finalMove);
+              resolveMoveRef.current = null;
+            }
+            setIsThinking(false);
+            pendingMoveTimerRef.current = null;
+          };
+
+          if (waitRemaining > 0) {
+            pendingMoveTimerRef.current = setTimeout(finalizeMove, waitRemaining);
+          } else {
+            finalizeMove();
           }
         }
       };
@@ -141,6 +174,7 @@ export function useStockfish() {
 
       return () => {
         clearTimeout(initTimeout);
+        stopThinking();
         worker.terminate();
       };
     } catch (err) {
@@ -148,15 +182,46 @@ export function useStockfish() {
       setEngineError(true);
       setIsReady(true);
     }
-  }, []);
+  }, [stopThinking]);
 
-  const getBestMove = useCallback(async (fen: string, bot: BotConfig): Promise<string> => {
+  const getBestMove = useCallback(async (fen: string, bot: BotConfig, botClockSeconds?: number): Promise<string> => {
+    // Calculate humanized thinking duration
+    const pieceCount = (fen.split(' ')[0].match(/[pnbrqkPNBRQK]/g) || []).length;
+    let targetDelay: number;
+    if (pieceCount >= 28) {
+      // Opening: snappy, natural moves (700ms - 1300ms)
+      targetDelay = 700 + Math.random() * 600;
+    } else if (pieceCount >= 14) {
+      // Middlegame: tactical calculation pause (1100ms - 2200ms)
+      targetDelay = 1100 + Math.random() * 1100;
+      if (Math.random() < 0.15) {
+        targetDelay += 800 + Math.random() * 800; // Deep think
+      }
+    } else {
+      // Endgame: fast, decisive pacing (800ms - 1500ms)
+      targetDelay = 800 + Math.random() * 700;
+    }
+
+    // Time-scramble guard: if bot clock is low, think faster so it doesn't self-flag
+    if (typeof botClockSeconds === 'number') {
+      if (botClockSeconds <= 5) {
+        targetDelay = Math.min(targetDelay, 250 + Math.random() * 250);
+      } else if (botClockSeconds <= 12) {
+        targetDelay = Math.min(targetDelay, 500 + Math.random() * 500);
+      }
+    }
+
+    targetDelayRef.current = targetDelay;
+    moveStartTimeRef.current = Date.now();
+
     if (engineError || !workerRef.current) {
+      setIsThinking(true);
       return new Promise((resolve) => {
-        setTimeout(() => {
+        pendingMoveTimerRef.current = setTimeout(() => {
           import('chess.js').then(({ Chess }) => {
             const game = new Chess(fen);
             const moves = game.moves({ verbose: true });
+            setIsThinking(false);
             if (moves.length > 0) {
               const m = moves[Math.floor(Math.random() * moves.length)];
               resolve(m.from + m.to + (m.promotion || ''));
@@ -164,7 +229,7 @@ export function useStockfish() {
               resolve('');
             }
           });
-        }, 300 + Math.random() * 500);
+        }, targetDelay);
       });
     }
 
@@ -199,9 +264,9 @@ export function useStockfish() {
             resolve('');
           }
         });
-      }, 10000);
+      }, 12000);
     });
   }, [engineError]);
 
-  return { isReady, isThinking, getBestMove, engineError };
+  return { isReady, isThinking, getBestMove, engineError, stopThinking };
 }

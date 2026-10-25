@@ -130,8 +130,11 @@ function AppContent() {
     };
   }, []);
 
-  const triggerPlay = () => {
+  const triggerPlay = (time?: number) => {
     // Login is NOT mandatory - guests can play immediately
+    if (typeof time === "number") {
+      setTimeMinutes(time);
+    }
     setScreen("bot_select");
   };
 
@@ -217,6 +220,7 @@ function AppContent() {
     if (screen === "bots" || screen === "chaturanga" || screen === "chaturanga_demo" || screen === "bot_select") {
       return (
         <BotSelectScreen
+          initialTimeMinutes={timeMinutes}
           onStart={(elo, time, mode) => {
             setSelectedElo(elo);
             setTimeMinutes(time);
@@ -329,7 +333,7 @@ function AppContent() {
         onStamps={() => setScreen("stamps")}
         onOnline={() => setScreen("online")}
       />
-      <div className="product-content">
+      <div className={`product-content min-h-[calc(100vh-64px)] ${screen === "landing" ? "w-full" : "w-full lg:pl-56 pb-16 lg:pb-0"}`}>
         <Suspense
           fallback={
             <div className="min-h-screen bg-[#0E0E0E] flex items-center justify-center text-[#AFF65B] font-heading text-2xl" role="status">

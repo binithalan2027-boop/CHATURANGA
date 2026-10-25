@@ -380,20 +380,32 @@ body {
   z-index: 2 !important;
 }
 
-/* Selected square outline: stroke #0E0E0E width 3.6 */
+/* Selected square outline: Neon Lime Glow */
 .matiks-square.selected::before,
 .court-board .square.selected::before {
   content: '' !important;
   position: absolute !important;
   inset: 2px !important;
-  border: 3.5px solid #0E0E0E !important;
+  border: 3.5px solid #AFF65B !important;
   border-radius: 4px !important;
+  box-shadow: inset 0 0 10px rgba(175, 246, 91, 0.45), 0 0 12px rgba(175, 246, 91, 0.35) !important;
   pointer-events: none !important;
   z-index: 4 !important;
   background: none !important;
 }
 
-/* Check square outline */
+/* Check square outline with heartbeat pulse */
+@keyframes matiks-check-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 8px rgba(229, 72, 77, 0.4), 0 0 12px rgba(229, 72, 77, 0.35);
+    border-color: #E5484D;
+  }
+  50% {
+    box-shadow: inset 0 0 16px rgba(229, 72, 77, 0.8), 0 0 24px rgba(229, 72, 77, 0.7);
+    border-color: #FF3344;
+  }
+}
+
 .matiks-square.in-check::before,
 .court-board .square.check::before {
   content: '' !important;
@@ -404,6 +416,7 @@ body {
   border-radius: 4px !important;
   pointer-events: none !important;
   z-index: 4 !important;
+  animation: matiks-check-pulse 1.3s ease-in-out infinite !important;
 }
 
 /* Piece inside square */
@@ -418,6 +431,13 @@ body {
   justify-content: center !important;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)) !important;
   font-size: unset !important;
+  transition: opacity 120ms ease;
+}
+
+/* Hide static piece while gliding */
+.matiks-square.hiding-piece .piece-wrapper,
+.court-board .square.hiding-piece .piece {
+  opacity: 0 !important;
 }
 
 /* Legal Move Destination Dot: solid dark circle #0E0E0E, ~34% of square */
@@ -432,6 +452,8 @@ body {
   pointer-events: none !important;
   z-index: 5 !important;
   inset: unset !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3) !important;
+  transition: transform 140ms ease !important;
 }
 
 /* Capture Destination Ring: dark stroke circle #0E0E0E width 3.5 */
@@ -444,16 +466,49 @@ body {
   background: transparent !important;
   pointer-events: none !important;
   z-index: 5 !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.25) !important;
+  transition: transform 140ms ease !important;
+}
+
+/* Smooth Piece Glide Layer Overlay */
+.piece-glide {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 12.5% !important;
+  height: 12.5% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+  z-index: 25 !important;
+  transition-property: transform !important;
+  transition-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+  will-change: transform !important;
+}
+
+.piece-glide .piece-wrapper,
+.piece-glide .matiks-piece-svg {
+  width: 82% !important;
+  height: 82% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6)) scale(1.06) !important;
 }
 
 /* Piece Move & Capture Animations */
 @keyframes matiks-piece-land {
   0% {
-    transform: scale(0.85) translateY(-3px);
-    opacity: 0.85;
+    transform: scale(0.82) translateY(-4px);
+    opacity: 0.8;
   }
-  65% {
-    transform: scale(1.05) translateY(0);
+  60% {
+    transform: scale(1.08) translateY(1px);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.97) translateY(0);
   }
   100% {
     transform: scale(1) translateY(0);
@@ -463,31 +518,33 @@ body {
 
 @keyframes matiks-capture-burst {
   0% {
-    transform: scale(0.65);
-    opacity: 0.8;
+    transform: scale(0.5);
+    opacity: 0.95;
+    filter: brightness(1.5);
   }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.45;
+  45% {
+    transform: scale(1.15);
+    opacity: 0.7;
+    filter: brightness(1.2);
   }
   100% {
-    transform: scale(1.25);
+    transform: scale(1.35);
     opacity: 0;
   }
 }
 
 .matiks-square.just-moved .piece-wrapper {
-  animation: matiks-piece-land 160ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  animation: matiks-piece-land 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 }
 
 .matiks-square.just-captured::after {
   content: '' !important;
   position: absolute !important;
   inset: 0 !important;
-  border-radius: 4px !important;
-  background: radial-gradient(circle, rgba(229, 72, 77, 0.45) 0%, rgba(242, 213, 0, 0.25) 55%, transparent 80%) !important;
-  animation: matiks-capture-burst 240ms ease-out forwards !important;
+  border-radius: 6px !important;
+  background: radial-gradient(circle, rgba(229, 72, 77, 0.7) 0%, rgba(242, 213, 0, 0.4) 40%, rgba(175, 246, 91, 0.2) 65%, transparent 80%) !important;
+  animation: matiks-capture-burst 320ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
   pointer-events: none !important;
-  z-index: 6 !important;
+  z-index: 7 !important;
 }
 
