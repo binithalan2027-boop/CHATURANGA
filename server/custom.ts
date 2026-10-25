@@ -5,10 +5,23 @@ import {crossGame,crossPlay,crossTick,crossEliminate,type CrossState,SEATS} from
 import type {CustomKind,CustomView} from '../src/online/customTypes';
 import {Store} from './store';
 interface Room {id:string;kind:CustomKind;members:string[];capacity:number;minutes:number;version:number;status:CustomView['status'];math?:State;cross?:CrossState;result:string|null;draw:string[];createdAt?:number;finishedAt?:number;questionTokens?:Record<string,{internal:number;token:number}>}
+function generateCustomCode(store: Store): string {
+  const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+  let code = "";
+  do {
+    const bytes = randomBytes(6);
+    code = "";
+    for (let i = 0; i < 6; i++) {
+      code += chars[bytes[i] % chars.length];
+    }
+  } while (store.get("custom", code));
+  return code;
+}
+
 export class CustomService {
  constructor(public store:Store,private now=()=>Date.now(),private allowed:(a:string,b?:string)=>void,private name:(id:string)=>string){}
  room(code:string) {const r=this.store.get<Room>('custom',code);if(!r)throw Error('Room not found.');return r;}
- create(id:string,kind:CustomKind,minutes:number) {this.allowed(id);if(!['mind','mantra','cross3','cross4'].includes(kind)||![3,5,10,15].includes(minutes))throw Error('Invalid custom settings.');const userRooms=this.store.all<Room>('custom').filter(r=>r.members.includes(id)&&r.status!=='finished');if(userRooms.length>=5){const waiting=userRooms.filter(r=>r.status==='waiting'&&r.members[0]===id);if(waiting.length>0){for(const w of waiting.slice(0,Math.max(1,userRooms.length-4))){w.status='finished';w.result='Room cancelled';w.finishedAt=this.now();w.version++;this.store.put('custom',w.id,w);}}else throw Error('Finish an existing custom room.');}const r:Room={id:randomBytes(9).toString('hex'),kind,members:[id],capacity:kind==='cross3'?3:kind==='cross4'?4:2,minutes,version:0,status:'waiting',result:null,draw:[],createdAt:this.now()};this.store.put('custom',r.id,r);return r.id;}
+ create(id:string,kind:CustomKind,minutes:number) {this.allowed(id);if(!['mind','mantra','cross3','cross4'].includes(kind)||![3,5,10,15].includes(minutes))throw Error('Invalid custom settings.');const userRooms=this.store.all<Room>('custom').filter(r=>r.members.includes(id)&&r.status!=='finished');if(userRooms.length>=5){const waiting=userRooms.filter(r=>r.status==='waiting'&&r.members[0]===id);if(waiting.length>0){for(const w of waiting.slice(0,Math.max(1,userRooms.length-4))){w.status='finished';w.result='Room cancelled';w.finishedAt=this.now();w.version++;this.store.put('custom',w.id,w);}}else throw Error('Finish an existing custom room.');}const r:Room={id:generateCustomCode(this.store),kind,members:[id],capacity:kind==='cross3'?3:kind==='cross4'?4:2,minutes,version:0,status:'waiting',result:null,draw:[],createdAt:this.now()};this.store.put('custom',r.id,r);return r.id;}
  join(id:string,code:string) {const r=this.room(code);this.allowed(id);if(r.members.includes(id))return;if(r.status!=='waiting'||r.members.length>=r.capacity)throw Error('Room unavailable.');for(const p of r.members)this.allowed(id,p);r.members.push(id);r.version++;if(r.members.length===r.capacity){r.status='active';if(r.kind.startsWith('cross'))r.cross=crossGame(r.capacity as 3|4,r.minutes*60000,this.now());else r.math=newGame({mode:r.kind as 'mind'|'mantra',difficulty:'medium',initialMs:r.minutes*60000,incrementMs:0,untimed:false,seed:randomBytes(4).readUInt32LE()},this.now());}this.save(r);}
  save(r:Room){this.store.put('custom',r.id,r);}
  settle(r:Room){if(r.status!=='active')return;if(r.cross){r.cross=crossTick(r.cross,this.now());r.result=r.cross.result;}if(r.math){r.math=tick(r.math,this.now());if(r.math.phase==='handoff') { // Online turn-based duels: auto-ready, no device handoff.

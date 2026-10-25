@@ -1121,9 +1121,12 @@ export default function OnlinePage({
                     Room code
                     <input
                       value={code}
-                      autoCapitalize="none"
+                      maxLength={18}
+                      autoCapitalize="characters"
                       autoCorrect="off"
                       spellCheck={false}
+                      placeholder="e.g. 8ITRU8"
+                      className="uppercase font-mono"
                       onChange={(e) =>
                         setCode(e.target.value.trim().toLowerCase())
                       }

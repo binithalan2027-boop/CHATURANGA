@@ -75,6 +75,19 @@ const clean = (v: unknown, max: number) => {
     throw Error("Invalid text field.");
   return v.trim();
 };
+function generateRoomCode(store: Store): string {
+  const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+  let code = "";
+  do {
+    const bytes = randomBytes(6);
+    code = "";
+    for (let i = 0; i < 6; i++) {
+      code += chars[bytes[i] % chars.length];
+    }
+  } while (store.get("room", code));
+  return code;
+}
+
 export class Service {
   /** Last contact with each player (API call or live socket), epoch ms.
    * In-memory only: a restart simply starts the grace window fresh. */
@@ -340,7 +353,7 @@ export class Service {
       }
     }
     const r: Room = {
-      id: randomBytes(9).toString("hex"),
+      id: generateRoomCode(this.store),
       rule,
       white: id,
       black: null,
