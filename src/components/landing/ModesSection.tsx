@@ -1,60 +1,155 @@
+interface ModesSectionProps {
+  onPlayMode?: (mode: string) => void;
+}
 
+export default function ModesSection({ onPlayMode }: ModesSectionProps) {
+  const modes = [
+    {
+      id: 'fog',
+      name: 'FOG OF WAR',
+      tagline: 'See only what you can reach',
+      color: 'bento-lavender',
+      bgHex: '#A594F0',
+      illustration: '/illustrations/fog.svg',
+      desc: 'The squares outside your pieces\' legal moves are cloaked in mystery.',
+    },
+    {
+      id: 'chess960',
+      name: 'CHESS960',
+      tagline: 'Shuffled back rank, fresh every game',
+      color: 'bento-teal',
+      bgHex: '#66D4C2',
+      illustration: '/illustrations/dice.svg',
+      desc: 'Fischer random setup prevents memorized opening books.',
+    },
+    {
+      id: 'atomic',
+      name: 'ATOMIC CHESS',
+      tagline: 'Captures cause violent 3x3 explosions',
+      color: 'bento-coral',
+      bgHex: '#F07040',
+      illustration: '/illustrations/burst.svg',
+      desc: 'Detonations destroy both pieces and surrounding non-pawns.',
+    },
+    {
+      id: 'math',
+      name: 'CHESS MM',
+      tagline: 'Mental math showdowns & spell powers',
+      color: 'bento-charcoal',
+      bgHex: '#1A1A1A',
+      illustration: '/illustrations/pi.svg',
+      desc: 'Solve rapid math equations to make moves and unleash Freeze & Jump spells.',
+    },
+  ];
 
-export default function ModesSection() {
   return (
-    <>
-      <section id="character-sets" className="w-full px-margin-mobile lg:px-margin py-space-xl bg-surface-container-lowest">
-        <div className="flex flex-col gap-space-lg w-full">
-          <div className="flex flex-col items-center text-center gap-space-xs mb-space-md">
-            <h2 className="font-display-lg text-bone-ivory uppercase tracking-tight">The 9 Realms of Combat</h2>
-            <p className="text-on-surface-variant font-body-md max-w-2xl">From standard tactical warfare to cursed explosive chaos, choose your battlefield.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
-            {[
-              { name: 'Ranked Classic', icon: '⚔️', desc: 'Standard 8x8 rules. Pure skill, no magic. Prove you are the true grandmaster.' },
-              { name: 'Spell Chess', icon: '🔮', desc: 'Void Freeze & Shadow Swap. Cast dark magic to manipulate the board.' },
-              { name: 'Cursed Blast', icon: '☠️', desc: 'Atomic rules. Captures cause explosive 3x3 shockwaves. Protect your King.' },
-              { name: 'Stealth Ambush', icon: '🌑', desc: 'Fog of war. You can only see the squares your pieces can physically move to.' },
-              { name: 'Fischer Chaos', icon: '🎲', desc: 'Chess960. Back rank starting positions are completely randomized.' },
-              { name: 'Chaturanga 14x14', icon: '🗺️', desc: 'Massive 4-player combat. Form alliances, betray friends, dominate.' },
-              { name: 'Grim AI Arena', icon: '🤖', desc: 'Test your might against the infinite scaling Eldritch God engine (1-3500 ELO).' },
-              { name: 'Friends Sanctum', icon: '🤝', desc: 'Private unrated lobbies. Share your 16-digit Grimoire Code to duel.' }
-            ].map((mode, i) => (
-              <div key={i} className="bg-surface-card border border-surface-container hover:border-primary-container p-space-md rounded-xl transition-colors cursor-pointer group flex flex-col gap-3">
-                <div className="text-4xl group-hover:scale-110 transition-transform">{mode.icon}</div>
-                <h3 className="font-headline-md text-bone-ivory uppercase">{mode.name}</h3>
-                <p className="font-body-sm text-on-surface-variant">{mode.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    <div id="modes-section" className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* Section Header */}
+      <div className="flex flex-col items-start mb-8">
+        <div className="matiks-kicker mb-1">FEATURED COMBAT MODES</div>
+        <h2 className="matiks-headline text-4xl sm:text-5xl text-[#F4F4F4]">
+          FIVE WAYS TO PLAY
+        </h2>
+        <p className="font-body text-sm text-[#8A8A8A] mt-1 max-w-xl">
+          From pure tactical calculation to explosive atomic blasts and mental arithmetic duels.
+        </p>
+      </div>
 
-      <section className="w-full px-margin-mobile lg:px-margin py-space-xl bg-void-black border-t border-surface-container">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-xl items-center">
-          <div className="flex flex-col gap-space-md">
-            <h2 className="font-display-lg text-bone-ivory uppercase tracking-tight">Cursed Armies</h2>
-            <p className="text-on-surface-variant font-body-lg">
-              Unlock and command unique faction aesthetics. Swap the classic Staunton pieces for 
-              glowing demonic sigils, ancient runes, or spectral weaponry. Your army, your aesthetic.
-            </p>
-            <ul className="flex flex-col gap-3 font-headline-sm text-bone-ivory mt-2">
-              <li className="flex items-center gap-3"><span className="text-primary material-symbols-outlined">check_circle</span> The Voidborn (Default)</li>
-              <li className="flex items-center gap-3"><span className="text-primary material-symbols-outlined">check_circle</span> Blood Court Vampires (Unlock at Level 10)</li>
-              <li className="flex items-center gap-3"><span className="text-primary material-symbols-outlined">check_circle</span> Cult of the Deep (Unlock at Level 25)</li>
-            </ul>
+      {/* 4 Bento Mode Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {modes.map((mode) => (
+          <div
+            key={mode.id}
+            onClick={() => onPlayMode?.(mode.id)}
+            className={`bento-card ${mode.color} p-6 sm:p-8 flex flex-col justify-between min-h-[220px] cursor-pointer shadow-xl relative overflow-hidden`}
+            style={{ backgroundColor: mode.bgHex }}
+          >
+            <div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3
+                    className="matiks-headline text-3xl sm:text-4xl leading-none"
+                    style={{ color: mode.id === 'math' ? '#F4F4F4' : '#0E0E0E' }}
+                  >
+                    {mode.name}
+                  </h3>
+                  <div
+                    className="font-body text-xs font-semibold mt-1"
+                    style={{ color: mode.id === 'math' ? '#AFF65B' : '#0E0E0E' }}
+                  >
+                    {mode.tagline}
+                  </div>
+                </div>
+
+                <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                  <img
+                    src={mode.illustration}
+                    alt={mode.name}
+                    className="w-full h-full object-contain filter drop-shadow-md"
+                  />
+                </div>
+              </div>
+
+              <p
+                className="font-body text-xs mt-3 max-w-sm leading-relaxed"
+                style={{ color: mode.id === 'math' ? '#8A8A8A' : '#0E0E0E' }}
+              >
+                {mode.desc}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end mt-4">
+              <button
+                className={`btn-raised text-xs py-2 px-5 font-semibold uppercase tracking-wider rounded-full ${
+                  mode.id === 'math'
+                    ? 'btn-lime'
+                    : 'bg-[#0E0E0E] text-[#F4F4F4] hover:bg-black'
+                }`}
+              >
+                Play Mode →
+              </button>
+            </div>
           </div>
-          <div className="bg-surface-container-lowest rounded-xl p-8 border border-surface-container flex items-center justify-center relative overflow-hidden">
-             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20"></div>
-             <div className="grid grid-cols-3 gap-8 relative z-10">
-               <img src="/pieces/wK.svg" alt="King" className="w-16 h-16 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
-               <img src="/pieces/wQ.svg" alt="Queen" className="w-16 h-16 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
-               <img src="/pieces/wN.svg" alt="Knight" className="w-16 h-16 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
-             </div>
+        ))}
+      </div>
+
+      {/* Self-Hosted Original Pattern Banner (replacing transparenttextures.com) */}
+      <div className="mt-16 rounded-3xl bg-[#1A1A1A] border border-white/5 p-8 sm:p-12 relative overflow-hidden bg-diagonal-stripes">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+          <div className="md:col-span-8 flex flex-col items-start">
+            <span className="matiks-kicker mb-2">COLLECTIBLE REWARDS</span>
+            <h3 className="matiks-headline text-3xl sm:text-5xl text-[#F4F4F4]">
+              POSTAGE-STAMP ACHIEVEMENTS
+            </h3>
+            <p className="font-body text-sm text-[#8A8A8A] max-w-lg mt-2 leading-relaxed">
+              Earn vintage perforated stamps with custom vector illustrations as you conquer bots, achieve tactical checkmates, and win mental math duels.
+            </p>
+            <div className="flex items-center gap-4 mt-6">
+              <span className="text-xs font-mono text-[#AFF65B] bg-[#262626] px-3 py-1.5 rounded-full border border-white/5">
+                10 COLLECTIBLE STAMPS
+              </span>
+              <span className="text-xs font-mono text-[#F4F4F4]/70 bg-[#262626] px-3 py-1.5 rounded-full border border-white/5">
+                SAVED DEVICE-LOCALLY
+              </span>
+            </div>
+          </div>
+
+          <div className="md:col-span-4 flex items-center justify-center">
+            <div className="grid grid-cols-2 gap-3 rotate-2">
+              <img
+                src="/stamps/first-win-unlocked.svg"
+                alt="First Win"
+                className="w-24 h-32 object-contain drop-shadow-xl"
+              />
+              <img
+                src="/stamps/speed-duel-win-unlocked.svg"
+                alt="Speed Duel"
+                className="w-24 h-32 object-contain drop-shadow-xl"
+              />
+            </div>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </div>
   );
 }

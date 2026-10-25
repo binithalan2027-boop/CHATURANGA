@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration king</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<rect x="46" y="6" width="8" height="26" rx="2" fill="#A594F0"/>
+<rect x="37" y="14" width="26" height="8" rx="2" fill="#A594F0"/>
+<path d="M30 90 H70 L66 52 C66 44 60 38 50 38 C40 38 34 44 34 52 Z" fill="#A594F0"/>
+<rect x="24" y="82" width="52" height="12" rx="5" fill="#A594F0"/>
+<rect x="34" y="60" width="32" height="6" rx="3" fill="#1A1A1A"/>
+</g>
+</svg>

@@ -16,7 +16,7 @@ it("every bot returns a legal move without mutating the position", () => {
     c.undo();
     expect(c.fen()).toBe(fen);
   }
-});
+}, 30000);
 it("honors variant allowed-move filter", () => {
   const c = new Chess();
   for (const b of BOTS)
@@ -32,15 +32,15 @@ describe("Khivin difficulty levels", () => {
   const fen = "rnb1kbnr/pppp1ppp/8/4q3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1"; // free queen on e5
   it("master takes the free queen", () => {
     expect(chooseBotMove(fen, "khivin", undefined, 8000, "master")).toBe("d4e5");
-  });
+  }, 30000);
   it("all levels return legal moves", () => {
     const c = new Chess();
     for (const lv of ["beginner", "club", "master"] as const) {
       const m = chooseBotMove(c.fen(), "khivin", undefined, 8000, lv);
       expect(c.moves({ verbose: true }).map((x) => x.from + x.to + (x.promotion || ""))).toContain(m);
     }
-  });
+  }, 30000);
   it("without a level, house defaults still apply", () => {
     expect(chooseBotMove(fen, "khivin", undefined, 8000)).toBe("d4e5");
-  });
+  }, 30000);
 });

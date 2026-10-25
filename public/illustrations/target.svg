@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration target</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<circle cx="50" cy="50" r="42" fill="#66D4C2"/>
+<circle cx="50" cy="50" r="30" fill="#1A1A1A"/>
+<circle cx="50" cy="50" r="19" fill="#66D4C2"/>
+<circle cx="50" cy="50" r="8" fill="#1A1A1A"/>
+<line x1="50" y1="50" x2="86" y2="14" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
+<path d="M80 8 L92 8 L92 20 Z" fill="#1A1A1A"/>
+</g>
+</svg>

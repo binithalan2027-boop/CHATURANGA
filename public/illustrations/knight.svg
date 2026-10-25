@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration knight</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<path d="M26 90 H78 V80 C78 62 72 50 62 44 C72 40 78 30 74 20 L64 24 L58 10 L48 22 C32 26 20 40 20 56 L36 62 C40 54 46 52 52 52 C46 62 38 70 30 80 Z" fill="#AFF65B"/>
+<circle cx="52" cy="34" r="3.2" fill="#1A1A1A"/>
+<rect x="22" y="82" width="60" height="10" rx="4" fill="#1A1A1A"/>
+</g>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration shield</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<path d="M50 6 L88 20 V50 C88 72 70 86 50 94 C30 86 12 72 12 50 V20 Z" fill="#AFF65B"/>
+<path d="M34 50 L46 62 L68 36" fill="none" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

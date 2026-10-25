@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 interface HeroSectionProps {
@@ -7,9 +6,17 @@ interface HeroSectionProps {
   onCancelMatch: () => void;
   matchStatus: 'idle' | 'searching' | 'found';
   onOpenFriendsSanctum?: () => void;
+  onCreatePrivateRoom?: () => void;
 }
 
-export default function HeroSection({ onPlay, onSearchMatch, onCancelMatch, matchStatus, onOpenFriendsSanctum }: HeroSectionProps) {
+export default function HeroSection({
+  onPlay,
+  onSearchMatch,
+  onCancelMatch,
+  matchStatus,
+  onOpenFriendsSanctum,
+  onCreatePrivateRoom,
+}: HeroSectionProps) {
   const [timeControl, setTimeControl] = useState('10');
 
   const handleMatchmaking = () => {
@@ -20,113 +27,128 @@ export default function HeroSection({ onPlay, onSearchMatch, onCancelMatch, matc
     }
   };
 
-  let matchBtnText = 'FIND IMMEDIATE MATCH';
+  let matchBtnText = 'FIND ONLINE MATCH';
   if (matchStatus === 'searching') matchBtnText = 'SEARCHING COMBATANTS...';
   if (matchStatus === 'found') matchBtnText = 'OPPONENT FOUND! ENTERING ARENA...';
 
   return (
-    <>
-      <div className="w-full bg-surface-container-lowest px-margin-mobile lg:px-margin py-2 flex items-center justify-between overflow-x-auto gap-gutter">
-        <div className="flex items-center gap-space-md shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-crimson-glow animate-pulse"></span>
-            <span className="font-label-sm text-label-sm text-bone-ivory uppercase tracking-widest">SEASON 1: BLOODLINE</span>
-          </div>
-          <span className="text-outline-variant font-label-sm">/</span>
-          <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">WORLD ARENA #4 LIVE</span>
-        </div>
-        <div className="flex items-center gap-space-lg shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="font-label-sm text-label-sm text-primary uppercase">AVG QUEUE:</span>
-            <span className="font-label-sm text-label-sm text-bone-ivory">00:09s</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-label-sm text-label-sm text-secondary-container uppercase">CHECKMATE STRIKES TODAY:</span>
-            <span className="font-label-sm text-label-sm text-bone-ivory">48,219</span>
-          </div>
-          <div className="hidden md:flex items-center gap-1 text-tertiary">
-            <span className="material-symbols-outlined text-[16px]">bolt</span>
-            <span className="font-label-sm text-label-sm uppercase tracking-wider">ANIME ENGINE 2.4 READY</span>
-          </div>
-        </div>
-      </div>
+    <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+      {/* Kicker */}
+      <div className="matiks-kicker mb-3">EVERY CHESS VARIANT. ONE PLACE.</div>
 
-      <section className="relative w-full px-margin-mobile lg:px-margin pt-space-md pb-space-xl overflow-hidden">
-        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-primary-container/20 rounded-full blur-[140px] pointer-events-none"></div>
-        <div className="absolute top-1/3 -right-24 w-96 h-96 bg-tertiary-container/25 rounded-full blur-[160px] pointer-events-none"></div>
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-secondary-container/15 rounded-full blur-[120px] pointer-events-none"></div>
-        
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-gutter items-center">
-          <div className="lg:col-span-7 flex flex-col gap-space-md">
-            <div className="inline-flex items-center gap-2 self-start bg-surface-container-high px-space-sm py-1 rounded">
-              <span className="font-label-sm text-label-sm text-crimson-glow uppercase tracking-widest">[ HORROR CHARACTERS × ANIME ACTION ]</span>
-              <span className="w-1 h-1 rounded-full bg-bone-ivory"></span>
-              <span className="font-label-sm text-label-sm text-bone-ivory/80 uppercase">TACTICAL BATTLE ARENA</span>
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-display-xl text-display-xl text-bone-ivory uppercase tracking-normal select-none">CHESS, BUT EVERY</span>
-              <span className="font-display-xl text-display-xl text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-tertiary uppercase tracking-tight select-none">PIECE WANTS BLOOD.</span>
-            </div>
-            <p className="text-body-lg font-body-lg text-on-surface-variant max-w-2xl mt-4">
-              Step into the cursed void. Command armies of vampires, shadow fiends, and liches in 
-              high-stakes tactical combat. Climb the Grim Leaderboards, execute perfect sacrifices, 
-              and unleash hellish spells on your opponent's king.
-            </p>
+      {/* Main Grid: Headline Left, Large Yellow Hero Bento Tile Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Left Column: Huge Headline & Actions */}
+        <div className="lg:col-span-7 flex flex-col items-start">
+          <h1 className="matiks-headline text-6xl sm:text-7xl lg:text-8xl text-[#F4F4F4] leading-[0.92] tracking-tight select-none">
+            CHESS, <br />
+            <span className="text-[#AFF65B]">REIMAGINED.</span>
+          </h1>
+
+          <p className="font-body text-base sm:text-lg text-[#8A8A8A] max-w-xl mt-6 leading-relaxed">
+            Classic, Chess960, Fog of War, Atomic and Chess MM. Challenge Stockfish bots offline or duel friends in private rooms. 100% free, no login required.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-8 w-full sm:w-auto">
+            <button
+              onClick={onPlay}
+              className="btn-lime text-base py-3.5 sm:py-4 px-6 sm:px-8 uppercase font-semibold tracking-wider shadow-xl text-center"
+            >
+              Play a Bot Free
+            </button>
+            <a
+              href="#modes-section"
+              className="btn-raised text-base py-3.5 sm:py-4 px-6 sm:px-8 uppercase font-semibold tracking-wider no-underline text-center"
+            >
+              Explore Modes
+            </a>
           </div>
 
-          <div className="lg:col-span-5 flex flex-col gap-space-sm">
-            <div className="bg-surface-card border border-surface-container-high rounded-xl p-space-lg shadow-2xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary-container/10 to-transparent pointer-events-none"></div>
-              
-              <div className="flex items-center justify-between mb-space-md">
-                <h3 className="font-headline-md text-bone-ivory uppercase tracking-widest flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">swords</span>
-                  Enter the Arena
-                </h3>
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                  <span className="font-mono text-xs text-on-surface-variant">4,291 Online</span>
-                </div>
+          {/* Quick specs / trust points */}
+          <div className="flex flex-wrap items-center gap-6 mt-8 pt-6 border-t border-white/5 text-xs font-body text-[#8A8A8A]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#AFF65B]" />
+              <span>STOCKFISH WASM v16</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#66D4C2]" />
+              <span>5 ZERO-LATENCY MODES</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#F07040]" />
+              <span>LOCAL STAMPS & STATS</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Hero Yellow Bento Tile */}
+        <div className="lg:col-span-5">
+          <div className="bento-card bento-yellow p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative min-h-[380px] bg-dot-matrix">
+            {/* Top pill inside card */}
+            <div className="flex items-center justify-between z-10">
+              <span className="bg-[#0E0E0E] text-[#AFF65B] font-body text-[11px] font-semibold tracking-wider px-3 py-1 rounded-full uppercase">
+                FREE TO PLAY
+              </span>
+              <span className="font-heading text-lg text-[#0E0E0E] tracking-wider">
+                CHAMBER 01
+              </span>
+            </div>
+
+            {/* Illustration */}
+            <div className="my-6 flex items-center justify-center z-10">
+              <img
+                src="/illustrations/knight.svg"
+                alt="Chaturanga Knight"
+                className="w-40 h-40 sm:w-48 sm:h-48 object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.35)]"
+              />
+            </div>
+
+            {/* Card Content & Matchmaker */}
+            <div className="z-10 bg-[#0E0E0E]/90 backdrop-blur-md rounded-2xl p-4 border border-black/10">
+              <div className="flex items-center justify-between mb-3 text-xs font-body text-[#F4F4F4]">
+                <span className="font-semibold uppercase tracking-wider">Time Control</span>
+                <span className="text-[#AFF65B] font-mono">{timeControl} Min Rapid</span>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 mb-space-md">
+              <div className="grid grid-cols-4 gap-2 mb-3">
                 {['1', '3', '5', '10'].map((time) => (
-                  <button 
+                  <button
                     key={time}
                     onClick={() => setTimeControl(time)}
-                    className={`py-2 rounded font-headline-sm flex flex-col items-center justify-center transition-all ${timeControl === time ? 'bg-primary text-void-black shadow-[0_0_15px_rgba(var(--color-primary),0.5)] scale-105' : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low hover:text-white'}`}
+                    className={`py-1.5 rounded-lg font-heading text-sm border-none cursor-pointer transition-all ${
+                      timeControl === time
+                        ? 'bg-[#AFF65B] text-[#0E0E0E] font-bold'
+                        : 'bg-[#262626] text-[#F4F4F4] hover:bg-[#333333]'
+                    }`}
                   >
-                    <span>{time}</span>
-                    <span className="text-[10px] uppercase opacity-70">Min</span>
+                    {time}M
                   </button>
                 ))}
               </div>
 
-              <button 
+              <button
                 onClick={handleMatchmaking}
-                className={`w-full py-space-md rounded-lg font-display-sm uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${matchStatus !== 'idle' ? 'bg-surface-container-highest text-primary animate-pulse border border-primary/30' : 'bg-bone-ivory text-void-black hover:bg-white hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]'}`}
+                className={`w-full py-3 rounded-xl font-heading text-lg uppercase tracking-wider border-none cursor-pointer transition-all ${
+                  matchStatus !== 'idle'
+                    ? 'bg-[#262626] text-[#AFF65B] animate-pulse'
+                    : 'bg-[#F4F4F4] text-[#0E0E0E] hover:bg-white shadow-md'
+                }`}
               >
-                {matchStatus !== 'idle' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_infinite]"></div>
-                )}
                 {matchBtnText}
               </button>
 
-              <div className="flex items-center justify-center gap-4 mt-space-md pt-space-md border-t border-surface-container">
-                <button onClick={onPlay} className="text-on-surface-variant hover:text-white font-label-sm uppercase tracking-widest transition-colors flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">smart_toy</span>
-                  Grim AI Arena
+              {(onCreatePrivateRoom || onOpenFriendsSanctum) && (
+                <button
+                  onClick={onCreatePrivateRoom ?? onOpenFriendsSanctum}
+                  className="w-full text-center text-[11px] font-body text-[#8A8A8A] hover:text-[#AFF65B] mt-2 bg-transparent border-none cursor-pointer"
+                >
+                  Create Private Room for a Friend →
                 </button>
-                <span className="text-surface-container-highest">|</span>
-                <button onClick={onOpenFriendsSanctum} className="text-on-surface-variant hover:text-white font-label-sm uppercase tracking-widest transition-colors flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">group</span>
-                  Friends Sanctum
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

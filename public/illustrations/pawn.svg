@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration pawn</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<circle cx="50" cy="30" r="15" fill="#F07040"/>
+<path d="M36 52 H64 L68 72 H32 Z" fill="#F07040"/>
+<rect x="26" y="72" width="48" height="14" rx="6" fill="#F07040"/>
+<rect x="40" y="52" width="20" height="5" rx="2" fill="#1A1A1A"/>
+</g>
+</svg>

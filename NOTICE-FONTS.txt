@@ -1,0 +1,23 @@
+Chaturanga - Self-Hosted Font Notices
+
+The following fonts are self-hosted within public/fonts/ for the Matiks-style visual theme:
+
+1. Bebas Neue
+   - Style: Regular
+   - Source: https://github.com/dharmatype/Bebas-Neue
+   - Author: Dharma Type (Ryoichi Tsunekawa)
+   - License: SIL Open Font License, Version 1.1 (public/fonts/BebasNeue-OFL.txt)
+   - Used for: Display headings, uppercase kickers, fraction readouts, and score displays.
+
+2. Poppins
+   - Style: Regular, SemiBold
+   - Source: https://github.com/itfoundry/Poppins
+   - Author: Indian Type Foundry (Ninad Kale, Jonny Pinhorn)
+   - License: SIL Open Font License, Version 1.1 (public/fonts/Poppins-OFL.txt)
+   - Used for: Body copy, button text, chips, labels, and table readouts.
+
+3. Noto Sans Devanagari & Noto Serif Devanagari
+   - Source: https://github.com/notofonts/devanagari
+   - Author: The Noto Project Authors
+   - License: SIL Open Font License, Version 1.1 (public/fonts/OFL-NotoSansDevanagari.txt, public/fonts/OFL-NotoSerifDevanagari.txt)
+   - Used for: Indic script and localized text rendering.

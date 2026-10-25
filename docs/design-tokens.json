@@ -1,0 +1,153 @@
+{
+  "$description": "Chaturanga design tokens v1 (plain JSON). Hex values are approximations from reference screenshots, not exact samples. Fonts are stand-ins (Bebas Neue, Poppins, both OFL; verify licence at build time).",
+  "color": {
+    "surface": {
+      "void": {
+        "$type": "color",
+        "$value": "#0E0E0E"
+      },
+      "charcoal": {
+        "$type": "color",
+        "$value": "#1A1A1A"
+      },
+      "raised": {
+        "$type": "color",
+        "$value": "#262626"
+      },
+      "offwhite": {
+        "$type": "color",
+        "$value": "#F4F4F4"
+      }
+    },
+    "accent": {
+      "lime": {
+        "$type": "color",
+        "$value": "#AFF65B"
+      },
+      "yellow": {
+        "$type": "color",
+        "$value": "#F2D500"
+      },
+      "lavender": {
+        "$type": "color",
+        "$value": "#A594F0"
+      },
+      "teal": {
+        "$type": "color",
+        "$value": "#66D4C2"
+      },
+      "coral": {
+        "$type": "color",
+        "$value": "#F07040"
+      },
+      "emerald": {
+        "$type": "color",
+        "$value": "#0FB567"
+      },
+      "sky": {
+        "$type": "color",
+        "$value": "#50A0F0"
+      },
+      "red": {
+        "$type": "color",
+        "$value": "#E5484D"
+      }
+    },
+    "board": {
+      "light": {
+        "$type": "color",
+        "$value": "#D9D5C7"
+      },
+      "dark": {
+        "$type": "color",
+        "$value": "#5F7A4A"
+      },
+      "lastMove": {
+        "$type": "color",
+        "$value": "#F2D500"
+      }
+    }
+  },
+  "font": {
+    "heading": {
+      "$type": "fontFamily",
+      "$value": [
+        "Bebas Neue",
+        "Impact",
+        "sans-serif"
+      ]
+    },
+    "body": {
+      "$type": "fontFamily",
+      "$value": [
+        "Poppins",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "indic": {
+      "$type": "fontFamily",
+      "$value": [
+        "Noto Devanagari"
+      ]
+    }
+  },
+  "typography": {
+    "display": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "{font.heading}",
+        "fontSize": "54px",
+        "lineHeight": 0.94,
+        "letterSpacing": "0.5px"
+      }
+    },
+    "kicker": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "{font.body}",
+        "fontWeight": 600,
+        "fontSize": "11px",
+        "letterSpacing": "3px",
+        "textTransform": "uppercase"
+      }
+    },
+    "body": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "{font.body}",
+        "fontSize": "13px"
+      }
+    }
+  },
+  "radius": {
+    "tile": {
+      "$type": "dimension",
+      "$value": "22px"
+    },
+    "chip": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "pill": {
+      "$type": "dimension",
+      "$value": "999px"
+    }
+  },
+  "spacing": {
+    "screenMargin": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "tileGap": {
+      "$type": "dimension",
+      "$value": "12px"
+    }
+  },
+  "icon": {
+    "stroke": {
+      "$type": "dimension",
+      "$value": "1.7px"
+    }
+  }
+}

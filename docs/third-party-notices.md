@@ -29,3 +29,9 @@ f81e7d74c350626766382ec67fa262c38cda00cb8b501790f95cdebb526006c1  vendor/stockfi
 0a9e0621b7e1e88736f28c58163e588b56a880e1832f4aea37ef97a13f72b2a1  vendor/stockfish-19-source/stockfish-js-v19-source.tar.gz
 
 Upstream GPL text has CRLF normalized to LF for portable patch application. License wording is unchanged.
+
+## Free Public Read-Only APIs (Lichess & Chess.com)
+
+- **Lichess API**: Free, read-only public API (`https://lichess.org/api`, AGPL-3.0-or-later). Used client-side for daily tactical puzzles (`/api/puzzle/daily` and `/api/puzzle/{id}`) and live master opening database statistics (`https://explorer.lichess.ovh/masters`). Replayed legally in-browser using existing chess.js engine. Rate-limit etiquette is strictly respected with client in-flight request deduplication, 60-second backoff on HTTP 429, and daily puzzle localStorage caching. Labeled in UI as "Puzzle from Lichess".
+- **Chess.com PubAPI**: Free, read-only public API (`https://api.chess.com/pub/`). Used client-side for public player profile lookup (`/pub/player/{username}`), monthly game archives index (`/pub/player/{username}/games/archives`), and individual game PGN imports. Replayed legally in-browser using existing chess.js with strict variant safety (Chess960, Crazyhouse, and non-standard starting positions rejected with friendly notification; standard chess imported). Labeled in UI as "Data: Chess.com PubAPI".
+

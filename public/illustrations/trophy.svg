@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration trophy</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<path d="M28 12 H72 V40 C72 56 62 64 50 64 C38 64 28 56 28 40 Z" fill="#F2D500"/>
+<path d="M28 20 H14 C14 36 20 44 30 46 M72 20 H86 C86 36 80 44 70 46" fill="none" stroke="#F2D500" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="44" y="62" width="12" height="14" rx="0" fill="#F2D500"/>
+<rect x="30" y="76" width="40" height="12" rx="4" fill="#F2D500"/>
+<path d="M50 22 L54 32 L64 33 L56 40 L59 50 L50 45 L41 50 L44 40 L36 33 L46 32Z" fill="#1A1A1A"/>
+</g>
+</svg>

@@ -21,6 +21,7 @@ import { variantPosition, variantFen, variantMoves } from "../chaturanga/variant
 import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
 import {
   api,
+  createGuestSession,
   localSignIn,
   socialSignIn,
   signOut,
@@ -32,11 +33,19 @@ import "./online.css";
 import CustomRoomPanel from "./CustomRoomPanel";
 import ReportPanel from "./ReportPanel";
 export default function OnlinePage({
+  user,
   onExit,
+  onPlayBot,
+  onOpenAuth,
   initialTab = "play",
+  autoCreateRoom = false,
 }: {
+  user?: { id: string; name: string; email: string } | null;
   onExit: () => void;
+  onPlayBot?: () => void;
+  onOpenAuth?: () => void;
   initialTab?: "play" | "friends" | "profile";
+  autoCreateRoom?: boolean;
 }) {
   const [state, setState] = useState<OnlineState | null>(null),
     [config, setConfig] = useState<{
@@ -65,6 +74,7 @@ export default function OnlinePage({
     [drop, setDrop] = useState(""),
     [flipped, setFlipped] = useState(false),
     [copied, setCopied] = useState(false),
+    [copiedLink, setCopiedLink] = useState(false),
     [copiedPgn, setCopiedPgn] = useState(false),
     [muted, setMuted] = useState(
       () => localStorage.getItem("chaturanga-muted") === "1",
@@ -86,6 +96,7 @@ export default function OnlinePage({
   useEffect(() => {
     setFlipped(false);
     setCopied(false);
+    setCopiedLink(false);
     setCopiedPgn(false);
     setTickTs(0);
     setReviewPly(null);
@@ -101,23 +112,49 @@ export default function OnlinePage({
   useEffect(() => {
     let disposed = false;
     let off = () => {};
-    void token().then((t) => {
+
+    const setupSession = async () => {
+      let t = await token();
+      // If user has no active token (neither social login nor existing guest session),
+      // automatically assign a Guest ID so they can compete online immediately!
+      if (!t) {
+        setNotice("Assigning guest ID…");
+        try {
+          const guestToken = await createGuestSession();
+          if (guestToken) {
+            t = guestToken;
+          }
+        } catch {
+          // If server is not responding, fallback to notice
+        }
+      }
+
       if (disposed) return;
       if (!t) {
-        setNotice("Sign in to play online.");
+        setNotice("Server offline. Run npm run server to start the game server.");
         return;
       }
-      void api<OnlineState>("state")
-        .then((s) => {
+
+      try {
+        const s = await api<OnlineState>("state");
+        if (!disposed) {
           setState(s);
           setProfile((p) => p ?? s.profile);
-        })
-        .catch((e) => setError(e.message));
+        }
+      } catch (e) {
+        if (!disposed) setError(e instanceof Error ? e.message : "Unable to load online state.");
+      }
+
       off = subscribe((s) => {
-        setState(s);
-        setProfile((p) => p ?? s.profile);
+        if (!disposed) {
+          setState(s);
+          setProfile((p) => p ?? s.profile);
+        }
       }, setNotice);
-    });
+    };
+
+    void setupSession();
+
     return () => {
       disposed = true;
       off();
@@ -388,6 +425,41 @@ export default function OnlinePage({
     void run(() =>
       api("game", { room: room!.id, version: room!.version, action }),
     );
+  const getInviteLink = (roomId: string) => {
+    try {
+      return `${window.location.origin}/?room=${encodeURIComponent(roomId)}`;
+    } catch {
+      return `?room=${roomId}`;
+    }
+  };
+
+  const copyInviteLink = (roomId: string) => {
+    const link = getInviteLink(roomId);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 3000);
+      }).catch(() => {
+        setError(`Invite link: ${link}`);
+      });
+    } else {
+      setError(`Invite link: ${link}`);
+    }
+  };
+
+  const copyRoomCode = (roomId: string) => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(roomId).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }).catch(() => {
+        setError("Room code: " + roomId);
+      });
+    } else {
+      setError("Room code: " + roomId);
+    }
+  };
+
   const challenge = (id?: string) =>
     void run(async () => {
       const r = await api<{ room: string }>("create", {
@@ -398,7 +470,39 @@ export default function OnlinePage({
       });
       setSelectedRoom(r.room);
       setTab("play");
+      setTimeout(() => {
+        const el = document.getElementById("online-game-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
     });
+
+  const [autoJoined, setAutoJoined] = useState(false);
+  useEffect(() => {
+    if (!state || autoJoined) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const joinCode = (params.get("room") || params.get("join"))?.trim().toLowerCase();
+      if (joinCode) {
+        setAutoJoined(true);
+        setCode(joinCode);
+        void run(async () => {
+          await api("join", { room: joinCode });
+          setSelectedRoom(joinCode);
+          setTimeout(() => {
+            const el = document.getElementById("online-game-section");
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 150);
+        });
+      }
+    } catch {}
+  }, [state, autoJoined]);
+
+  const [hasAutoCreated, setHasAutoCreated] = useState(false);
+  useEffect(() => {
+    if (!state || hasAutoCreated || !autoCreateRoom) return;
+    setHasAutoCreated(true);
+    challenge();
+  }, [state, hasAutoCreated, autoCreateRoom]);
   async function login(provider?: Provider) {
     setError("");
     setBusy(true);
@@ -427,115 +531,179 @@ export default function OnlinePage({
     });
   };
   return (
-    <main className="online-shell">
-      <header className="online-header">
-        <div>
-          <p className="online-kicker">CHATURANGA / CONNECT</p>
-          <h1>
-            {tab === "play"
-              ? "Play together"
-              : tab === "friends"
-                ? "Friends"
-                : "Player profile"}
-          </h1>
-          <p>Server-checked moves. Your account, your circle.</p>
-        </div>
-        <button onClick={onExit}>Back to courtyard</button>
-      </header>
-      <div className="online-status" role="status">
-        {config?.mode === "local"
-          ? "LOCAL DEVELOPMENT ONLY · No real social login · This server is on your computer"
-          : "Online account service"}{" "}
-        · {notice}
-      </div>
-      {error && (
-        <p className="online-error" role="alert">
-          {error}
-        </p>
-      )}
-      {!state ? (
-        <section className="online-card">
-          <h2>Choose how to sign in</h2>
-          <p>
-            Google includes Gmail accounts. Social login is enabled only after
-            the provider is configured.
-          </p>
-          <div className="online-actions">
-            {(["google", "facebook", "discord"] as Provider[]).map((p) => (
-              <button
-                key={p}
-                disabled={
-                  busy ||
-                  !config?.providers.includes(p) ||
-                  config.mode === "local"
-                }
-                onClick={() => void login(p)}
-              >
-                Continue with{" "}
-                {p === "google"
-                  ? "Google"
-                  : p === "facebook"
-                    ? "Facebook"
-                    : "Discord"}
-              </button>
-            ))}
+    <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
+      <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-6">
+          <div>
+            <span className="matiks-kicker block mb-1">
+              MULTIPLAYER · SERVER-CHECKED COMPETE
+            </span>
+            <h1 className="matiks-headline text-4xl lg:text-5xl text-[#F4F4F4] m-0">
+              {tab === "play"
+                ? "PLAY TOGETHER"
+                : tab === "friends"
+                  ? "YOUR CIRCLE"
+                  : "PLAYER PROFILE"}
+            </h1>
+            <p className="text-sm text-[#8A8A8A] mt-2 mb-0 max-w-xl">
+              Server-checked moves, real-time clocks, and live matchmaking. Play instantly as a guest or sign in to track your competitive rating.
+            </p>
           </div>
-          <p>
-            Instagram sign-in is not supported for ordinary personal accounts
-            here. You can use Google, Facebook or Discord instead.
-          </p>
-          {config?.mode === "local" && (
-            <>
-              <hr />
-              <p>
-                Create a test player for local testing. This is not a
-                Google/Facebook/Discord account. Separate browser windows can
-                play each other.
-              </p>
-              <button disabled={busy} onClick={() => void login()}>
-                Create local test player
-              </button>
-            </>
-          )}
-        </section>
-      ) : (
-        <>
-          <div
-            className="online-tabs"
-            role="group"
-            aria-label="Online sections"
-          >
-            {(["play", "friends", "profile"] as const).map((t) => (
-              <button
-                key={t}
-                aria-pressed={tab === t}
-                onClick={() => setTab(t)}
-              >
-                {t === "play" ? "PvP" : t === "friends" ? "Friends" : "Profile"}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
             <button
-              onClick={() =>
-                void signOut().then(() => {
-                  setState(null);
-                  setProfile(null);
-                  setRevision((x) => x + 1);
-                })
-              }
+              onClick={onExit}
+              className="btn-raised py-2.5 px-5 text-xs font-semibold cursor-pointer"
             >
-              Sign out
+              Back to Home
             </button>
           </div>
-          {!state.profile.adultConfirmed && state.mode !== "local" && (
-            <p className="online-status">
-              Complete your profile and confirm you are 18 or older before
-              online play or friend requests.{" "}
-              <button onClick={() => setTab("profile")}>Set up profile</button>
+        </div>
+
+        {/* Connection & Account Status Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#1A1A1A] border border-white/5">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                notice === "Connected" ? "bg-[#AFF65B] animate-pulse" : "bg-[#F2D500]"
+              }`}
+            />
+            <span className="text-xs text-[#F4F4F4] font-medium">
+              {notice === "Connected" ? "Online Server Connected" : notice}
+            </span>
+            <span className="text-[11px] text-[#8A8A8A] font-mono">
+              · {config?.mode === "local" ? "Local Development Server" : "Live Game Server"}
+            </span>
+          </div>
+
+          {state?.profile ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#262626] border border-white/10 text-xs">
+                <span className="text-[#8A8A8A]">Playing as:</span>
+                <strong className="text-[#AFF65B]">{state.profile.displayName}</strong>
+                {state.profile.displayName.startsWith("Guest") ? (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#AFF65B]/10 text-[#AFF65B] font-mono">
+                    GUEST ID
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#66D4C2]/15 text-[#66D4C2] font-mono">
+                    VERIFIED
+                  </span>
+                )}
+              </div>
+              {state.profile.displayName.startsWith("Guest") && onOpenAuth && (
+                <button
+                  onClick={onOpenAuth}
+                  className="btn-lime py-1 px-3 text-[11px] font-bold cursor-pointer"
+                >
+                  Sign in / Register
+                </button>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {error && (
+          <div className="p-3.5 rounded-xl bg-[#262626] border border-[#E5484D]/40 text-xs text-[#FF8080] flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={() => setError("")}
+              className="text-[#8A8A8A] hover:text-[#F4F4F4] cursor-pointer ml-3"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {!state ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center gap-4 bg-[#1A1A1A] rounded-2xl border border-white/5 my-4">
+            <div className="w-10 h-10 border-2 border-[#AFF65B] border-t-transparent rounded-full animate-spin" />
+            <h2 className="font-heading text-2xl text-[#F4F4F4] m-0">Connecting to Online Compete…</h2>
+            <p className="text-xs text-[#8A8A8A] max-w-md m-0">
+              {notice || "Establishing connection with game server."}
             </p>
-          )}
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => setRevision((r) => r + 1)}
+                className="btn-lime py-2 px-4 text-xs font-bold cursor-pointer"
+              >
+                Retry Connection
+              </button>
+              {onPlayBot && (
+                <button
+                  onClick={onPlayBot}
+                  className="btn-raised py-2 px-4 text-xs font-semibold cursor-pointer"
+                >
+                  Play Bots While Waiting →
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div
+              className="flex items-center gap-2 border-b border-white/5 pb-2 overflow-x-auto"
+              role="group"
+              aria-label="Online sections"
+            >
+              {(["play", "friends", "profile"] as const).map((t) => (
+                <button
+                  key={t}
+                  aria-pressed={tab === t}
+                  onClick={() => setTab(t)}
+                  className={`py-2 px-5 rounded-full text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap ${
+                    tab === t
+                      ? "bg-[#AFF65B] text-[#0E0E0E] font-bold"
+                      : "bg-[#1A1A1A] text-[#8A8A8A] hover:text-[#F4F4F4] border border-white/5"
+                  }`}
+                >
+                  {t === "play" ? "PvP Compete" : t === "friends" ? "Friends Sanctum" : "Player Profile"}
+                </button>
+              ))}
+              <button
+                onClick={() =>
+                  void signOut().then(() => {
+                    setState(null);
+                    setProfile(null);
+                    setRevision((x) => x + 1);
+                  })
+                }
+                className="py-2 px-4 rounded-full text-xs font-semibold bg-[#1A1A1A] text-[#8A8A8A] hover:text-[#FF8080] border border-white/5 cursor-pointer ml-auto"
+              >
+                Sign out / New Guest
+              </button>
+            </div>
+          {!state.profile.adultConfirmed &&
+            state.mode !== "local" &&
+            !state.profile.displayName.startsWith("Guest") && (
+              <p className="online-status">
+                Complete your profile and confirm you are 18 or older before
+                online play or friend requests.{" "}
+                <button onClick={() => setTab("profile")}>Set up profile</button>
+              </p>
+            )}
           {tab === "profile" && profile && (
             <section className="online-card">
-              <h2>{state.profile.displayName}</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2>{user?.name || state.profile.displayName}</h2>
+                {user ? (
+                  <span className="px-2.5 py-1 rounded-full bg-[#AFF65B]/20 text-[#AFF65B] text-xs font-mono">
+                    Signed in: {user.email}
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-[#262626] text-[#8A8A8A] text-xs font-mono">
+                      Guest Player
+                    </span>
+                    <button
+                      onClick={() => void login("google")}
+                      className="btn-lime py-1 px-3 text-xs font-bold cursor-pointer"
+                    >
+                      Sign in with Google
+                    </button>
+                  </div>
+                )}
+              </div>
               <p>
                 Chaturanga rating: {state.profile.rating ?? 1200} (provisional
                 private-match Elo, standard chess only). {state.profile.games}{" "}
@@ -696,6 +864,23 @@ export default function OnlinePage({
           )}
           {tab === "friends" && (
             <div className="online-grid">
+              <section className="online-card">
+                <div className="section-kicker">INSTANT MATCH</div>
+                <h2>Play via Private Room Code</h2>
+                <p className="text-xs text-[#8A8A8A] mb-3">
+                  Want to play immediately with a friend without waiting for friend requests? Create a private room and share the link or code.
+                </p>
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    setTab("play");
+                    challenge();
+                  }}
+                  className="btn-lime py-2 px-4 text-xs font-bold rounded cursor-pointer"
+                >
+                  Create Private Room & Share Code →
+                </button>
+              </section>
               <section className="online-card">
                 <h2>Add someone you know</h2>
                 <form
@@ -888,11 +1073,50 @@ export default function OnlinePage({
                     </select>
                   </label>
                   <button
-                    disabled={busy || (state.mode !== "local" && !state.profile.adultConfirmed)}
+                    disabled={busy || (state.mode !== "local" && !state.profile.adultConfirmed && !state.profile.profileReady)}
                     onClick={() => challenge()}
                   >
-                    Create private room
+                    {busy ? "Creating room…" : "Create private room"}
                   </button>
+                  {room && room.status === "waiting" && room.white === state.profile.id && (
+                    <div className="p-3 my-2 rounded-xl bg-[#1E2616] border border-[#AFF65B]/40 text-xs">
+                      <div className="flex items-center justify-between font-bold text-[#AFF65B] mb-1">
+                        <span>🟢 PRIVATE ROOM CREATED</span>
+                        <span className="font-mono text-white text-xs bg-black/60 px-2 py-0.5 rounded border border-[#AFF65B]/20">
+                          {room.id}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#A3A3A3] m-0 mb-2">
+                        Waiting for opponent. Share the invite link or code with your friend:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => copyInviteLink(room.id)}
+                          className="px-2.5 py-1 bg-[#AFF65B] text-black font-bold text-[11px] rounded cursor-pointer hover:bg-white"
+                        >
+                          {copiedLink ? "✓ Link Copied!" : "📋 Copy Invite Link"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyRoomCode(room.id)}
+                          className="px-2.5 py-1 bg-[#2A2A2A] text-white text-[11px] rounded border border-white/10 cursor-pointer hover:bg-[#333]"
+                        >
+                          {copied ? "✓ Code Copied" : "Copy Code"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const el = document.getElementById("online-game-section");
+                            el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }}
+                          className="px-2.5 py-1 bg-transparent text-[#AFF65B] text-[11px] border border-[#AFF65B]/30 rounded cursor-pointer hover:bg-[#AFF65B]/10"
+                        >
+                          View Board ↓
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <label>
                     Room code
                     <input
@@ -995,13 +1219,55 @@ export default function OnlinePage({
                   </p>
                 )}
               </section>
-              <section className="online-card online-game">
+              <section id="online-game-section" className="online-card online-game">
                 {room && (pos || isFog) ? (
                   <>
                     <h2>
                       {room.whiteName} vs{" "}
                       {room.blackName ?? "waiting for Black"}
                     </h2>
+                    {room.status === "waiting" && (
+                      <div className="p-4 rounded-xl bg-[#1E2616] border border-[#AFF65B]/30 my-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
+                            <strong className="text-white text-sm">Waiting for opponent to join…</strong>
+                          </div>
+                          <span className="font-mono text-[#AFF65B] font-bold text-xs bg-black/60 px-2.5 py-1 rounded border border-[#AFF65B]/20">
+                            Room: {room.id}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#A3A3A3] mb-3">
+                          Send this invite link or room code to a friend. The game clock starts as soon as Black makes their first move.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => copyInviteLink(room.id)}
+                            className="btn-lime px-3 py-1.5 text-xs font-bold rounded cursor-pointer"
+                          >
+                            {copiedLink ? "✓ Invite Link Copied!" : "📋 Copy Invite Link"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyRoomCode(room.id)}
+                            className="px-3 py-1.5 bg-[#262626] text-white text-xs rounded border border-white/10 hover:bg-[#333] cursor-pointer"
+                          >
+                            {copied ? "✓ Code Copied" : "Copy Code"}
+                          </button>
+                          {room.white === state.profile.id && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => gameAction("cancel")}
+                              className="px-3 py-1.5 bg-transparent text-[#FF8080] text-xs border border-[#E5484D]/30 hover:bg-[#E5484D]/10 rounded cursor-pointer ml-auto"
+                            >
+                              Cancel Room
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {room.status === "active" &&
                       (room.yourColor === "white"
                         ? room.black !== null && room.blackOnline === false
@@ -1019,14 +1285,16 @@ export default function OnlinePage({
                       <button
                         className="online-copy"
                         disabled={busy}
-                        onClick={() => {
-                          void navigator.clipboard
-                            ?.writeText(room.id)
-                            .then(() => setCopied(true))
-                            .catch(() => setError("Copy failed. Select and copy the room code above."));
-                        }}
+                        onClick={() => copyRoomCode(room.id)}
                       >
                         {copied ? "Copied" : "Copy code"}
+                      </button>{" "}
+                      <button
+                        className="online-copy"
+                        disabled={busy}
+                        onClick={() => copyInviteLink(room.id)}
+                      >
+                        {copiedLink ? "Link copied" : "Copy invite link"}
                       </button>
                     </p>
                     {room.result ? (
@@ -1583,7 +1851,8 @@ export default function OnlinePage({
           )}
         </>
       )}
-    </main>
+      </div>
+    </div>
   );
 }
 function Captured({

@@ -6,7 +6,31 @@ export async function token() {
     const { data } = await (await getSupabase()).auth.getSession();
     if (data.session?.access_token) return data.session.access_token;
   }
-  return sessionStorage.getItem("chaturanga-dev-token");
+  return (
+    sessionStorage.getItem("chaturanga-dev-token") ||
+    localStorage.getItem("chaturanga-guest-token")
+  );
+}
+
+export async function createGuestSession(): Promise<string> {
+  try {
+    const res = await api<{ token: string; guestId?: string; displayName?: string }>("guest-session", {});
+    if (res.token) {
+      sessionStorage.setItem("chaturanga-dev-token", res.token);
+      localStorage.setItem("chaturanga-guest-token", res.token);
+      return res.token;
+    }
+  } catch {
+    try {
+      const res = await api<{ token: string }>("local-session", {});
+      if (res.token) {
+        sessionStorage.setItem("chaturanga-dev-token", res.token);
+        localStorage.setItem("chaturanga-guest-token", res.token);
+        return res.token;
+      }
+    } catch {}
+  }
+  return "";
 }
 export async function api<T = unknown>(
   path: string,
@@ -55,6 +79,7 @@ export async function signOut() {
     await api("logout", {});
   } finally {
     sessionStorage.removeItem("chaturanga-dev-token");
+    localStorage.removeItem("chaturanga-guest-token");
     if (authConfigured) await (await getSupabase()).auth.signOut();
   }
 }

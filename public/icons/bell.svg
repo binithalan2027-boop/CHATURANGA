@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+<title>icon bell</title>
+<rect id="Background" width="48" height="48" fill="#0E0E0E"/>
+<g transform="translate(6.0,6.0) scale(1.5)">
+<path d="M6 17 V11 A6 6 0 0 1 18 11 V17 L20 19 H4 Z M10 21 H14" fill="none" stroke="#F4F4F4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

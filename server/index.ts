@@ -118,6 +118,12 @@ async function auth(token: unknown, ip: string) {
     limiter.check(`authfail:${ip}`, 30 * LIMIT_SCALE, "Too many failed sign-ins.");
     throw Error("Sign in required.");
   }
+  // Check local store session first (supports guests and local dev players)
+  const session = store.get<Session>("session", token);
+  if (session && session.expires > Date.now()) {
+    service.requireUser(session.user);
+    return session.user;
+  }
   if (supabase) {
     const cached = tokenCache.get(token);
     if (cached && cached.expires > Date.now()) return cached.user;
@@ -136,13 +142,8 @@ async function auth(token: unknown, ip: string) {
         if (v.expires < Date.now()) tokenCache.delete(k);
     return data.user.id;
   }
-  const session = store.get<Session>("session", token);
-  if (!session || session.expires < Date.now()) {
-    limiter.check(`authfail:${ip}`, 30 * LIMIT_SCALE, "Too many failed sign-ins.");
-    throw Error("Local session expired.");
-  }
-  service.requireUser(session.user);
-  return session.user;
+  limiter.check(`authfail:${ip}`, 30 * LIMIT_SCALE, "Too many failed sign-ins.");
+  throw Error("Local session expired.");
 }
 
 /** A user counts as online while any of their tabs holds a live socket. */
@@ -297,18 +298,117 @@ const server = createServer(async (req, res) => {
       });
       return;
     }
-    if (req.method === "POST" && path === "/api/local-session") {
-      if (mode !== "local") throw Error("Local sign-in is disabled.");
-      limiter.check(`signup:${ip}`, 15 * LIMIT_SCALE);
+    if (req.method === "POST" && (path === "/api/local-session" || path === "/api/guest-session")) {
+      if (path === "/api/local-session" && mode !== "local") throw Error("Local sign-in is disabled.");
+      limiter.check(`signup:${ip}`, 30 * LIMIT_SCALE);
       const token = randomBytes(32).toString("hex"),
-        id = randomBytes(16).toString("hex");
-      service.ensureUser(id);
+        id = "guest_" + randomBytes(8).toString("hex");
+      const guestNum = Math.floor(1000 + Math.random() * 9000);
+      const p = service.ensureUser(id);
+      p.displayName = `Guest #${guestNum}`;
+      p.username = `guest_${guestNum}`;
+      p.adultConfirmed = true;
+      store.put("profile", id, p);
       store.put("session", token, {
         id: token,
         user: id,
         expires: Date.now() + 7 * 86400000,
       });
-      reply(res, 200, { token });
+      reply(res, 200, { token, guestId: id, displayName: p.displayName });
+      return;
+    }
+    if (req.method === "POST" && path === "/api/ai-coach") {
+      limiter.check(`ai:${ip}`, 30 * LIMIT_SCALE);
+      const data = await body(req);
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        reply(res, 200, {
+          ok: true,
+          explanation: "AI Coach ready: Add GEMINI_API_KEY to your .env to unlock real-time Gemini grandmaster insights for every position.",
+          source: "heuristic",
+          available: false,
+        });
+        return;
+      }
+
+      const prompt = `You are an expert chess master coach. Explain this chess position or move in 1-2 clear, punchy sentences in plain English for a club player. Focus on the tactical or strategic objective (e.g. piece development, central control, king safety, open files, outpost, or tactical fork/pin).
+FEN: ${String(data.fen || "").slice(0, 100)}
+${data.san ? `Move played: ${String(data.san).slice(0, 10)}` : ""}
+${data.bestMove ? `Engine suggested move: ${String(data.bestMove).slice(0, 10)}` : ""}
+${data.evaluation ? `Stockfish score: ${String(data.evaluation).slice(0, 30)}` : ""}`;
+
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 120, temperature: 0.3 },
+            }),
+          }
+        );
+
+        if (!geminiRes.ok) {
+          reply(res, 200, {
+            ok: true,
+            explanation: "Gemini API temporarily busy. The engine evaluation and candidate move remain active.",
+            source: "heuristic",
+            available: false,
+          });
+          return;
+        }
+
+        const gData = (await geminiRes.json()) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        reply(res, 200, {
+          ok: true,
+          explanation: text || "Tactical balance maintained. Look for open lines and piece activity.",
+          source: "gemini",
+          available: true,
+        });
+      } catch {
+        reply(res, 200, {
+          ok: true,
+          explanation: "Unable to reach Gemini API. Local engine evaluation remains active.",
+          source: "heuristic",
+          available: false,
+        });
+      }
+      return;
+    }
+    if (req.method === "POST" && path === "/api/email/send") {
+      limiter.check(`email:${ip}`, 10 * LIMIT_SCALE);
+      const data = await body(req);
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        console.log("[Resend Simulated Email]", data);
+        reply(res, 200, { ok: true, simulated: true });
+        return;
+      }
+      try {
+        const resendRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${resendKey}`,
+          },
+          body: JSON.stringify({
+            from: "Chaturanga <onboarding@resend.dev>",
+            to: data.to,
+            subject: data.subject,
+            html: data.html,
+            text: data.text,
+          }),
+        });
+        const rData = await resendRes.json();
+        reply(res, 200, { ok: resendRes.ok, data: rData });
+      } catch (e) {
+        reply(res, 500, { error: String(e) });
+      }
       return;
     }
     const token = req.headers.authorization?.replace(/^Bearer /, "");

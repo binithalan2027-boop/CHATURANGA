@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
 import CourtyardMatch, { SquareMark } from './CourtyardMatch';
+import { unlockAchievement } from '../chaturanga/achievements';
+import { recordGameResult } from '../chaturanga/stats';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -85,7 +87,14 @@ export default function AtomicMode({ onExit, botElo }: GameModeProps) {
     destroyed.forEach(s => {
       const piece = chess.get(s as Square);
       if (piece && piece.type === 'k') {
-        setWinner(piece.color === 'w' ? 'b' : 'w');
+        const winColor = piece.color === 'w' ? 'b' : 'w';
+        setWinner(winColor);
+        if (winColor === 'w') {
+          unlockAchievement('atomic-win');
+          recordGameResult('win');
+        } else {
+          recordGameResult('loss');
+        }
       }
       chess.remove(s as Square);
     });
@@ -116,7 +125,13 @@ export default function AtomicMode({ onExit, botElo }: GameModeProps) {
           setSelectedSquare(null);
 
           if (chess.isGameOver()) {
-            if (chess.isCheckmate()) setWinner('w');
+            if (chess.isCheckmate()) {
+              setWinner('w');
+              unlockAchievement('atomic-win');
+              recordGameResult('win');
+            } else if (chess.isDraw()) {
+              recordGameResult('draw');
+            }
           }
         } catch (e) {
           setSelectedSquare(null);
@@ -156,7 +171,12 @@ export default function AtomicMode({ onExit, botElo }: GameModeProps) {
         setLastMove({ from, to });
         
         if (chess.isGameOver()) {
-          if (chess.isCheckmate()) setWinner('b');
+          if (chess.isCheckmate()) {
+            setWinner('b');
+            recordGameResult('loss');
+          } else if (chess.isDraw()) {
+            recordGameResult('draw');
+          }
         }
       } catch (e) {
         console.error("Bot attempted illegal move:", moveStr);

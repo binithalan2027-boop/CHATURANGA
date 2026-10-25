@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
 import CourtyardMatch from './CourtyardMatch';
+import { unlockAchievement } from '../chaturanga/achievements';
+import { recordGameResult } from '../chaturanga/stats';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -93,7 +95,13 @@ export default function Chess960Mode({ onExit, botElo }: GameModeProps) {
           setSelectedSquare(null);
 
           if (chess.isGameOver()) {
-            if (chess.isCheckmate()) setWinner('w');
+            if (chess.isCheckmate()) {
+              setWinner('w');
+              unlockAchievement('chess960-win');
+              recordGameResult('win');
+            } else if (chess.isDraw()) {
+              recordGameResult('draw');
+            }
           }
         } catch (e) {
           setSelectedSquare(null);
@@ -133,7 +141,12 @@ export default function Chess960Mode({ onExit, botElo }: GameModeProps) {
         setLastMove({ from, to });
         
         if (chess.isGameOver()) {
-          if (chess.isCheckmate()) setWinner('b');
+          if (chess.isCheckmate()) {
+            setWinner('b');
+            recordGameResult('loss');
+          } else if (chess.isDraw()) {
+            recordGameResult('draw');
+          }
         }
       } catch (e) {
         console.error("Bot attempted illegal move:", moveStr);

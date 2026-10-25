@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration book</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<path d="M8 20 C26 14 42 16 50 24 V84 C42 76 26 74 8 80 Z" fill="#A594F0"/>
+<path d="M92 20 C74 14 58 16 50 24 V84 C58 76 74 74 92 80 Z" fill="#A594F0"/>
+<line x1="16" y1="34" x2="40" y2="32" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>
+<line x1="60" y1="32" x2="84" y2="34" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>
+<line x1="16" y1="46" x2="40" y2="44" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>
+<line x1="60" y1="44" x2="84" y2="46" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>
+<line x1="16" y1="58" x2="40" y2="56" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>
+<line x1="60" y1="56" x2="84" y2="58" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>
+</g>
+</svg>

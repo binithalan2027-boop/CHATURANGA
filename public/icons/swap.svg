@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+<title>icon swap</title>
+<rect id="Background" width="48" height="48" fill="#0E0E0E"/>
+<g transform="translate(6.0,6.0) scale(1.5)">
+<path d="M7 4 L3 8 L7 12 M3 8 H17 M17 12 L21 16 L17 20 M21 16 H7" fill="none" stroke="#F4F4F4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+<title>icon trophy</title>
+<rect id="Background" width="48" height="48" fill="#0E0E0E"/>
+<g transform="translate(6.0,6.0) scale(1.5)">
+<path d="M7 4 H17 V10 A5 5 0 0 1 7 10 Z M7 6 H3 C3 10 5 11 7 11 M17 6 H21 C21 10 19 11 17 11 M12 15 V18 M8 20 H16" fill="none" stroke="#F4F4F4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

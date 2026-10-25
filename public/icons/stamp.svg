@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+<title>icon stamp</title>
+<rect id="Background" width="48" height="48" fill="#0E0E0E"/>
+<g transform="translate(6.0,6.0) scale(1.5)">
+<path d="M5 8 H19 V20 H5 Z M8 4 H16 V8 M9 12 H15 M9 16 H13" fill="none" stroke="#F4F4F4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

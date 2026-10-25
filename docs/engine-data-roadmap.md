@@ -20,6 +20,10 @@ No source can establish literally all games ever played by top players. Define c
 
 No bulk games archive was imported in this loop. Existing local library remains one legally replayed sourced historical game. Import pipeline should stream individual PGNs, reject illegal/oversized games, preserve original headers, deduplicate by source/game hash, partition by year/player, and index positions with explicit collection denominators. Only after real counts exist may the explorer show percentages. An opening name/ECO table cannot supply master statistics.
 
+### Public API integrations (Keyless, Client-Side Only)
+- **Lichess Daily Puzzle**: Live client-side fetch from `https://lichess.org/api/puzzle/daily`. No bulk database import; cached locally per calendar date in localStorage. Labeled in UI as "Puzzle from Lichess".
+- **Chess.com PubAPI**: Live client-side fetch from `https://api.chess.com/pub/`. Imports individual standard chess games on demand into the study board with strict variant safety (refusing Chess960 and non-standard variants). Labeled in UI as "Data: Chess.com PubAPI".
+
 ## Khivin roadmap
 Local interim: named original house persona with bounded search, not all-knowing or trained on books. Later separate adapters: Stockfish standard search; Fairy-Stockfish variant rules/search; optional Maia human-move model; vetted openings/game retrieval; tablebase probe with availability, legal-position, 50-move-rule and result interpretation checks. Seven-piece tables do not mean unrestricted perfect practical play in every variant or arbitrary position. Full tablebase storage/API permissions, network latency and failure behavior remain research.
 

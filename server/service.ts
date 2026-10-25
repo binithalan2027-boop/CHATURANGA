@@ -321,12 +321,24 @@ export class Service {
       throw Error("Invalid game settings.");
     if (invitee && !opts.skipFriendCheck && !this.friend(id, invitee))
       throw Error("Only accepted friends can be challenged.");
-    if (
-      this.store
-        .all<Room>("room")
-        .filter((r) => r.white === id && r.status !== "finished").length >= 5
-    )
-      throw Error("Finish or cancel an existing game first.");
+    const userRooms = this.store
+      .all<Room>("room")
+      .filter((r) => r.white === id && r.status !== "finished");
+    if (userRooms.length >= 5) {
+      // Auto-cancel older waiting rooms so users are never permanently blocked from creating new rooms
+      const waiting = userRooms.filter((r) => r.status === "waiting");
+      if (waiting.length > 0) {
+        for (const w of waiting.slice(0, Math.max(1, userRooms.length - 4))) {
+          w.status = "finished";
+          w.result = "Room cancelled";
+          w.version++;
+          w.activityAt = this.now();
+          this.store.put("room", w.id, w);
+        }
+      } else {
+        throw Error("Finish or cancel an existing game first.");
+      }
+    }
     const r: Room = {
       id: randomBytes(9).toString("hex"),
       rule,

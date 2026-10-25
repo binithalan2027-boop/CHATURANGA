@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
 import CourtyardMatch, { SquareMark } from './CourtyardMatch';
+import { unlockAchievement } from '../chaturanga/achievements';
+import { recordGameResult } from '../chaturanga/stats';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -116,6 +118,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const [activeSpell, setActiveSpell] = useState<'freeze' | 'jump' | null>(null);
   const [spellFrozen, setSpellFrozen] = useState<Set<string>>(new Set());
   const [jumpedPiece, setJumpedPiece] = useState<{ square: string; piece: { type: any; color: any } } | null>(null);
+  const [gateStreak, setGateStreak] = useState<number>(0);
 
   const { getBestMove } = useStockfish();
   const currentBot = getBotByElo(botElo);
@@ -189,6 +192,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
       if (newScore >= botScore) {
         // Player wins power-up!
         awardRandomPowerUp(showdownRoundCount === 0);
+        unlockAchievement('speed-duel-win');
       }
     }
   };
@@ -218,6 +222,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
 
   // Cast Freeze: a 3x3 area cannot move for the bot's next turn.
   const castFreeze = (centerSq: string) => {
+    unlockAchievement('tactics-champion');
     const fileIdx = FILES.indexOf(centerSq[0]);
     const rankIdx = RANKS.indexOf(centerSq[1]);
     const newlyFrozen = new Set<string>();
@@ -236,6 +241,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
 
   // Cast Jump: lift one non-king piece off the board until after your next move.
   const castJump = (sq: string) => {
+    unlockAchievement('tactics-champion');
     const piece = chess.get(sq as Square);
     if (!piece || piece.type === 'k') return;
     setJumpedPiece({ square: sq, piece });
@@ -393,7 +399,12 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
       }
 
       if (chess.isGameOver()) {
-        if (chess.isCheckmate()) setWinner('w');
+        if (chess.isCheckmate()) {
+          setWinner('w');
+          recordGameResult('win');
+        } else if (chess.isDraw()) {
+          recordGameResult('draw');
+        }
       }
     } catch (e) {
       setSelectedSquare(null);
@@ -485,12 +496,18 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const handleAnswerGate = (selected: number) => {
     if (gateQuestion && selected === gateQuestion.answer) {
       setMathGateSolved(true);
+      const nextStreak = gateStreak + 1;
+      setGateStreak(nextStreak);
+      if (nextStreak >= 3) {
+        unlockAchievement('mind-gate-streak');
+      }
       if (pendingMove) {
         executePlayerMove(pendingMove.from, pendingMove.to);
         setPendingMove(null);
       }
       setGateQuestion(null);
     } else {
+      setGateStreak(0);
       // Wrong answer: -5 second time penalty and new question
       setPlayerTime(t => Math.max(0, t - 5));
       setGateQuestion(generateMathQuestion());
@@ -536,7 +553,12 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
         setLastMove({ from, to });
 
         if (chess.isGameOver()) {
-          if (chess.isCheckmate()) setWinner('b');
+          if (chess.isCheckmate()) {
+            setWinner('b');
+            recordGameResult('loss');
+          } else if (chess.isDraw()) {
+            recordGameResult('draw');
+          }
         }
       } catch (e) {
         console.error("Bot move error:", moveStr);
@@ -620,140 +642,179 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
         materialAdvantage={materialAdvantage}
         botActive={chess.turn() === 'b' && !winner}
         playerActive={chess.turn() === 'w' && !winner && !inMathShowdown}
+        playerClock={formatTime(playerTime)}
+        botClock={formatTime(botTime)}
+        duelCountdown={subMode === 'showdown' && !inMathShowdown ? formatTime(showdownTimer) : undefined}
         status={
           inMathShowdown
-            ? 'Maths duel in progress - the clocks are paused.'
+            ? 'Maths duel in progress - clocks paused.'
             : subMode === 'gate'
               ? 'Solve a quick question to unlock each move.'
               : `Next maths duel in ${formatTime(showdownTimer)}.`
         }
+        boardOverlay={
+          inMathShowdown && showdownQuestions.length > 0 ? (
+            <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 sm:p-8 w-full max-w-[480px] shadow-2xl flex flex-col items-center text-center">
+              <span className="text-[10px] font-bold tracking-[2px] text-[#AFF65B] uppercase block mb-1 font-body">
+                MATHS DUEL · ROUND {showdownRoundCount + 1} · QUESTION {showdownIdx + 1}/10
+              </span>
+              <div className="font-heading text-4xl sm:text-5xl tracking-wider text-[#F4F4F4] my-3">
+                {showdownQuestions[showdownIdx].question} = ?
+              </div>
+              <div className="grid grid-cols-2 gap-3 w-full my-3">
+                {showdownQuestions[showdownIdx].options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleShowdownAnswer(opt)}
+                    className="py-3.5 px-4 rounded-xl bg-[#262626] hover:bg-[#333333] active:bg-[#AFF65B] active:text-[#0E0E0E] text-[#F4F4F4] font-heading text-2xl tracking-wide border border-white/5 cursor-pointer transition-all transform hover:scale-[1.02] active:scale-95"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center justify-between w-full text-xs text-[#8A8A8A] mt-2 pt-2.5 border-t border-white/5 font-body">
+                <span>Score: <strong className="text-[#AFF65B] font-mono">{showdownScore}/{showdownIdx}</strong></span>
+                <span>Wrong penalty: <strong className="text-[#E5484D]">-3s</strong></span>
+              </div>
+              <p className="text-[11px] text-[#8A8A8A] mt-2 mb-0 font-body">
+                Chess clocks are paused during the duel. Beat the bot to win spells & power-ups!
+              </p>
+            </div>
+          ) : gateQuestion ? (
+            <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 sm:p-8 w-full max-w-[440px] shadow-2xl flex flex-col items-center text-center">
+              <span className="text-[10px] font-bold tracking-[2px] text-[#AFF65B] uppercase block mb-1 font-body">
+                MIND GATE · SOLVE TO MOVE
+              </span>
+              <div className="font-heading text-4xl sm:text-5xl tracking-wider text-[#F4F4F4] my-3">
+                {gateQuestion.question} = ?
+              </div>
+              <div className="grid grid-cols-2 gap-3 w-full my-3">
+                {gateQuestion.options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAnswerGate(opt)}
+                    className="py-3.5 px-4 rounded-xl bg-[#262626] hover:bg-[#333333] active:bg-[#AFF65B] active:text-[#0E0E0E] text-[#F4F4F4] font-heading text-2xl tracking-wide border border-white/5 cursor-pointer transition-all transform hover:scale-[1.02] active:scale-95"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center justify-between w-full text-xs text-[#8A8A8A] mt-2 pt-2.5 border-t border-white/5 font-body">
+                <span>Streak: <strong className="text-[#AFF65B] font-mono">{gateStreak}</strong></span>
+                <button
+                  onClick={() => {
+                    setGateQuestion(null);
+                    setPendingMove(null);
+                  }}
+                  className="text-xs text-[#E5484D] hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  Cancel Move
+                </button>
+              </div>
+            </div>
+          ) : null
+        }
         sidePanels={
           <>
-            <section className="court-panel">
-              <div className="eyebrow">HOW IT PLAYS</div>
-              <div className="answer-actions">
+            <div className="bento-card bento-charcoal p-5">
+              <span className="matiks-kicker text-[10px] block mb-2">HOW IT PLAYS</span>
+              <div className="flex gap-2 mb-3">
                 <button
-                  className={subMode === 'gate' ? 'primary' : ''}
+                  className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold cursor-pointer border-none transition-colors ${
+                    subMode === 'gate' ? 'bg-[#AFF65B] text-[#0E0E0E]' : 'bg-[#262626] text-[#8A8A8A] hover:text-[#F4F4F4]'
+                  }`}
                   onClick={() => setSubMode('gate')}
                 >
                   Mind gate
                 </button>
                 <button
-                  className={subMode === 'showdown' ? 'primary' : ''}
+                  className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold cursor-pointer border-none transition-colors ${
+                    subMode === 'showdown' ? 'bg-[#AFF65B] text-[#0E0E0E]' : 'bg-[#262626] text-[#8A8A8A] hover:text-[#F4F4F4]'
+                  }`}
                   onClick={() => setSubMode('showdown')}
                 >
                   Speed duel
                 </button>
               </div>
-              <p>
+              <p className="text-xs text-[#8A8A8A] m-0">
                 {subMode === 'gate'
-                  ? 'Every move asks one quick maths question. A wrong answer costs 5 seconds.'
-                  : 'Every 90 seconds, a 10-question duel. Beat the bot to win a power-up and a spell charge.'}
+                  ? 'Every move asks one quick mental maths question. A wrong answer costs 5 seconds.'
+                  : 'Every 90 seconds, a 10-question duel triggers right in the main board. Beat the bot to win spells & power-ups.'}
               </p>
-              <div className="clock-line">
-                <span>You {formatTime(playerTime)}</span>
-                <span>Bot {formatTime(botTime)}</span>
-              </div>
-            </section>
+            </div>
 
-            <section className="court-panel spell-deck">
-              <div className="eyebrow">SPELL DECK</div>
+            <div className="bento-card bento-charcoal p-5 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="matiks-kicker text-[10px]">SPELL DECK</span>
+                <span className="text-[10px] text-[#8A8A8A] uppercase font-mono">
+                  {spellCooldown > 0 ? `Cooldown: ${spellCooldown} moves` : 'Ready'}
+                </span>
+              </div>
               <button
-                className={activeSpell === 'freeze' ? 'armed' : ''}
+                className={`w-full text-left p-3 rounded-xl border text-xs cursor-pointer transition-colors ${
+                  activeSpell === 'freeze'
+                    ? 'bg-[#262626] border-[#AFF65B] text-[#AFF65B]'
+                    : 'bg-[#262626] border-white/5 text-[#F4F4F4] hover:bg-[#333333]'
+                } ${spellCooldown > 0 || freezeCharges === 0 || winner !== null ? 'opacity-40 cursor-not-allowed' : ''}`}
                 disabled={spellCooldown > 0 || freezeCharges === 0 || winner !== null}
                 onClick={() => setActiveSpell(activeSpell === 'freeze' ? null : 'freeze')}
               >
-                ❄ Freeze spell ×{freezeCharges}
-                <small>
-                  Freeze a 3x3 area for the bot's next move.
-                  {activeSpell === 'freeze' ? ' Now tap a square.' : ''}
+                <div className="font-semibold text-sm">❄ Freeze spell ×{freezeCharges}</div>
+                <small className="text-[#8A8A8A] block mt-0.5">
+                  Freeze a 3x3 area for the bot&apos;s next move.{activeSpell === 'freeze' ? ' Tap a square on the board.' : ''}
                 </small>
               </button>
               <button
-                className={activeSpell === 'jump' ? 'armed' : ''}
+                className={`w-full text-left p-3 rounded-xl border text-xs cursor-pointer transition-colors ${
+                  activeSpell === 'jump'
+                    ? 'bg-[#262626] border-[#AFF65B] text-[#AFF65B]'
+                    : 'bg-[#262626] border-white/5 text-[#F4F4F4] hover:bg-[#333333]'
+                } ${spellCooldown > 0 || jumpCharges === 0 || winner !== null ? 'opacity-40 cursor-not-allowed' : ''}`}
                 disabled={spellCooldown > 0 || jumpCharges === 0 || winner !== null}
                 onClick={() => setActiveSpell(activeSpell === 'jump' ? null : 'jump')}
               >
-                ↺ Jump spell ×{jumpCharges}
-                <small>
-                  Lift one non-king piece until after your next move.
-                  {activeSpell === 'jump' ? ' Now tap its square.' : ''}
+                <div className="font-semibold text-sm">↺ Jump spell ×{jumpCharges}</div>
+                <small className="text-[#8A8A8A] block mt-0.5">
+                  Lift one non-king piece until after your next move.{activeSpell === 'jump' ? ' Tap its square.' : ''}
                 </small>
               </button>
-              <p>
-                {spellCooldown > 0
-                  ? `Spells recover in ${spellCooldown} move${spellCooldown > 1 ? 's' : ''}.`
-                  : 'Spells are ready. Winning duels recharges the deck.'}
-              </p>
-            </section>
+            </div>
 
-            <section className="court-panel vault">
-              <div className="eyebrow">POWER-UPS · {inventory.length}</div>
-              {inventory.length === 0 && (
-                <p>No power-ups yet. Win a maths duel to earn one.</p>
+            <div className="bento-card bento-charcoal p-5">
+              <span className="matiks-kicker text-[10px] block mb-2">
+                POWER-UPS ({inventory.length})
+              </span>
+              {inventory.length === 0 ? (
+                <p className="text-xs text-[#8A8A8A] m-0 italic">No power-ups yet. Win a maths duel to earn charges.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {inventory.map((pw, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleUsePowerUp(pw)}
+                      className="w-full text-left p-2.5 rounded-xl bg-[#262626] hover:bg-[#333333] border border-white/5 cursor-pointer text-xs"
+                    >
+                      <strong className="text-[#AFF65B] block">{powerLabels[pw].name}</strong>
+                      <span className="text-[#8A8A8A] text-[11px]">{powerLabels[pw].desc}</span>
+                    </button>
+                  ))}
+                </div>
               )}
-              {inventory.map((pw, idx) => (
-                <button key={idx} onClick={() => handleUsePowerUp(pw)}>
-                  {powerLabels[pw].name}
-                  <small>{powerLabels[pw].desc}</small>
-                </button>
-              ))}
               {(doubleMoveActive || activePowerUp || frozenMovesLeft > 0 || poisonSquare) && (
-                <p>
+                <div className="mt-3 p-2 rounded-lg bg-[#262626] text-xs text-[#AFF65B]">
                   {doubleMoveActive && `Double move active (${doubleMoveCount}/2 used). `}
                   {activePowerUp && `Tap a target square for ${powerLabels[activePowerUp].name}. `}
                   {frozenMovesLeft > 0 && `Grid frozen for ${frozenMovesLeft} bot moves. `}
                   {poisonSquare && `Poison bed on ${poisonSquare} (${poisonStayCount}/3).`}
-                </p>
+                </div>
               )}
-            </section>
+            </div>
           </>
         }
         history={chess.history()}
         winner={winner}
         onNewGame={handleNewGame}
         onExit={onExit}
-        overlays={<>
-      {/* Mind gate: one question unlocks the pending move. */}
-      {gateQuestion && (
-        <div className="court-overlay" role="dialog" aria-modal="true" aria-label="Maths question">
-          <div className="court-panel" style={{ maxWidth: 420, width: '100%' }}>
-            <div className="eyebrow">MIND GATE · SOLVE TO MOVE</div>
-            <div className="mm-question">{gateQuestion.question} = ?</div>
-            <div className="mm-options">
-              {gateQuestion.options.map((opt, i) => (
-                <button key={i} onClick={() => handleAnswerGate(opt)}>
-                  {opt}
-                </button>
-              ))}
-            </div>
-            <p className="local-note">A wrong answer costs 5 seconds and brings a new question.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Speed duel: 10 questions against the clock and the bot. */}
-      {inMathShowdown && showdownQuestions.length > 0 && (
-        <div className="court-overlay" role="dialog" aria-modal="true" aria-label="Maths duel">
-          <div className="court-panel" style={{ maxWidth: 460, width: '100%' }}>
-            <div className="eyebrow">
-              MATHS DUEL · ROUND {showdownRoundCount + 1} · QUESTION {showdownIdx + 1}/10
-            </div>
-            <div className="mm-question">{showdownQuestions[showdownIdx].question} = ?</div>
-            <div className="mm-options">
-              {showdownQuestions[showdownIdx].options.map((opt, i) => (
-                <button key={i} onClick={() => handleShowdownAnswer(opt)}>
-                  {opt}
-                </button>
-              ))}
-            </div>
-            <p className="local-note">
-              Score {showdownScore}/{showdownIdx}. A wrong answer costs 3 seconds.
-            </p>
-          </div>
-        </div>
-      )}
-    </>}
       />
   );
 }

@@ -1,0 +1,493 @@
+/* ==========================================================================
+   Chaturanga Matiks Design System Theme
+   Grounded in design-tokens.json, chaturanga-graphics-spec.md & SVG references
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('/fonts/BebasNeue-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Surfaces */
+  --c-void: #0E0E0E;
+  --c-charcoal: #1A1A1A;
+  --c-raised: #262626;
+  --c-offwhite: #F4F4F4;
+  --c-border: #333333;
+  --c-muted: #8A8A8A;
+
+  /* Accents */
+  --c-lime: #AFF65B;
+  --c-yellow: #F2D500;
+  --c-lavender: #A594F0;
+  --c-teal: #66D4C2;
+  --c-coral: #F07040;
+  --c-emerald: #0FB567;
+  --c-sky: #50A0F0;
+  --c-red: #E5484D;
+
+  /* Board */
+  --c-board-light: #D9D5C7;
+  --c-board-dark: #5F7A4A;
+  --c-board-lastmove: rgba(242, 213, 0, 0.45);
+
+  /* Radii */
+  --r-tile: 22px;
+  --r-chip: 16px;
+  --r-pill: 999px;
+
+  /* Fonts */
+  --font-heading: 'Bebas Neue', Impact, sans-serif;
+  --font-body: 'Poppins', Arial, sans-serif;
+}
+
+/* Base resets & typography */
+body {
+  background-color: var(--c-void) !important;
+  color: var(--c-offwhite) !important;
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Headings: very large, tall, condensed, bold caps with tight line-height */
+.matiks-headline {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 0.94;
+}
+
+/* Kickers: small caps, letter-spaced (~0.25-0.3em), lime, readable size */
+.matiks-kicker {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--c-lime);
+}
+
+/* Bento Cards */
+.bento-card {
+  border-radius: var(--r-tile);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bento-card:hover {
+  transform: translateY(-2px);
+}
+
+.bento-charcoal {
+  background-color: var(--c-charcoal);
+  color: var(--c-offwhite);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bento-yellow {
+  background-color: var(--c-yellow);
+  color: var(--c-void);
+}
+
+.bento-lavender {
+  background-color: var(--c-lavender);
+  color: var(--c-void);
+}
+
+.bento-teal {
+  background-color: var(--c-teal);
+  color: var(--c-void);
+}
+
+.bento-coral {
+  background-color: var(--c-coral);
+  color: var(--c-void);
+}
+
+/* The ONE lime action per screen */
+.btn-lime {
+  background-color: var(--c-lime);
+  color: var(--c-void);
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
+  border: none;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(175, 246, 91, 0.25);
+}
+
+.btn-lime:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(175, 246, 91, 0.4);
+}
+
+.btn-lime:active {
+  transform: scale(0.98);
+}
+
+.btn-raised {
+  background-color: var(--c-raised);
+  color: var(--c-offwhite);
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-raised:hover {
+  background-color: #333333;
+  color: #FFFFFF;
+}
+
+.chip-raised {
+  background-color: var(--c-raised);
+  color: var(--c-offwhite);
+  border-radius: var(--r-chip);
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Diagonal pinstripe texture for banner */
+.bg-diagonal-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.08),
+    rgba(0, 0, 0, 0.08) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.bg-dot-matrix {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+}
+
+/* Postage Stamp Styles */
+.postage-stamp {
+  position: relative;
+  background-color: #FAFAFA;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  display: inline-block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.postage-stamp-inner {
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pill-unlocked {
+  background-color: var(--c-coral);
+  color: var(--c-void);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Celebration sunburst */
+@keyframes sunburstSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-sunburst {
+  animation: sunburstSpin 60s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sunburst {
+    animation: none;
+  }
+  .bento-card:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Matiks Unified Chessboard System (15-mode-classic.svg & 12-web-match.svg)
+   ========================================================================== */
+
+.matiks-board-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 1 / 1;
+  background-color: var(--c-void);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+}
+
+.matiks-board,
+.court-board {
+  display: grid !important;
+  grid-template-columns: repeat(8, 1fr) !important;
+  grid-template-rows: repeat(8, 1fr) !important;
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  max-width: 640px !important;
+  margin: 0 auto !important;
+  border: none !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
+  user-select: none !important;
+}
+
+.matiks-square,
+.court-board .square {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  cursor: pointer !important;
+  outline: none !important;
+  background: none !important;
+  min-height: unset !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+.matiks-square.light,
+.court-board .square.light {
+  background-color: #D9D5C7 !important;
+}
+
+.matiks-square.dark,
+.court-board .square.dark {
+  background-color: #5F7A4A !important;
+}
+
+/* Rank & File Coordinates */
+.matiks-square .coord-rank,
+.court-board .square .rank {
+  position: absolute !important;
+  top: 4px !important;
+  left: 6px !important;
+  font-family: var(--font-body) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+  text-transform: lowercase !important;
+}
+
+.matiks-square.light .coord-rank,
+.court-board .square.light .rank {
+  color: #5F7A4A !important;
+}
+
+.matiks-square.dark .coord-rank,
+.court-board .square.dark .rank {
+  color: #D9D5C7 !important;
+}
+
+.matiks-square .coord-file,
+.court-board .square .file {
+  position: absolute !important;
+  bottom: 4px !important;
+  right: 6px !important;
+  font-family: var(--font-body) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+  text-transform: lowercase !important;
+}
+
+.matiks-square.light .coord-file,
+.court-board .square.light .file {
+  color: #5F7A4A !important;
+}
+
+.matiks-square.dark .coord-file,
+.court-board .square.dark .file {
+  color: #D9D5C7 !important;
+}
+
+/* Last move overlay: #F2D500 @ 45% */
+.matiks-square.last-move::after,
+.court-board .square.last::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background-color: rgba(242, 213, 0, 0.45) !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+/* Selected square outline: stroke #0E0E0E width 3.6 */
+.matiks-square.selected::before,
+.court-board .square.selected::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 2px !important;
+  border: 3.5px solid #0E0E0E !important;
+  border-radius: 4px !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+  background: none !important;
+}
+
+/* Check square outline */
+.matiks-square.in-check::before,
+.court-board .square.check::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 2px !important;
+  border: 3.5px solid #E5484D !important;
+  background-color: rgba(229, 72, 77, 0.35) !important;
+  border-radius: 4px !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+}
+
+/* Piece inside square */
+.matiks-square .piece-wrapper,
+.court-board .square .piece {
+  position: relative !important;
+  width: 78% !important;
+  height: 78% !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)) !important;
+  font-size: unset !important;
+}
+
+/* Legal Move Destination Dot: solid dark circle #0E0E0E, ~34% of square */
+.matiks-move-dot,
+.court-board .square .move-dot {
+  position: absolute !important;
+  width: 32% !important;
+  height: 32% !important;
+  border-radius: 50% !important;
+  background-color: #0E0E0E !important;
+  border: none !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+  inset: unset !important;
+}
+
+/* Capture Destination Ring: dark stroke circle #0E0E0E width 3.5 */
+.matiks-capture-ring {
+  position: absolute !important;
+  width: 82% !important;
+  height: 82% !important;
+  border-radius: 50% !important;
+  border: 3.5px solid #0E0E0E !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+/* Piece Move & Capture Animations */
+@keyframes matiks-piece-land {
+  0% {
+    transform: scale(0.85) translateY(-3px);
+    opacity: 0.85;
+  }
+  65% {
+    transform: scale(1.05) translateY(0);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes matiks-capture-burst {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+.matiks-square.just-moved .piece-wrapper {
+  animation: matiks-piece-land 160ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+.matiks-square.just-captured::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 4px !important;
+  background: radial-gradient(circle, rgba(229, 72, 77, 0.45) 0%, rgba(242, 213, 0, 0.25) 55%, transparent 80%) !important;
+  animation: matiks-capture-burst 240ms ease-out forwards !important;
+  pointer-events: none !important;
+  z-index: 6 !important;
+}
+
