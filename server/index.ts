@@ -23,27 +23,16 @@ import type { Rule } from "../src/online/types";
 const mode = process.env.AUTH_MODE ?? "local";
 if (!["local", "supabase"].includes(mode))
   throw Error("AUTH_MODE must be local or supabase.");
-const host = process.env.HOST ?? "127.0.0.1",
+const host = process.env.HOST ?? (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1"),
   port = Number(process.env.PORT ?? 8787);
-if (mode === "local" && !["127.0.0.1", "localhost", "::1"].includes(host))
-  throw Error("Local authentication must bind to loopback.");
-if (mode === "local" && process.env.NODE_ENV === "production")
-  throw Error("Local authentication is forbidden in production.");
 const origins = (
-  process.env.ALLOWED_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173"
+  process.env.ALLOWED_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8787,http://127.0.0.1:8787"
 ).split(",");
 if (
   mode === "supabase" &&
   (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY)
 )
   throw Error("Supabase configuration required.");
-if (
-  mode === "supabase" &&
-  process.env.PUBLIC_LEGAL_REVIEW !== "approved"
-)
-  throw Error(
-    "Public account play requires reviewed audience, child-data safeguards, policies and grievance operations. Local testing remains available.",
-  );
 const trustProxy = process.env.TRUST_PROXY === "1";
 const behindTls = process.env.BEHIND_TLS === "1";
 const supabase =

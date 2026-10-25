@@ -92,7 +92,7 @@ export function originAllowed(
       /* fall through to the allowlist */
     }
   }
-  return allowed.includes(origin);
+  return allowed.includes("*") || allowed.includes(origin);
 }
 
 /** Security headers applied to every API response. */

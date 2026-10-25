@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Chaturanga: single-container deploy (client build + Node/WS/SQLite server).
 # Build:  docker build -t chaturanga .
-# Run:    docker run -d --name chaturanga -p 127.0.0.1:8787:8787 \
+# Run:    docker run -d --name chaturanga -p 8787:8787 \
 #           --env-file .env -v chaturanga-data:/app/data chaturanga
 
 FROM node:22-alpine AS build
@@ -25,6 +25,4 @@ COPY src/online ./src/online
 RUN mkdir -p data && chown -R chaturanga:chaturanga /app
 USER chaturanga
 EXPOSE 8787
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -q -O /dev/null http://127.0.0.1:8787/healthz || exit 1
 CMD ["node", "--import", "tsx", "server/index.ts"]

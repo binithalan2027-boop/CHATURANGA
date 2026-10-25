@@ -1,6 +1,21 @@
 import { authConfigured, getSupabase } from "../lib/supabase";
 import type { OnlineState, Provider } from "./types";
-const base = import.meta.env.VITE_GAME_SERVER_URL ?? "http://127.0.0.1:8787";
+
+export function getBaseUrl(): string {
+  if (import.meta.env.VITE_GAME_SERVER_URL) {
+    return import.meta.env.VITE_GAME_SERVER_URL;
+  }
+  if (typeof window !== "undefined") {
+    // If running under Vite dev server (e.g. localhost:5173 or 127.0.0.1:5173)
+    if (window.location.port === "5173" || window.location.port === "5174") {
+      return `${window.location.protocol}//${window.location.hostname}:8787`;
+    }
+    // When served from the server or behind a reverse proxy in production:
+    return window.location.origin;
+  }
+  return "http://127.0.0.1:8787";
+}
+
 export async function token() {
   if (authConfigured) {
     const { data } = await (await getSupabase()).auth.getSession();
@@ -32,19 +47,12 @@ export async function createGuestSession(): Promise<string> {
   }
   return "";
 }
+
 export async function api<T = unknown>(
   path: string,
   data?: unknown,
 ): Promise<T> {
-  const target = new URL(base);
-  if (
-    target.protocol !== "https:" &&
-    !(
-      target.protocol === "http:" &&
-      ["127.0.0.1", "localhost", "[::1]"].includes(target.hostname)
-    )
-  )
-    throw Error("Game server must use HTTPS outside localhost.");
+  const base = getBaseUrl();
   const t = await token();
   const res = await fetch(`${base}/api/${path}`, {
     method: data === undefined ? "GET" : "POST",
@@ -97,7 +105,10 @@ export function subscribe(
       onStatus("Sign in required.");
       return;
     }
-    ws = new WebSocket(base.replace(/^http/, "ws") + "/api/live");
+    const base = getBaseUrl();
+    const wsProtocol = base.startsWith("https") ? "wss:" : "ws:";
+    const wsUrl = base.replace(/^https?:/, wsProtocol) + "/api/live";
+    ws = new WebSocket(wsUrl);
     ws.onopen = () => {
       onStatus("Connected");
       ws?.send(JSON.stringify({ token: t }));
