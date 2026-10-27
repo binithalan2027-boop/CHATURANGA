@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="104" fill="#111111" />
+  <!-- Counter-clockwise ring arrow in Emerald #0FB567 -->
+  <path d="M256 136 A120 120 0 1 0 376 256" fill="none" stroke="#0FB567" stroke-width="36" stroke-linecap="round" />
+  <polygon points="256,92 256,180 188,136" fill="#0FB567" />
+  <!-- White reverse triangle in centre -->
+  <polygon points="280,216 280,296 216,256" fill="#F4F4F4" />
+</svg>

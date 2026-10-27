@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="104" fill="#111111" />
+  <!-- White up arrow above pawn -->
+  <path d="M256 96 L298 146 H272 V204 H240 V146 H214 Z" fill="#F4F4F4" />
+  <!-- Pawn matching MatiksPiece in Lavender #A594F0 -->
+  <g transform="translate(136, 170) scale(2.4)">
+    <circle cx="50" cy="30" r="15" fill="#A594F0" />
+    <path d="M36 52 H64 L68 72 H32 Z" fill="#A594F0" />
+    <rect x="26" y="72" width="48" height="14" rx="6" fill="#A594F0" />
+    <rect x="40" y="52" width="20" height="5" rx="2" fill="#F4F4F4" />
+  </g>
+</svg>

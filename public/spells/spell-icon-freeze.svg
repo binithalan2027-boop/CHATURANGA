@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="104" fill="#111111" />
+  <!-- Six-arm snowflake with round caps and branches in Sky #50A0F0 -->
+  <g stroke="#50A0F0" stroke-width="24" stroke-linecap="round">
+    <!-- 0 deg / 180 deg -->
+    <line x1="256" y1="112" x2="256" y2="400" />
+    <path d="M232 168 L256 144 L280 168" fill="none" />
+    <path d="M232 344 L256 368 L280 344" fill="none" />
+    <!-- 60 deg / 240 deg -->
+    <line x1="131" y1="184" x2="381" y2="328" />
+    <path d="M165 220 L150 195 L178 188" fill="none" />
+    <path d="M334 324 L362 317 L347 292" fill="none" />
+    <!-- 120 deg / 300 deg -->
+    <line x1="381" y1="184" x2="131" y2="328" />
+    <path d="M334 188 L362 195 L347 220" fill="none" />
+    <path d="M165 292 L150 317 L178 324" fill="none" />
+  </g>
+  <!-- White centre dot -->
+  <circle cx="256" cy="256" r="28" fill="#F4F4F4" />
+</svg>

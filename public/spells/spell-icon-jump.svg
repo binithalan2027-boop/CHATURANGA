@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="104" fill="#111111" />
+  <!-- Rounded block under dotted arc in Teal #66D4C2 -->
+  <rect x="176" y="316" width="160" height="72" rx="20" fill="#66D4C2" />
+  <!-- Dotted jump arc -->
+  <path d="M120 340 C140 160 372 160 392 340" fill="none" stroke="#66D4C2" stroke-width="26" stroke-linecap="round" stroke-dasharray="32 24" />
+  <!-- White arrowhead at the arc landing -->
+  <polygon points="392,352 422,298 362,310" fill="#F4F4F4" />
+</svg>

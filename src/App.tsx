@@ -70,7 +70,14 @@ function AppContent() {
   const [user, setUser] = useState<User | null>(null);
   const [selectedElo, setSelectedElo] = useState<number>(1300);
   const [timeMinutes, setTimeMinutes] = useState<number>(10);
-  const [gameMode, setGameMode] = useState<string>("standard");
+  const [gameMode, setGameMode] = useState<string>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const m = params.get("mode");
+      if (m) return m;
+    } catch {}
+    return "standard";
+  });
 
   useEffect(() => {
     if (!authConfigured) return;
