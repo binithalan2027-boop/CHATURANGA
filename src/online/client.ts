@@ -62,7 +62,19 @@ export async function api<T = unknown>(
     },
     body: data === undefined ? undefined : JSON.stringify(data),
   });
-  const value = await res.json();
+  const text = await res.text();
+  let value: any = {};
+  try {
+    value = text ? JSON.parse(text) : {};
+  } catch {
+    if (!res.ok) {
+      throw Error(
+        res.status === 404 || res.status === 502 || res.status === 503
+          ? "Game server is starting up. Please wait a moment and retry."
+          : `Server returned HTTP ${res.status}.`
+      );
+    }
+  }
   if (!res.ok) throw Error(value.error ?? "Request failed.");
   return value;
 }
