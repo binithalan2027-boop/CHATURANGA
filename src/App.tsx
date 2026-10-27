@@ -78,6 +78,13 @@ function AppContent() {
     } catch {}
     return "standard";
   });
+  const [mathSubMode, setMathSubMode] = useState<'showdown' | 'gate'>(() => {
+    try {
+      const sub = new URLSearchParams(window.location.search).get("submode");
+      if (sub === 'gate' || sub === 'showdown') return sub;
+    } catch {}
+    return "showdown";
+  });
 
   useEffect(() => {
     if (!authConfigured) return;
@@ -247,10 +254,13 @@ function AppContent() {
       return (
         <BotSelectScreen
           initialTimeMinutes={timeMinutes}
-          onStart={(elo, time, mode) => {
+          onStart={(elo, time, mode, subMode) => {
             setSelectedElo(elo);
             setTimeMinutes(time);
             setGameMode(mode);
+            if (subMode === 'gate' || subMode === 'showdown') {
+              setMathSubMode(subMode);
+            }
             setScreen("playing");
           }}
           onBack={() => setScreen("landing")}
@@ -272,6 +282,7 @@ function AppContent() {
               | "math"
               | "matiks"
           }
+          mathSubMode={mathSubMode}
           onExit={() => setScreen("bot_select")}
         />
       );

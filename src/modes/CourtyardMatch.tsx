@@ -5,6 +5,8 @@ import PieceGlideLayer, { GLIDE_MS, motionOK } from "../chaturanga/PieceGlideLay
 import { diffGlides, type Glide, type GlidePiece } from "../chaturanga/pieceGlide";
 import { playSound } from "../online/sounds";
 import MatchAnalysisScreen, { type ChessMmMatchStats } from "./MatchAnalysisScreen";
+import EndOfGameCelebration from "../chaturanga/EndOfGameCelebration";
+import { setGameInProgress, getPendingGameAchievements, clearPendingGameAchievements, Achievement, ACHIEVEMENTS } from "../chaturanga/achievements";
 
 const FILES = [..."abcdefgh"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -77,6 +79,7 @@ export interface CourtyardMatchProps {
   onResign?: () => void;
   resultTitle?: string;
   chessMmStats?: ChessMmMatchStats;
+  errorToast?: { message: string; onDismiss: () => void } | null;
   onNewGame: () => void;
   onExit: () => void;
 }
@@ -125,6 +128,7 @@ export default function CourtyardMatch({
   winner,
   resultTitle,
   chessMmStats,
+  errorToast,
   premoveSquares,
   premovesCount = 0,
   onClearPremoves,
@@ -137,6 +141,33 @@ export default function CourtyardMatch({
   const { prefs, open, update } = usePreferences();
 
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [endGameAchievements, setEndGameAchievements] = useState<Achievement[]>(() => {
+    if (typeof window !== 'undefined') {
+      const testParam = new URLSearchParams(window.location.search).get('test_achievements');
+      if (testParam) {
+        return [ACHIEVEMENTS[0], ACHIEVEMENTS[4]];
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    setGameInProgress(!winner);
+    return () => {
+      setGameInProgress(false);
+    };
+  }, [winner]);
+
+  useEffect(() => {
+    if (winner) {
+      setGameInProgress(false);
+      const pending = getPendingGameAchievements();
+      if (pending.length > 0) {
+        setEndGameAchievements(pending);
+        clearPendingGameAchievements();
+      }
+    }
+  }, [winner]);
 
   if (showAnalysis) {
     const defaultReason =
@@ -266,7 +297,7 @@ export default function CourtyardMatch({
                   DUEL IN {duelCountdown}
                 </span>
               )}
-              {status && (
+              {status && !duelCountdown && (
                 <span className="text-xs text-[#8A8A8A] bg-[#1A1A1A] border border-white/5 py-1 px-3 rounded-full">
                   {status}
                 </span>
@@ -442,6 +473,32 @@ export default function CourtyardMatch({
                 })}
               />
             </div>
+
+            {/* Pop-in Main Screen Error Toast */}
+            {errorToast && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 max-w-[92%] sm:max-w-md w-full px-2 pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-[#1C0D0E]/95 border-2 border-[#E5484D] rounded-2xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(229,72,77,0.5)] backdrop-blur-md flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#E5484D]/25 text-[#E5484D] flex items-center justify-center font-bold text-lg shrink-0">
+                    ⚠️
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading text-xs tracking-wider text-[#E5484D] uppercase">
+                      INVALID SPELL ACTION
+                    </div>
+                    <div className="font-body text-xs sm:text-sm text-[#F4F4F4] font-medium leading-tight mt-0.5">
+                      {errorToast.message}
+                    </div>
+                  </div>
+                  <button
+                    onClick={errorToast.onDismiss}
+                    className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-[#F4F4F4] text-xs font-bold flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                    aria-label="Dismiss error"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Main Screen In-Place Overlay (Maths Duel / Mind Gate) */}
             {boardOverlay && (
@@ -748,6 +805,15 @@ export default function CourtyardMatch({
       </div>
 
       {overlays}
+
+      {/* End of Game Achievements Celebration Modal with Right-Side Skip Button */}
+      {endGameAchievements.length > 0 && (
+        <EndOfGameCelebration
+          achievements={endGameAchievements}
+          onDismiss={() => setEndGameAchievements([])}
+          onSkip={() => setEndGameAchievements([])}
+        />
+      )}
     </div>
   );
 }

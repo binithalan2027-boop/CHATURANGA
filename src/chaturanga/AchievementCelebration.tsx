@@ -3,19 +3,30 @@ import { Achievement } from './achievements';
 interface AchievementCelebrationProps {
   achievement: Achievement | null;
   onDismiss: () => void;
+  onSkip?: () => void;
 }
 
 export default function AchievementCelebration({
   achievement,
   onDismiss,
+  onSkip,
 }: AchievementCelebrationProps) {
   if (!achievement) return null;
+
+  const handleSkip = () => {
+    if (onSkip) {
+      onSkip();
+    } else {
+      onDismiss();
+    }
+  };
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-hidden"
+      aria-label="Achievement Celebration"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-hidden animate-in fade-in duration-300"
     >
       {/* Sunburst Background Effect */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
@@ -36,6 +47,20 @@ export default function AchievementCelebration({
             );
           })}
         </svg>
+      </div>
+
+      {/* Prominent SKIP Button on the Right Side of the Screen */}
+      <div className="fixed top-5 right-5 sm:top-8 sm:right-10 z-50">
+        <button
+          onClick={handleSkip}
+          className="btn-raised flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-white/20 hover:border-[#AFF65B] text-[#F4F4F4] hover:text-[#AFF65B] font-heading text-base sm:text-lg tracking-widest transition-all shadow-2xl cursor-pointer active:scale-95 group"
+          aria-label="Skip achievement celebration"
+        >
+          <span>SKIP</span>
+          <span className="text-xs bg-white/10 group-hover:bg-[#AFF65B]/20 text-[#8A8A8A] group-hover:text-[#AFF65B] px-1.5 py-0.5 rounded font-mono font-bold transition-colors">
+            ✕
+          </span>
+        </button>
       </div>
 
       {/* Central celebration card */}
@@ -77,7 +102,7 @@ export default function AchievementCelebration({
         {/* The ONE lime action button */}
         <button
           onClick={onDismiss}
-          className="btn-lime w-full py-4 text-base font-semibold uppercase tracking-wider shadow-lg"
+          className="btn-lime w-full py-4 text-base font-semibold uppercase tracking-wider shadow-lg cursor-pointer"
           autoFocus
         >
           CLAIM & CONTINUE

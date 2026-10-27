@@ -125,6 +125,27 @@ export const ACHIEVEMENTS: Achievement[] = [
 const ACHIEVEMENTS_STORAGE_KEY = 'chaturanga_unlocked_achievements_v1';
 
 let memoryStore: Record<string, string> = {};
+let gameInProgress = false;
+let pendingGameAchievements: Achievement[] = [];
+
+export function setGameInProgress(active: boolean): void {
+  gameInProgress = active;
+  if (active) {
+    pendingGameAchievements = [];
+  }
+}
+
+export function isGameInProgress(): boolean {
+  return gameInProgress;
+}
+
+export function getPendingGameAchievements(): Achievement[] {
+  return [...pendingGameAchievements];
+}
+
+export function clearPendingGameAchievements(): void {
+  pendingGameAchievements = [];
+}
 
 function getStorageItem(key: string): string | null {
   try {
@@ -158,6 +179,8 @@ export function clearAchievementsStore(): void {
     // fallback
   }
   memoryStore = {};
+  pendingGameAchievements = [];
+  gameInProgress = false;
 }
 
 export function getUnlockedAchievementIds(): string[] {
@@ -187,8 +210,18 @@ export function unlockAchievement(id: string): { newlyUnlocked: boolean; achieve
   const updated = [...current, id];
   try {
     setStorageItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(updated));
-    if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('chaturanga:achievement_unlocked', { detail: achievement }));
+    if (isGameInProgress()) {
+      // Buffer in-game achievements to celebrate only at end of game!
+      if (!pendingGameAchievements.some(a => a.id === id)) {
+        pendingGameAchievements.push(achievement);
+      }
+      if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('chaturanga:achievement_queued', { detail: achievement }));
+      }
+    } else {
+      if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('chaturanga:achievement_unlocked', { detail: achievement }));
+      }
     }
   } catch (e) {
     console.error('Failed to save unlocked achievement', e);

@@ -1,11 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   ACHIEVEMENTS,
   getUnlockedAchievementIds,
   unlockAchievement,
   isAchievementUnlocked,
   getAchievementProgress,
-  clearAchievementsStore
+  clearAchievementsStore,
+  setGameInProgress,
+  isGameInProgress,
+  getPendingGameAchievements,
+  clearPendingGameAchievements
 } from '../achievements';
 
 describe('Chaturanga Postage-Stamp Achievements Module', () => {
@@ -63,5 +67,70 @@ describe('Chaturanga Postage-Stamp Achievements Module', () => {
     const res = unlockAchievement('non-existent-id');
     expect(res.newlyUnlocked).toBe(false);
     expect(res.achievement).toBeUndefined();
+  });
+
+  it('buffers in-game achievements to celebrate only at end of match', () => {
+    const listeners: Record<string, Function[]> = {};
+    const origWindow = (globalThis as any).window;
+    const origCustomEvent = (globalThis as any).CustomEvent;
+
+    (globalThis as any).CustomEvent = class {
+      type: string;
+      detail: any;
+      constructor(type: string, init?: any) {
+        this.type = type;
+        this.detail = init?.detail;
+      }
+    };
+
+    (globalThis as any).window = {
+      addEventListener: (type: string, fn: any) => {
+        listeners[type] = listeners[type] || [];
+        listeners[type].push(fn);
+      },
+      removeEventListener: (type: string, fn: any) => {
+        listeners[type] = (listeners[type] || []).filter(f => f !== fn);
+      },
+      dispatchEvent: (event: any) => {
+        (listeners[event.type] || []).forEach(fn => fn(event));
+        return true;
+      }
+    };
+
+    const queuedListener = vi.fn();
+    const unlockedListener = vi.fn();
+    (globalThis as any).window.addEventListener('chaturanga:achievement_queued', queuedListener);
+    (globalThis as any).window.addEventListener('chaturanga:achievement_unlocked', unlockedListener);
+
+    setGameInProgress(true);
+    expect(isGameInProgress()).toBe(true);
+    expect(getPendingGameAchievements()).toHaveLength(0);
+
+    // Player earns tactics-champion and mind-gate-streak during the match
+    const res1 = unlockAchievement('tactics-champion');
+    expect(res1.newlyUnlocked).toBe(true);
+    expect(isAchievementUnlocked('tactics-champion')).toBe(true);
+
+    const res2 = unlockAchievement('mind-gate-streak');
+    expect(res2.newlyUnlocked).toBe(true);
+
+    // Should NOT dispatch immediate celebration during game
+    expect(unlockedListener).not.toHaveBeenCalled();
+    expect(queuedListener).toHaveBeenCalledTimes(2);
+
+    // Both should be in pending end-of-game achievements
+    const pending = getPendingGameAchievements();
+    expect(pending).toHaveLength(2);
+    expect(pending[0].id).toBe('tactics-champion');
+    expect(pending[1].id).toBe('mind-gate-streak');
+
+    // End of match cleanup
+    setGameInProgress(false);
+    expect(isGameInProgress()).toBe(false);
+    clearPendingGameAchievements();
+    expect(getPendingGameAchievements()).toHaveLength(0);
+
+    (globalThis as any).window = origWindow;
+    (globalThis as any).CustomEvent = origCustomEvent;
   });
 });

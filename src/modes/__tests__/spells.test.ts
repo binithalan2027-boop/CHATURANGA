@@ -237,5 +237,16 @@ describe('Chess MM Spells and Spellbook System', () => {
       const isFull = spells.length >= SPELL_CONFIG.slotCap;
       expect(isFull).toBe(true);
     });
+
+    it('contains rich descriptions, whenToUse, howItWorks and tacticalTip on all 9 spells', () => {
+      ALL_SPELLS.forEach((spell) => {
+        expect(spell.whenToUse).toBeDefined();
+        expect(spell.whenToUse!.length).toBeGreaterThan(10);
+        expect(spell.howItWorks).toBeDefined();
+        expect(spell.howItWorks!.length).toBeGreaterThan(15);
+        expect(spell.tacticalTip).toBeDefined();
+        expect(spell.tacticalTip!.length).toBeGreaterThan(10);
+      });
+    });
   });
 });

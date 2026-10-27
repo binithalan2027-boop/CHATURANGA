@@ -9,11 +9,18 @@ interface OfflineGameViewProps {
   botElo?: number;
   timeMinutes?: number;
   gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic' | 'math' | 'matiks';
+  mathSubMode?: 'showdown' | 'gate';
 }
 
-export default function OfflineGameView({ onExit, botElo = 250, timeMinutes = 10, gameMode = 'standard' }: OfflineGameViewProps) {
+export default function OfflineGameView({
+  onExit,
+  botElo = 250,
+  timeMinutes = 10,
+  gameMode = 'standard',
+  mathSubMode = 'showdown',
+}: OfflineGameViewProps) {
   if (gameMode === 'math' || gameMode === 'matiks') {
-    return <MathChessMode onExit={onExit} botElo={botElo} />;
+    return <MathChessMode onExit={onExit} botElo={botElo} initialSubMode={mathSubMode} />;
   }
 
   if (gameMode === 'atomic') {

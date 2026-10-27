@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export interface BotSelectScreenProps {
-  onStart: (elo: number, timeMinutes: number, gameMode: string) => void;
+  onStart: (elo: number, timeMinutes: number, gameMode: string, subMode?: 'showdown' | 'gate') => void;
   onBack: () => void;
   initialTimeMinutes?: number;
 }
@@ -90,13 +90,14 @@ export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 
   const [elo, setElo] = useState<number>(1850);
   const [timeMinutes, setTimeMinutes] = useState<number>(initialTimeMinutes);
   const [category, setCategory] = useState<'bots' | 'local' | 'online'>('bots');
+  const [mathFormat, setMathFormat] = useState<'showdown' | 'gate'>('showdown');
 
   const currentBot = BOTS.reduce((prev, curr) => 
     Math.abs(curr.elo - elo) < Math.abs(prev.elo - elo) ? curr : prev
   );
 
   const handleCommence = () => {
-    onStart(elo, timeMinutes, selectedMode);
+    onStart(elo, timeMinutes, selectedMode, selectedMode === 'math' ? mathFormat : undefined);
   };
 
   return (
@@ -287,6 +288,60 @@ export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 
                   </button>
                 ))}
               </div>
+
+              {/* Chess MM Format Selector (Prior to Game) */}
+              {selectedMode === 'math' && (
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="font-body text-[11px] font-semibold text-[#AFF65B] uppercase tracking-wider">
+                      CHESS MM FORMAT
+                    </span>
+                    <span className="text-[10px] text-[#8A8A8A] font-mono">
+                      Selected prior to match
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMathFormat('showdown')}
+                      className={`p-2.5 rounded-xl text-left border cursor-pointer transition-all ${
+                        mathFormat === 'showdown'
+                          ? 'bg-[#AFF65B]/15 border-[#AFF65B] text-[#F4F4F4]'
+                          : 'bg-[#1A1A1A] border-white/5 text-[#8A8A8A] hover:text-[#F4F4F4]'
+                      }`}
+                    >
+                      <div className="font-heading text-xs text-[#F4F4F4] flex items-center justify-between mb-0.5">
+                        <span>SPEED DUEL</span>
+                        {mathFormat === 'showdown' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#AFF65B] animate-pulse" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-[#8A8A8A] m-0 leading-tight">
+                        90s showdown duels with spell drops.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMathFormat('gate')}
+                      className={`p-2.5 rounded-xl text-left border cursor-pointer transition-all ${
+                        mathFormat === 'gate'
+                          ? 'bg-[#AFF65B]/15 border-[#AFF65B] text-[#F4F4F4]'
+                          : 'bg-[#1A1A1A] border-white/5 text-[#8A8A8A] hover:text-[#F4F4F4]'
+                      }`}
+                    >
+                      <div className="font-heading text-xs text-[#F4F4F4] flex items-center justify-between mb-0.5">
+                        <span>MIND GATE</span>
+                        {mathFormat === 'gate' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#AFF65B] animate-pulse" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-[#8A8A8A] m-0 leading-tight">
+                        Solve quick mental math per move.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* The ONE lime action button */}
               <button

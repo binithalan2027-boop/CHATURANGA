@@ -34,8 +34,9 @@ export interface MathQuestion {
 
 export interface MathChessModeProps {
   onExit: () => void;
-  botElo: number;
+  botElo?: number;
   forcedDropId?: string; // Test hook for deterministic testing
+  initialSubMode?: 'showdown' | 'gate';
 }
 
 // Helper to generate mental math questions
@@ -72,9 +73,20 @@ export function generateMathQuestion(): MathQuestion {
   return { question, answer, options };
 }
 
-export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChessModeProps) {
-  // Submode: Mode 1 = Mind Gate, Mode 2 = 10-Min Match with Speed Duel
-  const [subMode, setSubMode] = useState<'gate' | 'showdown'>('showdown');
+export default function MathChessMode({
+  onExit,
+  botElo = 1200,
+  forcedDropId,
+  initialSubMode = 'showdown',
+}: MathChessModeProps) {
+  // Submode configured prior to game: 'showdown' or 'gate'
+  const [subMode] = useState<'gate' | 'showdown'>(() => {
+    if (typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('submode');
+      if (q === 'gate' || q === 'showdown') return q;
+    }
+    return initialSubMode || 'showdown';
+  });
 
   const [chess, setChess] = useState(() => new Chess());
   const [fen, setFen] = useState(chess.fen());
@@ -106,11 +118,56 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
 
   // v3 Spell System State
   const [spellbook, setSpellbook] = useState<SpellDef[]>([]);
-  const [pendingDrop, setPendingDrop] = useState<SpellDef | null>(null);
+  const [pendingDrop, setPendingDrop] = useState<SpellDef | null>(() => {
+    if (typeof window !== 'undefined') {
+      const dropParam = new URLSearchParams(window.location.search).get('drop');
+      if (dropParam && (SPELL_REGISTRY as any)[dropParam]) {
+        return (SPELL_REGISTRY as any)[dropParam];
+      }
+    }
+    return null;
+  });
   const [showSpellbookModal, setShowSpellbookModal] = useState<boolean>(false);
   const [armedSpell, setArmedSpell] = useState<SpellDef | null>(null);
   const [castsThisTurn, setCastsThisTurn] = useState<number>(0);
-  const [spellError, setSpellError] = useState<string | null>(null);
+  const [spellError, setSpellError] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const errParam = new URLSearchParams(window.location.search).get('spell_error');
+      if (errParam) {
+        return 'White pawn must be on rank 5+ to promote.';
+      }
+    }
+    return null;
+  });
+  const [autoCollectSpells, setAutoCollectSpells] = useState<boolean>(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem('chaturanga_auto_collect_spells') === 'true';
+      }
+    } catch {
+      // storage unavailable
+    }
+    return false;
+  });
+  const [autoCollectToast, setAutoCollectToast] = useState<SpellDef | null>(null);
+
+  // Auto-dismiss spell error after 4 seconds
+  useEffect(() => {
+    if (!spellError) return;
+    const timer = setTimeout(() => {
+      setSpellError(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [spellError]);
+
+  // Auto-dismiss auto-collect toast after 3.5 seconds
+  useEffect(() => {
+    if (!autoCollectToast) return;
+    const timer = setTimeout(() => {
+      setAutoCollectToast(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [autoCollectToast]);
 
   // Active spell modifiers
   const [spellFrozen, setSpellFrozen] = useState<Set<string>>(new Set());
@@ -311,7 +368,13 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
 
         const isFirstDrop = duelsWon === 0;
         const droppedSpell = rollSpellDrop(isFirstDrop, forcedDropId as any);
-        setPendingDrop(droppedSpell);
+        if (autoCollectSpells && spellbook.length < SPELL_CONFIG.slotCap) {
+          // Seamless auto-collection without interrupting play
+          setSpellbook((prev) => [...prev, droppedSpell]);
+          setAutoCollectToast(droppedSpell);
+        } else {
+          setPendingDrop(droppedSpell);
+        }
       }
     }
   };
@@ -785,7 +848,7 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
             ? 'Maths duel in progress - clocks paused.'
             : subMode === 'gate'
               ? 'Solve a quick question to unlock each move.'
-              : `Next maths duel in ${formatTime(showdownTimer)}.`
+              : undefined
         }
         premoveSquares={premoveSquares.size > 0 ? premoveSquares : previewTargetSquares}
         premovesCount={premoves.length}
@@ -876,32 +939,15 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
         sidePanels={
           <>
             <div className="bento-card bento-charcoal p-5">
-              <span className="matiks-kicker text-[10px] block mb-2">HOW IT PLAYS</span>
-              <div className="flex gap-2 mb-3">
-                <button
-                  className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold cursor-pointer border-none transition-colors ${
-                    subMode === 'gate'
-                      ? 'bg-[#AFF65B] text-[#0E0E0E]'
-                      : 'bg-[#262626] text-[#8A8A8A] hover:text-[#F4F4F4]'
-                  }`}
-                  onClick={() => setSubMode('gate')}
-                >
-                  Mind gate
-                </button>
-                <button
-                  className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold cursor-pointer border-none transition-colors ${
-                    subMode === 'showdown'
-                      ? 'bg-[#AFF65B] text-[#0E0E0E]'
-                      : 'bg-[#262626] text-[#8A8A8A] hover:text-[#F4F4F4]'
-                  }`}
-                  onClick={() => setSubMode('showdown')}
-                >
-                  Speed duel
-                </button>
+              <div className="flex items-center justify-between mb-2">
+                <span className="matiks-kicker text-[10px]">ACTIVE FORMAT</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#AFF65B]/15 text-[#AFF65B] border border-[#AFF65B]/30 font-mono">
+                  {subMode === 'showdown' ? 'SPEED DUEL' : 'MIND GATE'}
+                </span>
               </div>
-              <p className="text-xs text-[#8A8A8A] m-0">
+              <p className="text-xs text-[#8A8A8A] m-0 leading-relaxed">
                 {subMode === 'gate'
-                  ? 'Every move asks one quick mental maths question. A wrong answer costs 5 seconds.'
+                  ? 'Every move requires solving one quick mental maths question. A wrong answer costs 5 seconds.'
                   : 'Every 90 seconds, a 10-question duel triggers right in the main board. Beat the bot to win spells & random drops.'}
               </p>
             </div>
@@ -971,6 +1017,7 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
         history={chess.history()}
         winner={winner}
         resultTitle={resultReason || undefined}
+        errorToast={spellError ? { message: spellError, onDismiss: () => setSpellError(null) } : null}
         chessMmStats={{
           freezeCasts,
           jumpCasts,
@@ -981,6 +1028,38 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
         onExit={onExit}
       />
 
+      {/* Seamless Auto-Collect Floating Toast */}
+      {autoCollectToast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-[92%] sm:max-w-md w-full px-2 pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-[#1C1C1C]/95 border-2 border-[#AFF65B] rounded-2xl p-3 shadow-[0_12px_40px_rgba(175,246,91,0.35)] backdrop-blur-md flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl p-1 flex items-center justify-center shrink-0 shadow-md"
+              style={{ backgroundColor: autoCollectToast.accent }}
+            >
+              <SpellIcon id={autoCollectToast.id} size={28} />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="font-heading text-xs tracking-wider text-[#AFF65B] uppercase">
+                SPELL AUTO-COLLECTED (SEAMLESS)
+              </div>
+              <div className="font-body text-xs sm:text-sm text-[#F4F4F4] font-bold truncate">
+                {autoCollectToast.name} · {autoCollectToast.rarity.toUpperCase()}
+              </div>
+              <div className="text-[11px] text-[#8A8A8A] truncate">
+                Added to Spellbook tray (slot {spellbook.length}/3)
+              </div>
+            </div>
+            <button
+              onClick={() => setAutoCollectToast(null)}
+              className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-[#F4F4F4] text-xs font-bold flex items-center justify-center cursor-pointer transition-colors shrink-0"
+              aria-label="Dismiss toast"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Spell Drop Moment Reveal Modal */}
       {pendingDrop && (
         <SpellDropModal
@@ -988,6 +1067,8 @@ export default function MathChessMode({ onExit, botElo, forcedDropId }: MathChes
           currentSpellCount={spellbook.length}
           maxSlots={SPELL_CONFIG.slotCap}
           currentSpells={spellbook}
+          autoCollectEnabled={autoCollectSpells}
+          onToggleAutoCollect={(enabled) => setAutoCollectSpells(enabled)}
           onAddToSpellbook={(spell) => {
             setSpellbook((prev) => [...prev.slice(0, SPELL_CONFIG.slotCap - 1), spell]);
             setPendingDrop(null);
