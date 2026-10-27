@@ -7,6 +7,7 @@ interface NavbarProps {
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
   onOpenStamps?: () => void;
+  onOpenProgress?: () => void;
 }
 
 export default function Navbar({
@@ -18,6 +19,7 @@ export default function Navbar({
   onOpenAbout,
   onOpenProfile,
   onOpenStamps,
+  onOpenProgress,
 }: NavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#1A1A1A]/95 backdrop-blur-md border-b border-white/5">
@@ -51,14 +53,21 @@ export default function Navbar({
           >
             Modes
           </a>
-          {onOpenStamps && (
+          {onOpenProgress ? (
+            <button
+              onClick={onOpenProgress}
+              className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#AFF65B] px-3 py-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors"
+            >
+              Progress
+            </button>
+          ) : onOpenStamps ? (
             <button
               onClick={onOpenStamps}
               className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#AFF65B] px-3 py-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors"
             >
               Stamps
             </button>
-          )}
+          ) : null}
           {onOpenLearn && (
             <button
               onClick={onOpenLearn}

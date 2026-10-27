@@ -4,6 +4,7 @@ import MatiksPiece from "../components/MatiksPiece";
 import PieceGlideLayer, { GLIDE_MS, motionOK } from "../chaturanga/PieceGlideLayer";
 import { diffGlides, type Glide, type GlidePiece } from "../chaturanga/pieceGlide";
 import { playSound } from "../online/sounds";
+import MatchAnalysisScreen, { type ChessMmMatchStats } from "./MatchAnalysisScreen";
 
 const FILES = [..."abcdefgh"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -69,6 +70,7 @@ export interface CourtyardMatchProps {
   history: string[];
   winner: "w" | "b" | null;
   resultTitle?: string;
+  chessMmStats?: ChessMmMatchStats;
   onNewGame: () => void;
   onExit: () => void;
 }
@@ -116,10 +118,41 @@ export default function CourtyardMatch({
   history,
   winner,
   resultTitle,
+  chessMmStats,
   onNewGame,
   onExit,
 }: CourtyardMatchProps) {
   const { prefs, open } = usePreferences();
+
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
+  useEffect(() => {
+    if (!winner) setShowAnalysis(false);
+  }, [winner]);
+
+  if (showAnalysis && winner) {
+    return (
+      <MatchAnalysisScreen
+        winner={winner}
+        playerColor="w"
+        playerName="You"
+        playerRating={1200}
+        opponentName={botName || "Aarav"}
+        opponentRating={botElo || 1050}
+        isBot={true}
+        resultReason={resultTitle || (winner === "w" ? "CHECKMATE · VICTORY" : "CHECKMATE · DEFEAT")}
+        modeName={title || eyebrow || "STANDARD CHESS"}
+        moves={history}
+        chessMmStats={chessMmStats}
+        onRematch={() => {
+          setShowAnalysis(false);
+          onNewGame();
+        }}
+        onReview={() => setShowAnalysis(false)}
+        onExit={onExit}
+      />
+    );
+  }
 
   const flatBoard = useMemo(() => flattenBoard(board), [board]);
   const prevFlatBoard = useRef<(GlidePiece | null)[]>(flatBoard);
@@ -279,7 +312,7 @@ export default function CourtyardMatch({
           </div>
 
           {/* Chess Board */}
-          <div className="matiks-board-wrap w-full max-w-[640px]">
+          <div className="matiks-board-wrap w-full max-w-[760px] lg:max-w-[780px]">
             <div
               className="matiks-board court-board relative"
               role="group"
@@ -425,13 +458,19 @@ export default function CourtyardMatch({
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
-                      className="btn-lime py-3 px-6 text-sm"
+                      className="btn-lime py-3 px-5 text-sm cursor-pointer"
                       onClick={onNewGame}
                     >
                       Play Again
                     </button>
                     <button
-                      className="btn-raised py-3 px-6 text-sm"
+                      className="py-3 px-5 text-sm bg-[#AFF65B]/15 text-[#AFF65B] border border-[#AFF65B]/40 rounded-xl font-bold hover:bg-[#AFF65B]/25 transition-colors cursor-pointer"
+                      onClick={() => setShowAnalysis(true)}
+                    >
+                      Analysis & Report →
+                    </button>
+                    <button
+                      className="btn-raised py-3 px-5 text-sm cursor-pointer"
                       onClick={onExit}
                     >
                       Exit to Modes
@@ -508,31 +547,9 @@ export default function CourtyardMatch({
             </div>
           </div>
 
-          {/* Engine & Captured Stats Card */}
+          {/* Material & Captured Stats Card */}
           <div className="bento-card bento-charcoal p-6 flex flex-col gap-4">
             <div>
-              <span className="matiks-kicker text-[10px] block mb-1">
-                BOT STRENGTH
-              </span>
-              <div className="flex items-center justify-between">
-                <span className="font-body text-sm font-semibold text-[#F4F4F4]">
-                  Engine target: {botElo !== undefined ? botElo : 1100}
-                </span>
-                <span className="text-xs text-[#8A8A8A]">
-                  {isBotThinking ? "Evaluating..." : "Idle"}
-                </span>
-              </div>
-              <div className="w-full bg-[#262626] h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-[#AFF65B] h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, Math.max(10, ((botElo || 1100) / 2000) * 100))}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-white/5">
               <span className="matiks-kicker text-[10px] block mb-1">
                 MATERIAL STATUS
               </span>

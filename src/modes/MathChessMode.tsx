@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
 import CourtyardMatch, { SquareMark } from './CourtyardMatch';
+import MathDuelOverlay from './MathDuelOverlay';
 import { unlockAchievement } from '../chaturanga/achievements';
 import { recordGameResult } from '../chaturanga/stats';
 
@@ -92,6 +93,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const [showdownIdx, setShowdownIdx] = useState<number>(0);
   const [showdownScore, setShowdownScore] = useState<number>(0);
   const [showdownRoundCount, setShowdownRoundCount] = useState<number>(0);
+  const [questionResults, setQuestionResults] = useState<boolean[]>([]);
 
   // Power-Ups System
   const [inventory, setInventory] = useState<PowerUpType[]>([]);
@@ -114,6 +116,10 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   // shared cooldown. Charges are also awarded for winning maths showdowns.
   const [freezeCharges, setFreezeCharges] = useState(2);
   const [jumpCharges, setJumpCharges] = useState(1);
+  const [freezeCasts, setFreezeCasts] = useState(0);
+  const [jumpCasts, setJumpCasts] = useState(0);
+  const [duelsWon, setDuelsWon] = useState(0);
+  const [totalDuels, setTotalDuels] = useState(0);
   const [spellCooldown, setSpellCooldown] = useState(0);
   const [activeSpell, setActiveSpell] = useState<'freeze' | 'jump' | null>(null);
   const [spellFrozen, setSpellFrozen] = useState<Set<string>>(new Set());
@@ -164,6 +170,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
     setShowdownQuestions(qList);
     setShowdownIdx(0);
     setShowdownScore(0);
+    setQuestionResults([]);
     setInMathShowdown(true);
   };
 
@@ -171,7 +178,9 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const handleShowdownAnswer = (selected: number) => {
     const q = showdownQuestions[showdownIdx];
     let newScore = showdownScore;
-    if (selected === q.answer) {
+    const isCorrect = selected === q.answer;
+    setQuestionResults((prev) => [...prev, isCorrect]);
+    if (isCorrect) {
       newScore += 1;
       setShowdownScore(newScore);
     } else {
@@ -185,12 +194,14 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
       // Showdown complete! Determine winner & reward Power-Up
       setInMathShowdown(false);
       setShowdownRoundCount(rc => rc + 1);
+      setTotalDuels(td => td + 1);
 
       // Bot score simulated based on bot ELO (e.g. 5 to 8 points)
       const botScore = Math.min(10, Math.floor(botElo / 400) + Math.floor(Math.random() * 3));
       
       if (newScore >= botScore) {
         // Player wins power-up!
+        setDuelsWon(dw => dw + 1);
         awardRandomPowerUp(showdownRoundCount === 0);
         unlockAchievement('speed-duel-win');
       }
@@ -223,6 +234,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   // Cast Freeze: a 3x3 area cannot move for the bot's next turn.
   const castFreeze = (centerSq: string) => {
     unlockAchievement('tactics-champion');
+    setFreezeCasts(c => c + 1);
     const fileIdx = FILES.indexOf(centerSq[0]);
     const rankIdx = RANKS.indexOf(centerSq[1]);
     const newlyFrozen = new Set<string>();
@@ -242,6 +254,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   // Cast Jump: lift one non-king piece off the board until after your next move.
   const castJump = (sq: string) => {
     unlockAchievement('tactics-champion');
+    setJumpCasts(c => c + 1);
     const piece = chess.get(sq as Square);
     if (!piece || piece.type === 'k') return;
     setJumpedPiece({ square: sq, piece });
@@ -654,32 +667,22 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
         }
         boardOverlay={
           inMathShowdown && showdownQuestions.length > 0 ? (
-            <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 sm:p-8 w-full max-w-[480px] shadow-2xl flex flex-col items-center text-center">
-              <span className="text-[10px] font-bold tracking-[2px] text-[#AFF65B] uppercase block mb-1 font-body">
-                MATHS DUEL · ROUND {showdownRoundCount + 1} · QUESTION {showdownIdx + 1}/10
-              </span>
-              <div className="font-heading text-4xl sm:text-5xl tracking-wider text-[#F4F4F4] my-3">
-                {showdownQuestions[showdownIdx].question} = ?
-              </div>
-              <div className="grid grid-cols-2 gap-3 w-full my-3">
-                {showdownQuestions[showdownIdx].options.map((opt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleShowdownAnswer(opt)}
-                    className="py-3.5 px-4 rounded-xl bg-[#262626] hover:bg-[#333333] active:bg-[#AFF65B] active:text-[#0E0E0E] text-[#F4F4F4] font-heading text-2xl tracking-wide border border-white/5 cursor-pointer transition-all transform hover:scale-[1.02] active:scale-95"
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center justify-between w-full text-xs text-[#8A8A8A] mt-2 pt-2.5 border-t border-white/5 font-body">
-                <span>Score: <strong className="text-[#AFF65B] font-mono">{showdownScore}/{showdownIdx}</strong></span>
-                <span>Wrong penalty: <strong className="text-[#E5484D]">-3s</strong></span>
-              </div>
-              <p className="text-[11px] text-[#8A8A8A] mt-2 mb-0 font-body">
-                Chess clocks are paused during the duel. Beat the bot to win spells & power-ups!
-              </p>
-            </div>
+            <MathDuelOverlay
+              question={showdownQuestions[showdownIdx]}
+              questionIndex={showdownIdx}
+              totalQuestions={10}
+              playerScore={showdownScore}
+              botScore={Math.min(showdownIdx, Math.floor(showdownIdx * 0.6))}
+              duelTimer={20}
+              playerName="You"
+              playerRating={1200}
+              botName={currentBot.name || "Aarav"}
+              botRating={botElo}
+              freezeCharges={freezeCharges}
+              jumpCharges={jumpCharges}
+              onAnswer={handleShowdownAnswer}
+              questionResults={questionResults}
+            />
           ) : gateQuestion ? (
             <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 sm:p-8 w-full max-w-[440px] shadow-2xl flex flex-col items-center text-center">
               <span className="text-[10px] font-bold tracking-[2px] text-[#AFF65B] uppercase block mb-1 font-body">
@@ -813,6 +816,12 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
         }
         history={chess.history()}
         winner={winner}
+        chessMmStats={{
+          freezeCasts,
+          jumpCasts,
+          duelsWon,
+          totalDuels,
+        }}
         onNewGame={handleNewGame}
         onExit={onExit}
       />

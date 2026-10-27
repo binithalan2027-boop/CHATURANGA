@@ -29,7 +29,7 @@ export default function FogMode({ onExit, botElo, timeMinutes = 10 }: GameModePr
   const [playerTime, setPlayerTime] = useState<number>(initialTime);
   const [botTime, setBotTime] = useState<number>(initialTime);
 
-  const [currentBotElo, setCurrentBotElo] = useState<number>(botElo);
+  const [currentBotElo] = useState<number>(botElo);
   const { isReady, isThinking, getBestMove, engineError, stopThinking } = useStockfish();
   const currentBot = getBotByElo(currentBotElo);
 
@@ -252,24 +252,6 @@ export default function FogMode({ onExit, botElo, timeMinutes = 10 }: GameModePr
           : isReady
             ? 'You only see the squares your pieces can reach.'
             : 'Loading the engine…'
-      }
-      sidePanels={
-        <section className="court-panel">
-          <div className="eyebrow">BOT STRENGTH</div>
-          <label>
-            Engine target {currentBotElo}
-            <input
-              type="range"
-              min={1}
-              max={3500}
-              value={currentBotElo}
-              onChange={(e) => setCurrentBotElo(parseInt(e.target.value))}
-              disabled={isThinking || chess.history().length > 0}
-              aria-label="Bot strength"
-            />
-          </label>
-          <p>Dark squares are hidden. Captures you cannot see stay a mystery.</p>
-        </section>
       }
       history={chess.history()}
       winner={winner}

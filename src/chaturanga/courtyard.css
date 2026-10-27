@@ -219,7 +219,8 @@
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   aspect-ratio: 1;
-  width: min(100%, calc(100vh - 270px));
+  width: min(100%, calc(100vh - 200px));
+  max-width: 780px;
   margin: 10px auto;
   border: 6px solid #664c36;
   border-radius: 8px;
@@ -521,7 +522,7 @@
   }
   .court-board {
     width: 100%;
-    max-width: 500px;
+    max-width: 620px;
   }
   .piece {
     font-size: clamp(26px, 7.5vw, 48px);

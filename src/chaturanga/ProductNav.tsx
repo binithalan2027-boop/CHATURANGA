@@ -12,6 +12,7 @@ export interface ProductNavProps {
   onTournaments: () => void;
   onProfile: () => void;
   onStamps?: () => void;
+  onProgress?: () => void;
   onDrills?: () => void;
   onOnline?: () => void;
   user?: { name: string; email: string } | null;
@@ -29,6 +30,7 @@ export default function ProductNav({
   onTournaments,
   onProfile,
   onStamps,
+  onProgress,
   onOnline,
   user,
   onLogin,
@@ -44,7 +46,7 @@ export default function ProductNav({
     { id: 'learn', label: 'Training', icon: '/icons/train.svg', action: onLearn },
     { id: 'tournaments', label: 'Tournaments', icon: '/icons/trophy.svg', action: onTournaments },
     ...(onOnline ? [{ id: 'online', label: 'Online', icon: '/icons/swap.svg', action: onOnline }] : []),
-    ...(onStamps ? [{ id: 'stamps', label: 'Stamps', icon: '/icons/stamp.svg', action: onStamps }] : []),
+    ...(onProgress ? [{ id: 'progress', label: 'Progress', icon: '/icons/stamp.svg', action: onProgress }] : onStamps ? [{ id: 'stamps', label: 'Stamps', icon: '/icons/stamp.svg', action: onStamps }] : []),
     { id: 'profile', label: 'Profile', icon: '/icons/user.svg', action: onProfile },
   ];
 

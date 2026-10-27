@@ -29,7 +29,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
   const [playerTime, setPlayerTime] = useState<number>(initialTime);
   const [botTime, setBotTime] = useState<number>(initialTime);
 
-  const [currentBotElo, setCurrentBotElo] = useState<number>(botElo);
+  const [currentBotElo] = useState<number>(botElo);
   const { isReady, isThinking, getBestMove, engineError, stopThinking } = useStockfish();
   const currentBot = getBotByElo(currentBotElo);
 
@@ -278,24 +278,6 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
           : isReady
             ? 'Captures explode every non-pawn piece around the square. Keep your king clear.'
             : 'Loading the engine…'
-      }
-      sidePanels={
-        <section className="court-panel">
-          <div className="eyebrow">BOT STRENGTH</div>
-          <label>
-            Engine target {currentBotElo}
-            <input
-              type="range"
-              min={1}
-              max={3500}
-              value={currentBotElo}
-              onChange={(e) => setCurrentBotElo(parseInt(e.target.value))}
-              disabled={isThinking || chess.history().length > 0}
-              aria-label="Bot strength"
-            />
-          </label>
-          <p>Blowing up the enemy king wins on the spot.</p>
-        </section>
       }
       history={chess.history()}
       winner={winner}

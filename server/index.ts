@@ -458,6 +458,24 @@ ${data.evaluation ? `Stockfish score: ${String(data.evaluation).slice(0, 30)}` :
       } else if (path === "/api/join") {
         entitlements.assertCanPlay(id);
         service.join(id, data.room);
+      } else if (path === "/api/matchmake") {
+        entitlements.assertCanPlay(id);
+        result = service.matchmake(
+          id,
+          (data.rule as Rule) ?? "chess",
+          Number(data.minutes ?? 5),
+        );
+      } else if (path === "/api/chat") {
+        const roomCode = String(data.room ?? "").trim();
+        const text = String(data.text ?? "").trim();
+        if (store.get("room", roomCode)) {
+          service.chat(id, roomCode, text);
+        } else if (store.get("custom", roomCode)) {
+          custom.chat(id, roomCode, text);
+        } else {
+          throw Error("Room not found.");
+        }
+        result = { ok: true };
       }
       else if (path === "/api/delete") {
         entitlements.revoke(id);

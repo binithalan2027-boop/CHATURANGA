@@ -14,6 +14,7 @@ const PolicyPage = lazy(() => import("./PolicyPage"));
 const LearnPage = lazy(() => import("./LearnPage"));
 const AboutPage = lazy(() => import("./AboutPage"));
 const StampBookPage = lazy(() => import("./chaturanga/StampBookPage"));
+const ProgressPage = lazy(() => import("./chaturanga/ProgressPage"));
 const ProfilePage = lazy(() => import("./ProfilePage"));
 import AchievementCelebration from "./chaturanga/AchievementCelebration";
 import { Achievement } from "./chaturanga/achievements";
@@ -43,7 +44,8 @@ type Screen =
   | "learn"
   | "about"
   | "profile"
-  | "stamps";
+  | "stamps"
+  | "progress";
 
 interface User {
   id: string;
@@ -130,10 +132,18 @@ function AppContent() {
     };
   }, []);
 
-  const triggerPlay = (time?: number) => {
-    // Login is NOT mandatory - guests can play immediately
-    if (typeof time === "number") {
-      setTimeMinutes(time);
+  const triggerPlay = (modeOrTime?: string | number, time?: number) => {
+    // If a mode string is passed directly, jump straight into the match with that mode (no double selection!)
+    if (typeof modeOrTime === "string") {
+      setGameMode(modeOrTime);
+      if (typeof time === "number") {
+        setTimeMinutes(time);
+      }
+      setScreen("playing");
+      return;
+    }
+    if (typeof modeOrTime === "number") {
+      setTimeMinutes(modeOrTime);
     }
     setScreen("bot_select");
   };
@@ -158,6 +168,15 @@ function AppContent() {
         <StampBookPage
           onPlay={triggerPlay}
           onBack={() => setScreen("landing")}
+        />
+      );
+    }
+    if (screen === "progress") {
+      return (
+        <ProgressPage
+          onBack={() => setScreen("landing")}
+          onOpenStampBook={() => setScreen("stamps")}
+          onOpenDrills={() => setScreen("drills")}
         />
       );
     }
@@ -286,6 +305,7 @@ function AppContent() {
           onOpenAbout={() => setScreen("about")}
           onOpenProfile={() => setScreen("profile")}
           onOpenStamps={() => setScreen("stamps")}
+          onOpenProgress={() => setScreen("progress")}
           onCreatePrivateRoom={() => {
             setOnlineAutoCreate(true);
             setScreen("online");
@@ -314,8 +334,8 @@ function AppContent() {
                       ? "learn"
                       : screen === "profile"
                         ? "profile"
-                        : screen === "stamps"
-                          ? "stamps"
+                        : screen === "stamps" || screen === "progress"
+                          ? "progress"
                           : screen === "online"
                             ? "online"
                             : screen === "landing"
@@ -331,6 +351,7 @@ function AppContent() {
         onDrills={() => setScreen("drills")}
         onProfile={() => setScreen("profile")}
         onStamps={() => setScreen("stamps")}
+        onProgress={() => setScreen("progress")}
         onOnline={() => setScreen("online")}
       />
       <div className={`product-content min-h-[calc(100vh-64px)] ${screen === "landing" ? "w-full" : "w-full lg:pl-56 pb-16 lg:pb-0"}`}>

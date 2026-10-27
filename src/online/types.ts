@@ -34,6 +34,14 @@ export interface FriendView {
   displayName: string;
   state: "friend" | "incoming" | "outgoing" | "blocked";
 }
+export interface ChatMessage {
+  id: string;
+  sender: string;
+  senderName: string;
+  text: string;
+  at: number;
+}
+
 export interface RoomView {
   id: string;
   rule: Rule;
@@ -70,6 +78,8 @@ export interface RoomView {
   fogSquares?: number[];
   /** Fog of War only: viewer's legal moves (uci) when it is their turn. */
   fogMoves?: string[];
+  /** In-game chat messages sent between players */
+  chat?: ChatMessage[];
   /** True while that seat has at least one live connection to the server.
    * Undefined when the server predates presence reporting - treat as online. */
   whiteOnline?: boolean;

@@ -5,7 +5,7 @@ import ModesSection from './components/landing/ModesSection';
 
 export interface LandingPageProps {
   user: { name: string; email: string } | null;
-  onPlay: (timeMinutes?: number) => void;
+  onPlay: (mode?: string, timeMinutes?: number) => void;
   onRuleVariants?: () => void;
   onQuick?: () => void;
   onTraining?: () => void;
@@ -19,6 +19,7 @@ export interface LandingPageProps {
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
   onOpenStamps?: () => void;
+  onOpenProgress?: () => void;
   onOpenFriendsSanctum?: () => void;
   onCreatePrivateRoom?: () => void;
   matchStatus?: 'idle' | 'searching' | 'found';
@@ -38,18 +39,19 @@ export default function LandingPage(props: LandingPageProps) {
         onOpenAbout={props.onOpenAbout}
         onOpenProfile={props.onOpenProfile}
         onOpenStamps={props.onOpenStamps}
+        onOpenProgress={props.onOpenProgress}
       />
 
       <main className="w-full pt-16 flex-1">
         <HeroSection
-          onPlay={props.onPlay}
+          onPlay={(timeMinutes) => props.onPlay(undefined, timeMinutes)}
           matchStatus={props.matchStatus || 'idle'}
-          onSearchMatch={props.onSearchMatch || props.onPlay}
+          onSearchMatch={props.onSearchMatch || (() => props.onPlay())}
           onCancelMatch={props.onCancelMatch || (() => {})}
           onOpenFriendsSanctum={props.onOpenFriendsSanctum}
           onCreatePrivateRoom={props.onCreatePrivateRoom}
         />
-        <ModesSection onPlayMode={() => props.onPlay()} />
+        <ModesSection onPlayMode={(modeId) => props.onPlay(modeId)} />
       </main>
 
       <Footer

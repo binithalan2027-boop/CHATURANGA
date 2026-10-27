@@ -32,6 +32,8 @@ import type { OnlineState, PlayerProfile, Provider, Rule } from "./types";
 import "./online.css";
 import CustomRoomPanel from "./CustomRoomPanel";
 import ReportPanel from "./ReportPanel";
+import OnlineMatchView from "./OnlineMatchView";
+import OpponentSearchScreen from "./OpponentSearchScreen";
 export default function OnlinePage({
   user,
   onExit,
@@ -89,6 +91,9 @@ export default function OnlinePage({
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
     [moveInput, setMoveInput] = useState(""),
     [moveInputError, setMoveInputError] = useState(""),
+    [matchmaking, setMatchmaking] = useState(false),
+    [isMatchFound, setIsMatchFound] = useState(false),
+    [matchViewRoom, setMatchViewRoom] = useState<string | null>(null),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
@@ -222,6 +227,44 @@ export default function OnlinePage({
       result: room.result,
     };
   }, [room?.id, room?.moves.length, room?.result, muted]);
+
+  // Check if active matchmaking room found an opponent
+  useEffect(() => {
+    if (matchmaking && selectedRoom && state?.rooms) {
+      const r = state.rooms.find((rm) => rm.id === selectedRoom);
+      if (r && r.status === "active" && r.black) {
+        setIsMatchFound(true);
+        const timer = setTimeout(() => {
+          setMatchmaking(false);
+          setIsMatchFound(false);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [matchmaking, selectedRoom, state?.rooms]);
+
+  const startMatchmaking = async (chosenMinutes = minutes, chosenRule = rule) => {
+    setMatchmaking(true);
+    setIsMatchFound(false);
+    try {
+      const res = await api<{ room: string; matched: boolean }>("matchmake", {
+        rule: chosenRule,
+        minutes: chosenMinutes,
+      });
+      setSelectedRoom(res.room);
+      if (res.matched) {
+        setIsMatchFound(true);
+        setTimeout(() => {
+          setMatchmaking(false);
+          setIsMatchFound(false);
+        }, 1200);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Matchmaking error.");
+      setMatchmaking(false);
+      setIsMatchFound(false);
+    }
+  };
   const live = room
     ? liveClock(room, Date.now() - clockBase.current.at)
     : null;
@@ -534,6 +577,20 @@ export default function OnlinePage({
       URL.revokeObjectURL(url);
     });
   };
+
+  if (matchViewRoom && room && state) {
+    return (
+      <OnlineMatchView
+        standardRoom={room}
+        currentUserId={state.profile.id}
+        run={run}
+        gameAction={gameAction}
+        busy={busy}
+        onExit={() => setMatchViewRoom(null)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
       <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
@@ -1021,6 +1078,34 @@ export default function OnlinePage({
             </div>
           )}
           <ReportPanel/>
+          {tab === "play" && (
+            <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-5 mb-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <span className="matiks-kicker text-xs text-[#AFF65B] block mb-1">
+                    GLOBAL MATCHMAKING
+                  </span>
+                  <h2 className="font-heading text-2xl text-white tracking-wide uppercase m-0">
+                    PLAY RANDOM OPPONENT (PVP)
+                  </h2>
+                  <p className="text-xs text-[#8A8A8A] font-body m-0 mt-1">
+                    Queue instantly against live players worldwide matching your skill rating.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void startMatchmaking(minutes, rule)}
+                    className="btn-lime py-3 px-6 text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer shadow-lg active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    <span>⚔️</span>
+                    <span>Find Opponent Now</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {tab === "play" && <CustomRoomPanel rooms={state.customRooms ?? []} run={run} />}
           {tab === "play" && (
             <div className="online-grid">
@@ -1233,6 +1318,16 @@ export default function OnlinePage({
                       {room.whiteName} vs{" "}
                       {room.blackName ?? "waiting for Black"}
                     </h2>
+                    <div className="flex items-center justify-between gap-3 my-2">
+                      <button
+                        type="button"
+                        onClick={() => setMatchViewRoom(room.id)}
+                        className="btn-lime py-2 px-4 text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer shadow-md flex items-center gap-2"
+                      >
+                        <span>⚔️</span>
+                        <span>Open Full Match View & Live Chat →</span>
+                      </button>
+                    </div>
                     {room.status === "waiting" && (
                       <div className="p-4 rounded-xl bg-[#1E2616] border border-[#AFF65B]/30 my-3">
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -1859,6 +1954,26 @@ export default function OnlinePage({
         </>
       )}
       </div>
+
+      {/* Screen 1: Opponent Search Radar Overlay */}
+      {matchmaking && (
+        <OpponentSearchScreen
+          modeName={
+            rule === "fog"
+              ? "Fog of War"
+              : RULE_VARIANTS.find((v) => v.id === rule)?.name || "Standard Chess"
+          }
+          timeMinutes={minutes}
+          incrementSeconds={increment}
+          playerRating={state?.profile?.rating || 1200}
+          isMatchFound={isMatchFound}
+          onCancel={() => {
+            setMatchmaking(false);
+            setIsMatchFound(false);
+          }}
+          onPlayBot={onPlayBot}
+        />
+      )}
     </div>
   );
 }

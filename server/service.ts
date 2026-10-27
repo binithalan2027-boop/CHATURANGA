@@ -13,6 +13,7 @@ import type {
   Rule,
   RoomView,
   OnlineState,
+  ChatMessage,
 } from "../src/online/types";
 import { Store } from "./store";
 import {
@@ -68,6 +69,7 @@ interface Room {
    * updatedAt, which the clock tick touches on every view. */
   activityAt: number;
   repetition: Record<string, number>;
+  chat?: ChatMessage[];
 }
 const key = (a: string, b: string) => [a, b].sort().join(":");
 const clean = (v: unknown, max: number) => {
@@ -423,6 +425,49 @@ export class Service {
     if (r.white !== id && r.black !== id)
       throw Error("Not a player in this room.");
   }
+  chat(id: string, code: string, text: string) {
+    const r = this.getRoom(code);
+    this.member(id, r);
+    const cleanText = text.trim().slice(0, 200);
+    if (!cleanText) return;
+    const senderName = this.requireUser(id).displayName;
+    r.chat = r.chat ?? [];
+    r.chat.push({
+      id: randomBytes(6).toString("hex"),
+      sender: id,
+      senderName,
+      text: cleanText,
+      at: this.now(),
+    });
+    if (r.chat.length > 100) r.chat.splice(0, r.chat.length - 100);
+    this.store.put("room", r.id, r);
+  }
+  matchmake(id: string, rule: Rule = "chess", minutes: number = 5): { room: string; matched: boolean } {
+    if (!(this.requireUser(id).adultConfirmed || this.requireUser(id).profileReady)) {
+      throw Error("Complete your player profile first.");
+    }
+    const myRooms = this.store.all<Room>("room").filter(
+      (r) => r.white === id && r.status === "waiting" && !r.invitee && r.rule === rule
+    );
+    const candidate = this.store.all<Room>("room").find(
+      (r) =>
+        r.status === "waiting" &&
+        r.white !== id &&
+        !r.invitee &&
+        r.rule === rule &&
+        !this.blocked(id, r.white) &&
+        !this.blocked(r.white, id)
+    );
+    if (candidate) {
+      this.join(id, candidate.id);
+      return { room: candidate.id, matched: true };
+    }
+    if (myRooms.length > 0) {
+      return { room: myRooms[0].id, matched: false };
+    }
+    const roomId = this.create(id, rule, minutes, null);
+    return { room: roomId, matched: false };
+  }
   /**
    * Undo the last move by replaying the remaining SAN list from the
    * variant's initial position. Rebuilds the repetition table so
@@ -719,6 +764,7 @@ export class Service {
       invitee: r.invitee,
       lastMove: r.lastMove,
       ratingDelta: r.ratingDelta ?? null,
+      chat: r.chat ? r.chat.slice(-50) : [],
     };
   }
   state(id: string, mode: "local" | "supabase"): OnlineState {
@@ -856,6 +902,7 @@ export class Service {
       yourColor,
       invitee: r.invitee,
       fogSquares: projection.fog,
+      chat: r.chat ? r.chat.slice(-50) : [],
       // Last move only when both its squares are visible to the viewer -
       // revealing the origin of a move made in the dark would leak position.
       lastMove: (() => {

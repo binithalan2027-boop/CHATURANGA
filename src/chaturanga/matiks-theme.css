@@ -423,8 +423,8 @@ body {
 .matiks-square .piece-wrapper,
 .court-board .square .piece {
   position: relative !important;
-  width: 78% !important;
-  height: 78% !important;
+  width: 90% !important;
+  height: 90% !important;
   z-index: 3 !important;
   display: flex !important;
   align-items: center !important;
@@ -489,8 +489,8 @@ body {
 
 .piece-glide .piece-wrapper,
 .piece-glide .matiks-piece-svg {
-  width: 82% !important;
-  height: 82% !important;
+  width: 90% !important;
+  height: 90% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

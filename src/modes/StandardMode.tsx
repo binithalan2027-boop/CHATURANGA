@@ -63,7 +63,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
   const [playerTime, setPlayerTime] = useState<number>(initialTime);
   const [botTime, setBotTime] = useState<number>(initialTime);
 
-  const [currentBotElo, setCurrentBotElo] = useState<number>(botElo);
+  const [currentBotElo] = useState<number>(botElo);
   const { isReady, isThinking, getBestMove, engineError, stopThinking } = useStockfish();
   const currentBot = getBotByElo(currentBotElo);
 
@@ -284,24 +284,6 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
             : 'Loading the engine…'
       }
       tools={<button onClick={handleTakeback}>Takeback</button>}
-      sidePanels={
-        <section className="court-panel">
-          <div className="eyebrow">BOT STRENGTH</div>
-          <label>
-            Engine target {currentBotElo}
-            <input
-              type="range"
-              min={450}
-              max={3200}
-              step={50}
-              value={currentBotElo}
-              onChange={(e) => setCurrentBotElo(Number(e.target.value))}
-              aria-label="Bot strength"
-            />
-          </label>
-          <p>Applies from the next bot move.</p>
-        </section>
-      }
       history={chess.history()}
       winner={winner}
       onNewGame={handleNewGame}
