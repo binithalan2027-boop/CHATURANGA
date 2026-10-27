@@ -23,6 +23,7 @@ import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
 import {
   api,
   createGuestSession,
+  clearLocalTokens,
   localSignIn,
   socialSignIn,
   signOut,
@@ -167,15 +168,33 @@ export default function OnlinePage({
       try {
         const s = await api<OnlineState>("state");
         if (!disposed) {
+          setError("");
           setState(s);
           setProfile((p) => p ?? s.profile);
         }
       } catch (e) {
-        if (!disposed) setError(e instanceof Error ? e.message : "Unable to load online state.");
+        const msg = e instanceof Error ? e.message : "Unable to load online state.";
+        if (msg.includes("expired") || msg.includes("required")) {
+          clearLocalTokens();
+          try {
+            const guestToken = await createGuestSession();
+            if (guestToken && !disposed) {
+              const s = await api<OnlineState>("state");
+              setError("");
+              setState(s);
+              setProfile((p) => p ?? s.profile);
+            }
+          } catch (retryErr) {
+            if (!disposed) setError(retryErr instanceof Error ? retryErr.message : "Unable to load online state.");
+          }
+        } else {
+          if (!disposed) setError(msg);
+        }
       }
 
       off = subscribe((s) => {
         if (!disposed) {
+          setError("");
           setState(s);
           setProfile((p) => p ?? s.profile);
         }
@@ -750,13 +769,20 @@ export default function OnlinePage({
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
               <button
-                onClick={() => setRevision((r) => r + 1)}
+                onClick={() => {
+                  setError("");
+                  clearLocalTokens();
+                  setNotice("Reconnecting…");
+                  setRevision((r) => r + 1);
+                }}
                 className="btn-lime py-2 px-4 text-xs font-bold cursor-pointer"
               >
                 Retry Connection
               </button>
               <button
                 onClick={() => {
+                  setError("");
+                  clearLocalTokens();
                   setForcedBaseUrl(LIVE_RENDER_SERVER_URL);
                   setNotice("Connecting to Live Cloud Server…");
                   setRevision((r) => r + 1);
@@ -765,6 +791,20 @@ export default function OnlinePage({
               >
                 ☁ Connect to Cloud Server
               </button>
+              {getActiveServerMode() === "cloud" && (
+                <button
+                  onClick={() => {
+                    setError("");
+                    clearLocalTokens();
+                    setForcedBaseUrl("http://127.0.0.1:8787");
+                    setNotice("Connecting to Local Server…");
+                    setRevision((r) => r + 1);
+                  }}
+                  className="btn-raised py-2 px-4 text-xs font-semibold cursor-pointer text-[#65D1C1] border border-[#65D1C1]/30"
+                >
+                  💻 Connect to Local Server
+                </button>
+              )}
               {onPlayBot && (
                 <button
                   onClick={onPlayBot}

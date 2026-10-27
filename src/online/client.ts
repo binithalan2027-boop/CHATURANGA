@@ -5,6 +5,13 @@ export const LIVE_RENDER_SERVER_URL = "https://chaturanga-jpy3.onrender.com";
 
 let currentBaseUrl: string | null = null;
 
+export function clearLocalTokens() {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("chaturanga-dev-token");
+    localStorage.removeItem("chaturanga-guest-token");
+  }
+}
+
 export function setForcedBaseUrl(url: string | null) {
   currentBaseUrl = url;
 }
@@ -140,7 +147,27 @@ export async function api<T = unknown>(
       );
     }
   }
-  if (!res.ok) throw Error(value.error ?? "Request failed.");
+  if (!res.ok) {
+    const errMsg = String(value.error ?? "");
+    const isSessionExpired =
+      res.status === 401 ||
+      errMsg.includes("session expired") ||
+      errMsg.includes("Sign in expired") ||
+      errMsg.includes("Sign in required");
+
+    if (!isRetry && isSessionExpired) {
+      clearLocalTokens();
+      try {
+        const freshToken = await createGuestSession();
+        if (freshToken) {
+          return api<T>(path, data, true);
+        }
+      } catch {
+        // Continue to throw below
+      }
+    }
+    throw Error(value.error ?? "Request failed.");
+  }
   return value;
 }
 
@@ -183,7 +210,14 @@ export function subscribe(
 
   async function connect() {
     if (closed) return;
-    const t = await token();
+    let t = await token();
+    if (!t) {
+      try {
+        t = await createGuestSession();
+      } catch {
+        // Fall back
+      }
+    }
     if (!t) {
       onStatus("Sign in required.");
       return;
@@ -192,6 +226,8 @@ export function subscribe(
     const wsProtocol = base.startsWith("https") ? "wss:" : "ws:";
     const wsUrl = base.replace(/^https?:/, wsProtocol) + "/api/live";
     
+    let receivedState = false;
+
     try {
       ws = new WebSocket(wsUrl);
     } catch {
@@ -214,7 +250,10 @@ export function subscribe(
     ws.onmessage = (e) => {
       try {
         const v = JSON.parse(e.data);
-        if (v.state) onState(v.state);
+        if (v.state) {
+          receivedState = true;
+          onState(v.state);
+        }
       } catch {
         onStatus("Invalid server response.");
       }
@@ -222,6 +261,10 @@ export function subscribe(
 
     ws.onclose = () => {
       if (!closed) {
+        if (!receivedState) {
+          // Socket was closed without ever receiving state - auth likely rejected
+          clearLocalTokens();
+        }
         // If it failed before opening and we were on local server, failover to Render!
         if (!hasEverConnected && getBaseUrl() !== LIVE_RENDER_SERVER_URL) {
           currentBaseUrl = LIVE_RENDER_SERVER_URL;
@@ -229,7 +272,7 @@ export function subscribe(
           return;
         }
         onStatus("Reconnecting. Moves wait for server confirmation.");
-        retry = setTimeout(connect, 3000);
+        retry = setTimeout(connect, 2000);
       }
     };
 
