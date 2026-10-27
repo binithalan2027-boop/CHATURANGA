@@ -427,9 +427,13 @@ export default function OnlinePage({
     );
   const getInviteLink = (roomId: string) => {
     try {
-      return `${window.location.origin}/?room=${encodeURIComponent(roomId)}`;
+      const baseOrigin =
+        typeof window !== "undefined" && window.location.origin.includes("onrender.com")
+          ? window.location.origin
+          : "https://chaturanga-jpy3.onrender.com";
+      return `${baseOrigin}/?room=${encodeURIComponent(roomId)}`;
     } catch {
-      return `?room=${roomId}`;
+      return `https://chaturanga-jpy3.onrender.com/?room=${encodeURIComponent(roomId)}`;
     }
   };
 

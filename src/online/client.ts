@@ -1,19 +1,21 @@
 import { authConfigured, getSupabase } from "../lib/supabase";
 import type { OnlineState, Provider } from "./types";
 
+export const LIVE_RENDER_SERVER_URL = "https://chaturanga-jpy3.onrender.com";
+
 export function getBaseUrl(): string {
   if (import.meta.env.VITE_GAME_SERVER_URL) {
     return import.meta.env.VITE_GAME_SERVER_URL;
   }
   if (typeof window !== "undefined") {
-    // If running under Vite dev server (e.g. localhost:5173 or 127.0.0.1:5173)
-    if (window.location.port === "5173" || window.location.port === "5174") {
-      return `${window.location.protocol}//${window.location.hostname}:8787`;
+    // If running directly on a deployed domain (like onrender.com)
+    if (window.location.origin.includes("onrender.com")) {
+      return window.location.origin;
     }
-    // When served from the server or behind a reverse proxy in production:
-    return window.location.origin;
   }
-  return "http://127.0.0.1:8787";
+  // Everywhere else (localhost, local previews, or desktop):
+  // ALWAYS connect directly to the 24/7 live Render server!
+  return LIVE_RENDER_SERVER_URL;
 }
 
 export async function token() {
