@@ -68,7 +68,13 @@ export interface CourtyardMatchProps {
   /** Modal overlays (maths questions etc.), rendered inside the courtyard root. */
   overlays?: ReactNode;
   history: string[];
-  winner: "w" | "b" | null;
+  winner: "w" | "b" | "draw" | null;
+  premoveSquares?: Set<string>;
+  premovesCount?: number;
+  onClearPremoves?: () => void;
+  premoveAlert?: string | null;
+  onDismissPremoveAlert?: () => void;
+  onResign?: () => void;
   resultTitle?: string;
   chessMmStats?: ChessMmMatchStats;
   onNewGame: () => void;
@@ -119,28 +125,39 @@ export default function CourtyardMatch({
   winner,
   resultTitle,
   chessMmStats,
+  premoveSquares,
+  premovesCount = 0,
+  onClearPremoves,
+  premoveAlert,
+  onDismissPremoveAlert,
+  onResign,
   onNewGame,
   onExit,
 }: CourtyardMatchProps) {
-  const { prefs, open } = usePreferences();
+  const { prefs, open, update } = usePreferences();
 
   const [showAnalysis, setShowAnalysis] = useState(false);
 
-  useEffect(() => {
-    if (!winner) setShowAnalysis(false);
-  }, [winner]);
+  if (showAnalysis) {
+    const defaultReason =
+      winner === "w"
+        ? "VICTORY · YOU WON"
+        : winner === "b"
+          ? "DEFEAT · BOT WINS"
+          : winner === "draw"
+            ? "DRAW · GAME TIED"
+            : "MATCH IN PROGRESS";
 
-  if (showAnalysis && winner) {
     return (
       <MatchAnalysisScreen
-        winner={winner}
+        winner={winner || "w"}
         playerColor="w"
         playerName="You"
-        playerRating={1200}
-        opponentName={botName || "Aarav"}
+        playerRating={1015}
+        opponentName={botName || "Aarav BOT"}
         opponentRating={botElo || 1050}
         isBot={true}
-        resultReason={resultTitle || (winner === "w" ? "CHECKMATE · VICTORY" : "CHECKMATE · DEFEAT")}
+        resultReason={resultTitle || defaultReason}
         modeName={title || eyebrow || "STANDARD CHESS"}
         moves={history}
         chessMmStats={chessMmStats}
@@ -332,6 +349,7 @@ export default function CourtyardMatch({
                   const isHiding = hidingSquares.has(sq);
                   const isJustMoved = justMovedSq === sq;
                   const isJustCaptured = justCapturedSq === sq;
+                  const isPremove = premoveSquares ? premoveSquares.has(sq) : false;
 
                   return (
                     <button
@@ -342,7 +360,7 @@ export default function CourtyardMatch({
                         checkSquare === sq ? "in-check check" : ""
                       } ${hidden ? "fogged" : ""} ${isHiding ? "hiding-piece" : ""} ${
                         isJustMoved ? "just-moved" : ""
-                      } ${isJustCaptured ? "just-captured" : ""} ${mark?.className || ""}`}
+                      } ${isJustCaptured ? "just-captured" : ""} ${isPremove ? "premove" : ""} ${mark?.className || ""}`}
                       aria-label={`${sq}, ${
                         hidden
                           ? "hidden by fog"
@@ -454,7 +472,9 @@ export default function CourtyardMatch({
                   <p className="text-sm text-[#8A8A8A] mb-6">
                     {winner === "w"
                       ? "Flawlessly executed. A fine performance on the board."
-                      : "A challenging match. Review the positions and try again!"}
+                      : winner === "draw"
+                        ? "A well-fought battle that ended in a shared point."
+                        : "A challenging match. Review the positions and try again!"}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
@@ -564,7 +584,7 @@ export default function CourtyardMatch({
           </div>
 
           {/* Action Buttons Row matching 15-mode-classic.svg */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <button
               onClick={onNewGame}
               className="bg-[#262626] hover:bg-[#333333] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors"
@@ -596,10 +616,28 @@ export default function CourtyardMatch({
             )}
 
             <button
+              onClick={() => setShowAnalysis(true)}
+              className="bg-[#262626] hover:bg-[#1a2d1d] border border-[#AFF65B]/30 rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              title="Open match analysis & report"
+            >
+              <svg className="w-5 h-5 text-[#AFF65B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 3v18h18" />
+                <path d="M18 9l-5 5-4-4-6 6" />
+              </svg>
+              <span className="text-[9px] font-semibold tracking-wider text-[#AFF65B] uppercase">
+                ANALYSIS
+              </span>
+            </button>
+
+            <button
               onClick={() => {
-                if (window.confirm("Resign and exit this game?")) onExit();
+                if (winner) return;
+                if (window.confirm("Resign this game and review analysis?")) {
+                  if (onResign) onResign();
+                }
               }}
-              className="bg-[#262626] hover:bg-[#3a1d1d] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              disabled={Boolean(winner)}
+              className={`bg-[#262626] hover:bg-[#3a1d1d] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors ${winner ? "opacity-40 cursor-not-allowed" : ""}`}
               title="Resign game"
             >
               <img src="/icons/flag.svg" alt="" className="w-5 h-5 opacity-90" />
@@ -619,6 +657,60 @@ export default function CourtyardMatch({
               </span>
             </button>
           </div>
+
+          {/* Premove Queue & Error Banners */}
+          {Boolean(premovesCount && premovesCount > 0) && (
+            <div className="w-full flex items-center justify-between px-4 py-2.5 bg-[#172554] border border-[#3b82f6]/40 rounded-xl text-xs text-[#93c5fd] shadow-md animate-in fade-in duration-150">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse" />
+                <span className="font-semibold uppercase tracking-wider text-[11px]">
+                  {premovesCount === 1 ? "1 Premove Queued" : `${premovesCount} Premoves Queued`}
+                </span>
+                <span className="text-[10px] text-[#bfdbfe]/80 font-mono">
+                  ({prefs.premoveLimit === "limitless" ? "Limitless Mode" : "1-Move Limit"})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    update({
+                      premoveLimit: prefs.premoveLimit === "limitless" ? "single" : "limitless",
+                    });
+                  }}
+                  className="text-[10px] bg-[#1e3a8a] hover:bg-[#1d4ed8] px-2 py-0.5 rounded text-[#bfdbfe] border border-[#3b82f6]/30 cursor-pointer"
+                  title="Switch premove mode"
+                >
+                  {prefs.premoveLimit === "limitless" ? "Switch to 1-Move" : "Switch to Limitless"}
+                </button>
+                {onClearPremoves && (
+                  <button
+                    onClick={onClearPremoves}
+                    className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase cursor-pointer"
+                    title="Cancel queued premoves"
+                  >
+                    Cancel [✕]
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {premoveAlert && (
+            <div className="w-full flex items-center justify-between px-4 py-2 bg-red-950/70 border border-red-500/40 rounded-xl text-xs text-red-300 animate-in fade-in duration-150">
+              <span className="flex items-center gap-1.5">
+                <span>⚠️</span>
+                <span>{premoveAlert}</span>
+              </span>
+              {onDismissPremoveAlert && (
+                <button
+                  onClick={onDismissPremoveAlert}
+                  className="text-xs text-red-400 hover:text-red-200 cursor-pointer font-bold ml-2"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Turn Status Action Pill */}
           <div

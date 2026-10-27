@@ -1,3 +1,5 @@
+import { usePreferences } from '../chaturanga/preferences';
+import { usePremoveHandler } from '../chaturanga/usePremoveHandler';
 import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
@@ -16,13 +18,14 @@ export interface GameModeProps {
 }
 
 export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameModeProps) {
+  const { prefs } = usePreferences();
   const [chess, setChess] = useState(() => new Chess());
   const [fen, setFen] = useState(chess.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]);
   const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]);
-  const [winner, setWinner] = useState<'w' | 'b' | null>(null);
+  const [winner, setWinner] = useState<'w' | 'b' | 'draw' | null>(null);
   const [resultReason, setResultReason] = useState<string | null>(null);
 
   const initialTime = Math.max(60, timeMinutes * 60);
@@ -154,8 +157,48 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
     }
   };
 
+  
+  const checkGameOver = () => {
+    checkGameOver();
+  };
+
+  const {
+    premoves,
+    premoveSquares,
+    premoveAlert,
+    handlePremoveSquareClick,
+    clearPremoves,
+    setPremoveAlert,
+  } = usePremoveHandler({
+    chess,
+    playerColor: 'w',
+    isPlayerTurn: chess.turn() === 'w' && !winner,
+    isGameOver: Boolean(winner),
+    premoveLimit: prefs.premoveLimit,
+    onMoveSuccess: (move) => {
+      recordCapture(move);
+      setFen(chess.fen());
+      setLastMove({ from: move.from, to: move.to });
+      setSelectedSquare(null);
+    },
+    onGameOverCheck: () => checkGameOver(),
+  });
+
+  const handleResign = () => {
+    if (winner) return;
+    stopThinking();
+    clearPremoves();
+    setWinner('b');
+    setResultReason('DEFEAT · RESIGNED');
+    recordGameResult('loss');
+  };
+
   const handleSquareClick = (sq: string) => {
-    if (winner || chess.turn() !== 'w') return;
+    if (winner) return;
+    if (chess.turn() !== 'w') {
+      handlePremoveSquareClick(sq);
+      return;
+    }
 
     if (selectedSquare) {
       if (legalMoves.has(sq)) {
@@ -166,15 +209,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
           setLastMove({ from: selectedSquare, to: sq });
           setSelectedSquare(null);
 
-          if (chess.isGameOver()) {
-            if (chess.isCheckmate()) {
-              setWinner('w');
-              unlockAchievement('atomic-win');
-              recordGameResult('win');
-            } else if (chess.isDraw()) {
-              recordGameResult('draw');
-            }
-          }
+          checkGameOver();
         } catch (e) {
           setSelectedSquare(null);
         }
@@ -231,6 +266,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
   }, [fen, chess, getBestMove, currentBot, winner, botTime]);
 
   const handleNewGame = () => {
+    clearPremoves();
     stopThinking();
     const newChess = new Chess();
     setChess(newChess);
@@ -281,6 +317,12 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
       }
       history={chess.history()}
       winner={winner}
+      premoveSquares={premoveSquares}
+      premovesCount={premoves.length}
+      onClearPremoves={clearPremoves}
+      premoveAlert={premoveAlert}
+      onDismissPremoveAlert={() => setPremoveAlert(null)}
+      onResign={handleResign}
       onNewGame={handleNewGame}
       onExit={onExit}
     />

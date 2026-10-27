@@ -20,6 +20,7 @@ export interface Preferences {
   legalDots: boolean;
   lastMove: boolean;
   input: "both" | "click" | "drag";
+  premoveLimit: "single" | "limitless";
 }
 const defaults: Preferences = {
   theme: "dark",
@@ -34,6 +35,7 @@ const defaults: Preferences = {
   legalDots: true,
   lastMove: true,
   input: "both",
+  premoveLimit: "single",
 };
 const Context = createContext<{
   prefs: Preferences;
@@ -161,6 +163,21 @@ export function PreferenceProvider({ children }: { children: ReactNode }) {
                     <option value="both">Click and drag</option>
                     <option value="click">Click only</option>
                     <option value="drag">Drag only</option>
+                  </select>
+                </label>
+                <label>
+                  Premoves
+                  <select
+                    aria-label="Premoves"
+                    value={prefs.premoveLimit || "single"}
+                    onChange={(e) =>
+                      update({
+                        premoveLimit: e.target.value as Preferences["premoveLimit"],
+                      })
+                    }
+                  >
+                    <option value="single">Limited to 1 premove</option>
+                    <option value="limitless">Limitless premoves</option>
                   </select>
                 </label>
               </div>

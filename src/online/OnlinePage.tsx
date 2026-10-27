@@ -1,3 +1,4 @@
+import { usePreferences } from "../chaturanga/preferences";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { liveClock, formatClock } from "./liveClock";
 import { moveRows } from "./moveList";
@@ -49,7 +50,8 @@ export default function OnlinePage({
   initialTab?: "play" | "friends" | "profile";
   autoCreateRoom?: boolean;
 }) {
-  const [state, setState] = useState<OnlineState | null>(null),
+  const { prefs } = usePreferences();
+  const [premoveQueue, setPremoveQueue] = useState<string[]>([]);  const [state, setState] = useState<OnlineState | null>(null),
     [config, setConfig] = useState<{
       mode: string;
       providers: string[];
@@ -106,6 +108,7 @@ export default function OnlinePage({
     setTickTs(0);
     setReviewPly(null);
     setPremove(null);
+    setPremoveQueue([]);
     setConfirmResign(false);
     setConfirmAbort(false);
   }, [selectedRoom]);
@@ -405,11 +408,6 @@ export default function OnlinePage({
         notice !== "Connected"
       )
         return;
-      if (premove) {
-        setPremove(null);
-        setSelected(null);
-        return;
-      }
       if (selected === null) {
         setSelected(
           pos.board.get(sq)?.color === room.yourColor ? sq : null,
@@ -417,7 +415,15 @@ export default function OnlinePage({
         return;
       }
       const uci = premoveUci(pos, selected, sq, room.yourColor);
-      if (uci) setPremove(uci);
+      if (uci) {
+        if (prefs.premoveLimit === "limitless") {
+          setPremoveQueue((prev) => [...prev, uci]);
+          setPremove(uci);
+        } else {
+          setPremoveQueue([uci]);
+          setPremove(uci);
+        }
+      }
       setSelected(null);
       return;
     }
@@ -458,12 +464,23 @@ export default function OnlinePage({
   // Fire a queued premove the moment the opponent's move makes it our
   // turn; discard it if the new position made it illegal.
   useEffect(() => {
-    if (!active || !premove) return;
-    const uci = premove;
-    setPremove(null);
-    if (legal.includes(uci)) doMove(uci);
+    if (!active) return;
+    const currentQueue = premoveQueue.length > 0 ? premoveQueue : (premove ? [premove] : []);
+    if (currentQueue.length === 0) return;
+
+    const nextUci = currentQueue[0];
+    if (legal.includes(nextUci)) {
+      // Valid premove! Cross-check passed
+      setPremoveQueue((prev) => prev.slice(1));
+      setPremove(currentQueue[1] || null);
+      doMove(nextUci);
+    } else {
+      // Invalid premove: illegal move! Discard queue
+      setPremoveQueue([]);
+      setPremove(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, legal]);
   const gameAction = (action: string) =>
     void run(() =>
       api("game", { room: room!.id, version: room!.version, action }),
@@ -1590,7 +1607,7 @@ export default function OnlinePage({
                         onSquare={square}
                         lastMove={lastMove}
                         checkSq={checkSq}
-                        premove={premove ? lastMoveSquares(premove) : []}
+                        premove={premoveQueue.length > 0 ? premoveQueue.flatMap(lastMoveSquares) : (premove ? lastMoveSquares(premove) : [])}
                       />
                     ) : null}
                     {isFog && (
@@ -1723,11 +1740,23 @@ export default function OnlinePage({
                         ))}
                       </div>
                     )}
-                    {premove && (
-                      <p className="online-premove" role="status">
-                        Premove set - it plays automatically when your
-                        opponent moves. Click the board to cancel it.
-                      </p>
+                    {(premoveQueue.length > 0 || premove) && (
+                      <div className="online-premove flex items-center justify-between" role="status">
+                        <span>
+                          {premoveQueue.length > 1
+                            ? `${premoveQueue.length} premoves queued (${prefs.premoveLimit === "limitless" ? "limitless" : "1-move"})`
+                            : "Premove set (1)"} - plays automatically if legal.
+                        </span>
+                        <button
+                          onClick={() => {
+                            setPremoveQueue([]);
+                            setPremove(null);
+                          }}
+                          className="text-xs text-red-400 hover:text-red-300 font-bold ml-2 underline cursor-pointer"
+                        >
+                          Cancel [✕]
+                        </button>
+                      </div>
                     )}
                     <p aria-live="polite">
                       {busy

@@ -419,6 +419,20 @@ body {
   animation: matiks-check-pulse 1.3s ease-in-out infinite !important;
 }
 
+/* Premove square outline & tint: Electric cyan/blue glow */
+.matiks-square.premove::before,
+.court-board .square.premove::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 2px !important;
+  border: 3.5px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  background-color: rgba(59, 130, 246, 0.28) !important;
+  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.45), 0 0 12px rgba(59, 130, 246, 0.35) !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+}
+
 /* Piece inside square */
 .matiks-square .piece-wrapper,
 .court-board .square .piece {

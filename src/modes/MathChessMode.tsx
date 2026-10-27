@@ -1,3 +1,5 @@
+import { usePreferences } from '../chaturanga/preferences';
+import { usePremoveHandler } from '../chaturanga/usePremoveHandler';
 import { useState, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import { useStockfish, getBotByElo } from '../ai/useStockfish';
@@ -67,7 +69,7 @@ function generateMathQuestion(): MathQuestion {
 
 export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   // Submode: Mode 1 = Math Gated Move, Mode 2 = 10-Min Match with 1:30 Math Speed Showdown
-  const [subMode, setSubMode] = useState<'gate' | 'showdown'>('showdown');
+    const [subMode, setSubMode] = useState<'gate' | 'showdown'>('showdown');
   
   const [chess, setChess] = useState(() => new Chess());
   const [fen, setFen] = useState(chess.fen());
@@ -75,7 +77,8 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]);
   const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]);
-  const [winner, setWinner] = useState<'w' | 'b' | null>(null);
+  const [winner, setWinner] = useState<'w' | 'b' | 'draw' | null>(null);
+  const [resultReason, setResultReason] = useState<string | null>(null);
 
   // Clocks for 10-minute match
   const [playerTime, setPlayerTime] = useState<number>(600); // 10 mins
@@ -126,7 +129,66 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   const [jumpedPiece, setJumpedPiece] = useState<{ square: string; piece: { type: any; color: any } } | null>(null);
   const [gateStreak, setGateStreak] = useState<number>(0);
 
-  const { getBestMove } = useStockfish();
+  const { getBestMove, stopThinking } = useStockfish();
+  const { prefs } = usePreferences();
+
+  const checkGameOver = () => {
+    if (chess.isGameOver()) {
+      if (chess.isCheckmate()) {
+        const winningColor = chess.turn() === 'w' ? 'b' : 'w';
+        setWinner(winningColor);
+        if (winningColor === 'w') {
+          setResultReason('VICTORY · CHECKMATE');
+          recordGameResult('win');
+        } else {
+          setResultReason('DEFEAT · CHECKMATE');
+          recordGameResult('loss');
+        }
+      } else if (chess.isDraw()) {
+        const reason = chess.isStalemate()
+          ? 'DRAW · STALEMATE'
+          : chess.isThreefoldRepetition()
+            ? 'DRAW · THREEFOLD REPETITION'
+            : chess.isInsufficientMaterial()
+              ? 'DRAW · INSUFFICIENT MATERIAL'
+              : 'DRAW · 50-MOVE RULE';
+        setWinner('draw');
+        setResultReason(reason);
+        recordGameResult('draw');
+      }
+    }
+  };
+
+  const {
+    premoves,
+    premoveSquares,
+    premoveAlert,
+    handlePremoveSquareClick,
+    clearPremoves,
+    setPremoveAlert,
+  } = usePremoveHandler({
+    chess,
+    playerColor: 'w',
+    isPlayerTurn: chess.turn() === 'w' && !winner && !inMathShowdown,
+    isGameOver: Boolean(winner),
+    premoveLimit: prefs.premoveLimit,
+    onMoveSuccess: (move) => {
+      recordCapture(move);
+      setFen(chess.fen());
+      setLastMove({ from: move.from, to: move.to });
+      setSelectedSquare(null);
+    },
+    onGameOverCheck: () => checkGameOver(),
+  });
+
+  const handleResign = () => {
+    if (winner) return;
+    stopThinking();
+    clearPremoves();
+    setWinner('b');
+    setResultReason('DEFEAT · RESIGNED');
+    recordGameResult('loss');
+  };
   const currentBot = getBotByElo(botElo);
 
   // Main game clock timer
@@ -416,7 +478,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
           setWinner('w');
           recordGameResult('win');
         } else if (chess.isDraw()) {
-          recordGameResult('draw');
+          checkGameOver();
         }
       }
     } catch (e) {
@@ -425,7 +487,11 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   };
 
   const handleSquareClick = (sq: string) => {
-    if (winner || chess.turn() !== 'w' || inMathShowdown) return;
+    if (winner || inMathShowdown) return;
+    if (chess.turn() !== 'w') {
+      handlePremoveSquareClick(sq);
+      return;
+    }
 
     // Casting a spell from the deck
     if (activeSpell === 'freeze') {
@@ -583,6 +649,7 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
   }, [fen, chess, getBestMove, currentBot, winner, inMathShowdown, doubleMoveActive, frozenMovesLeft, spellFrozen]);
 
   const handleNewGame = () => {
+    clearPremoves();
     const newChess = new Chess();
     setChess(newChess);
     setFen(newChess.fen());
@@ -816,6 +883,13 @@ export default function MathChessMode({ onExit, botElo }: MathChessModeProps) {
         }
         history={chess.history()}
         winner={winner}
+        resultTitle={resultReason || undefined}
+        premoveSquares={premoveSquares}
+        premovesCount={premoves.length}
+        onClearPremoves={clearPremoves}
+        premoveAlert={premoveAlert}
+        onDismissPremoveAlert={() => setPremoveAlert(null)}
+        onResign={handleResign}
         chessMmStats={{
           freezeCasts,
           jumpCasts,

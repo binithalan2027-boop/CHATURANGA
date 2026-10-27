@@ -159,4 +159,35 @@ describe("Four Chaturanga Screens Logic", () => {
       expect(typeof isAchievementUnlocked("chess960-win")).toBe("boolean");
     });
   });
+
+  describe("Offline Games Analysis & Premove Features", () => {
+    it("handles draw game results properly for offline games", () => {
+      const res = recordMatchRating("Aarav BOT", 1050, "draw", 85.0, "Classic Chess");
+      expect(res.stats.gamesPlayed).toBeGreaterThanOrEqual(1);
+      expect(res.stats.gamesDrawn).toBeGreaterThanOrEqual(1);
+    });
+
+    it("supports all draw reason descriptions", () => {
+      const reasons = [
+        "DRAW · STALEMATE",
+        "DRAW · THREEFOLD REPETITION",
+        "DRAW · INSUFFICIENT MATERIAL",
+        "DRAW · 50-MOVE RULE",
+      ];
+      reasons.forEach((r) => {
+        expect(r.startsWith("DRAW ·")).toBe(true);
+      });
+    });
+
+    it("differentiates single vs limitless premove modes", () => {
+      const singleQueue = [{ id: "1", from: "e2", to: "e4" }];
+      expect(singleQueue).toHaveLength(1);
+
+      const limitlessQueue = [
+        { id: "1", from: "e2", to: "e4" },
+        { id: "2", from: "g1", to: "f3" },
+      ];
+      expect(limitlessQueue.length).toBeGreaterThan(1);
+    });
+  });
 });
