@@ -1,0 +1,4726 @@
+<!doctype html>
+<!-- chess.js licence:
+Copyright (c) 2025, Jeff Hlywa (jhlywa@gmail.com)
+All rights reserved.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chaturanga Training - Interactive Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-canvas: #0E0E0E;
+    --bg-card: #1A1A1A;
+    --bg-ctrl: #262626;
+    --border-color: #2D2D2D;
+    --text-primary: #F4F4F4;
+    --text-secondary: #8A8A8A;
+    --color-lime: #AFF65B;
+    --color-yellow: #F2D500;
+    --color-lavender: #A594F0;
+    --color-teal: #66D4C2;
+    --color-red: #FF6B6B;
+    --sq-light: #C9BA9B;
+    --sq-dark: #667A53;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    letter-spacing: 0.04em;
+    font-weight: 900;
+  }
+  button { font-family: inherit; }
+  
+  /* Header */
+  header {
+    height: 64px;
+    background: #141414;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .wordmark {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: #FFF;
+  }
+  .proto-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--color-lime);
+    text-transform: uppercase;
+  }
+  .btn-exit {
+    padding: 7px 16px;
+    border-radius: 12px;
+    background: var(--bg-ctrl);
+    color: var(--text-primary);
+    border: 1px solid #363636;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .btn-exit:hover { background: #333; }
+
+  /* Main Container */
+  main {
+    flex: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* Hub Section */
+  .hub-title-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--color-lime);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .hub-title {
+    font-size: 48px;
+    line-height: 1;
+    color: #FFF;
+  }
+  .device-pill {
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: #1C1C1C;
+    border: 1px solid #2B2B2B;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .section-subhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-subhead h2 { font-size: 24px; color: #FFF; }
+  .section-subhead span { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+
+  /* 3 Bento Cards */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .bento-card {
+    border-radius: 24px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 240px;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .bento-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+  }
+  .bento-card-yellow { background: var(--color-yellow); color: #111; }
+  .bento-card-lavender { background: var(--color-lavender); color: #111; }
+  .bento-card-teal { background: var(--color-teal); color: #111; }
+
+  .bento-kicker {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 4px;
+  }
+  .bento-title {
+    font-size: 34px;
+    line-height: 0.95;
+    margin-bottom: 8px;
+  }
+  .bento-illustration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto 0;
+    padding: 12px 0;
+  }
+  .bento-illustration svg { width: 72px; height: 72px; }
+  .bento-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .bento-desc { font-size: 12px; font-weight: 600; opacity: 0.9; }
+  .btn-arrow-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #000;
+    color: #FFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  /* Secondary Row */
+  .secondary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .card-charcoal {
+    background: var(--bg-card);
+    border-radius: 24px;
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .pattern-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .chip {
+    padding: 8px 16px;
+    border-radius: 14px;
+    background: var(--bg-ctrl);
+    color: var(--text-primary);
+    border: 1px solid #363636;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .chip:hover { background: #333; }
+  .chip.active { background: var(--color-lime); color: #0E0E0E; border-color: var(--color-lime); }
+
+  /* Practice Stats Card */
+  .stats-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .stat-col { text-align: left; }
+  .stat-val { font-size: 32px; font-weight: 900; line-height: 1; font-family: 'Bebas Neue', Impact, sans-serif; color: #FFF; }
+  .stat-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-top: 4px; }
+  .progress-track {
+    width: 100%;
+    height: 8px;
+    background: #262626;
+    border-radius: 9999px;
+    margin-top: 16px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--color-lime);
+    border-radius: 9999px;
+    transition: width 0.4s ease;
+  }
+
+  /* Board Area */
+  .board-wrapper {
+    max-width: 540px;
+    width: 100%;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    background: #141414;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+  }
+  .square {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .square.light { background-color: var(--sq-light); }
+  .square.dark { background-color: var(--sq-dark); }
+  .square.selected { box-shadow: inset 0 0 0 4px #F2D500; }
+  .square.hint { box-shadow: inset 0 0 0 4px var(--color-lime); }
+  .square.last-move { background-color: rgba(242, 213, 0, 0.4) !important; }
+  .square.in-check { background-color: rgba(255, 107, 107, 0.6) !important; }
+
+  .move-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    pointer-events: none;
+  }
+  .capture-ring {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 6px solid rgba(0,0,0,0.3);
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .piece-svg {
+    width: 84%;
+    height: 84%;
+    pointer-events: none;
+  }
+  .coord-rank {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .coord-file {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* Puzzle Practice Layout */
+  .session-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  .lime-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 16px;
+    background: var(--color-lime);
+    color: #0E0E0E;
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(175, 246, 91, 0.25);
+    transition: 0.2s;
+  }
+  .lime-btn:hover { background: #9DE84A; }
+
+  /* Speed Duel Screen */
+  .speed-duel-container {
+    max-width: 460px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .key-btn {
+    height: 48px;
+    border-radius: 12px;
+    background: var(--bg-ctrl);
+    color: #FFF;
+    border: 1px solid #363636;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .key-btn:active { background: #404040; transform: scale(0.97); }
+
+  /* Mobile Responsive */
+  @media (max-width: 900px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .bento-card {
+      min-height: 124px;
+      flex-direction: row;
+      align-items: center;
+      padding: 20px;
+    }
+    .bento-card .bento-illustration {
+      margin: 0;
+      padding: 0;
+    }
+    .bento-bottom { display: none; }
+    .secondary-grid {
+      grid-template-columns: 1fr;
+    }
+    .session-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">CHATURANGA</div>
+  <div class="proto-tag">PROTOTYPE</div>
+  <button class="btn-exit" onclick="showHub()">Exit practice</button>
+</header>
+
+<main id="app-root">
+  <!-- Content dynamically rendered by JS -->
+</main>
+
+<script>
+// --- CHESS.JS EMBEDDED ---
+const Chess = (function() {
+  const exports = {};
+  const module = { exports };
+  'use strict';
+
+// @generated by Peggy 4.2.0.
+//
+// https://peggyjs.org/
+
+
+
+  function rootNode(comment) {
+  	return comment !== null ? { comment, variations: [] } : { variations: []}
+  }
+
+  function node(move, suffix, nag, comment, variations) {
+  	const node = { move, variations };
+
+    if (suffix) {
+    	node.suffix = suffix;
+    }
+
+    if (nag) {
+    	node.nag = nag;
+    }
+
+    if (comment !== null) {
+    	node.comment = comment;
+    }
+
+    return node
+  }
+
+  function lineToTree(...nodes) {
+  	const [root, ...rest] = nodes;
+
+    let parent = root;
+
+    for (const child of rest) {
+    	if (child !== null) {
+        	parent.variations = [child, ...child.variations];
+            child.variations = [];
+            parent = child;
+        }
+    }
+
+  	return root
+  }
+
+  function pgn(headers, game) {
+  	if (game.marker && game.marker.comment) {
+    	let node = game.root;
+        while (true) {
+        	const next = node.variations[0];
+            if (!next) {
+            	node.comment = game.marker.comment;
+            	break
+            }
+            node = next;
+        }
+    }
+
+  	return {
+    	headers,
+        root: game.root,
+        result: (game.marker && game.marker.result) ?? undefined
+    }
+  }
+
+function peg$subclass(child, parent) {
+  function C() { this.constructor = child; }
+  C.prototype = parent.prototype;
+  child.prototype = new C();
+}
+
+function peg$SyntaxError(message, expected, found, location) {
+  var self = Error.call(this, message);
+  // istanbul ignore next Check is a necessary evil to support older environments
+  if (Object.setPrototypeOf) {
+    Object.setPrototypeOf(self, peg$SyntaxError.prototype);
+  }
+  self.expected = expected;
+  self.found = found;
+  self.location = location;
+  self.name = "SyntaxError";
+  return self;
+}
+
+peg$subclass(peg$SyntaxError, Error);
+
+function peg$padEnd(str, targetLength, padString) {
+  padString = padString || " ";
+  if (str.length > targetLength) { return str; }
+  targetLength -= str.length;
+  padString += padString.repeat(targetLength);
+  return str + padString.slice(0, targetLength);
+}
+
+peg$SyntaxError.prototype.format = function(sources) {
+  var str = "Error: " + this.message;
+  if (this.location) {
+    var src = null;
+    var k;
+    for (k = 0; k < sources.length; k++) {
+      if (sources[k].source === this.location.source) {
+        src = sources[k].text.split(/\r\n|\n|\r/g);
+        break;
+      }
+    }
+    var s = this.location.start;
+    var offset_s = (this.location.source && (typeof this.location.source.offset === "function"))
+      ? this.location.source.offset(s)
+      : s;
+    var loc = this.location.source + ":" + offset_s.line + ":" + offset_s.column;
+    if (src) {
+      var e = this.location.end;
+      var filler = peg$padEnd("", offset_s.line.toString().length, ' ');
+      var line = src[s.line - 1];
+      var last = s.line === e.line ? e.column : line.length + 1;
+      var hatLen = (last - s.column) || 1;
+      str += "\n --> " + loc + "\n"
+          + filler + " |\n"
+          + offset_s.line + " | " + line + "\n"
+          + filler + " | " + peg$padEnd("", s.column - 1, ' ')
+          + peg$padEnd("", hatLen, "^");
+    } else {
+      str += "\n at " + loc;
+    }
+  }
+  return str;
+};
+
+peg$SyntaxError.buildMessage = function(expected, found) {
+  var DESCRIBE_EXPECTATION_FNS = {
+    literal: function(expectation) {
+      return "\"" + literalEscape(expectation.text) + "\"";
+    },
+
+    class: function(expectation) {
+      var escapedParts = expectation.parts.map(function(part) {
+        return Array.isArray(part)
+          ? classEscape(part[0]) + "-" + classEscape(part[1])
+          : classEscape(part);
+      });
+
+      return "[" + (expectation.inverted ? "^" : "") + escapedParts.join("") + "]";
+    },
+
+    any: function() {
+      return "any character";
+    },
+
+    end: function() {
+      return "end of input";
+    },
+
+    other: function(expectation) {
+      return expectation.description;
+    }
+  };
+
+  function hex(ch) {
+    return ch.charCodeAt(0).toString(16).toUpperCase();
+  }
+
+  function literalEscape(s) {
+    return s
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g,  "\\\"")
+      .replace(/\0/g, "\\0")
+      .replace(/\t/g, "\\t")
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      .replace(/[\x00-\x0F]/g,          function(ch) { return "\\x0" + hex(ch); })
+      .replace(/[\x10-\x1F\x7F-\x9F]/g, function(ch) { return "\\x"  + hex(ch); });
+  }
+
+  function classEscape(s) {
+    return s
+      .replace(/\\/g, "\\\\")
+      .replace(/\]/g, "\\]")
+      .replace(/\^/g, "\\^")
+      .replace(/-/g,  "\\-")
+      .replace(/\0/g, "\\0")
+      .replace(/\t/g, "\\t")
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      .replace(/[\x00-\x0F]/g,          function(ch) { return "\\x0" + hex(ch); })
+      .replace(/[\x10-\x1F\x7F-\x9F]/g, function(ch) { return "\\x"  + hex(ch); });
+  }
+
+  function describeExpectation(expectation) {
+    return DESCRIBE_EXPECTATION_FNS[expectation.type](expectation);
+  }
+
+  function describeExpected(expected) {
+    var descriptions = expected.map(describeExpectation);
+    var i, j;
+
+    descriptions.sort();
+
+    if (descriptions.length > 0) {
+      for (i = 1, j = 1; i < descriptions.length; i++) {
+        if (descriptions[i - 1] !== descriptions[i]) {
+          descriptions[j] = descriptions[i];
+          j++;
+        }
+      }
+      descriptions.length = j;
+    }
+
+    switch (descriptions.length) {
+      case 1:
+        return descriptions[0];
+
+      case 2:
+        return descriptions[0] + " or " + descriptions[1];
+
+      default:
+        return descriptions.slice(0, -1).join(", ")
+          + ", or "
+          + descriptions[descriptions.length - 1];
+    }
+  }
+
+  function describeFound(found) {
+    return found ? "\"" + literalEscape(found) + "\"" : "end of input";
+  }
+
+  return "Expected " + describeExpected(expected) + " but " + describeFound(found) + " found.";
+};
+
+function peg$parse(input, options) {
+  options = options !== undefined ? options : {};
+
+  var peg$FAILED = {};
+  var peg$source = options.grammarSource;
+
+  var peg$startRuleFunctions = { pgn: peg$parsepgn };
+  var peg$startRuleFunction = peg$parsepgn;
+
+  var peg$c0 = "[";
+  var peg$c1 = "\"";
+  var peg$c2 = "]";
+  var peg$c3 = ".";
+  var peg$c4 = "O-O-O";
+  var peg$c5 = "O-O";
+  var peg$c6 = "0-0-0";
+  var peg$c7 = "0-0";
+  var peg$c8 = "$";
+  var peg$c9 = "{";
+  var peg$c10 = "}";
+  var peg$c11 = ";";
+  var peg$c12 = "(";
+  var peg$c13 = ")";
+  var peg$c14 = "1-0";
+  var peg$c15 = "0-1";
+  var peg$c16 = "1/2-1/2";
+  var peg$c17 = "*";
+
+  var peg$r0 = /^[a-zA-Z]/;
+  var peg$r1 = /^[^"]/;
+  var peg$r2 = /^[0-9]/;
+  var peg$r3 = /^[.]/;
+  var peg$r4 = /^[a-zA-Z1-8\-=]/;
+  var peg$r5 = /^[+#]/;
+  var peg$r6 = /^[!?]/;
+  var peg$r7 = /^[^}]/;
+  var peg$r8 = /^[^\r\n]/;
+  var peg$r9 = /^[ \t\r\n]/;
+
+  var peg$e0 = peg$otherExpectation("tag pair");
+  var peg$e1 = peg$literalExpectation("[", false);
+  var peg$e2 = peg$literalExpectation("\"", false);
+  var peg$e3 = peg$literalExpectation("]", false);
+  var peg$e4 = peg$otherExpectation("tag name");
+  var peg$e5 = peg$classExpectation([["a", "z"], ["A", "Z"]], false, false);
+  var peg$e6 = peg$otherExpectation("tag value");
+  var peg$e7 = peg$classExpectation(["\""], true, false);
+  var peg$e8 = peg$otherExpectation("move number");
+  var peg$e9 = peg$classExpectation([["0", "9"]], false, false);
+  var peg$e10 = peg$literalExpectation(".", false);
+  var peg$e11 = peg$classExpectation(["."], false, false);
+  var peg$e12 = peg$otherExpectation("standard algebraic notation");
+  var peg$e13 = peg$literalExpectation("O-O-O", false);
+  var peg$e14 = peg$literalExpectation("O-O", false);
+  var peg$e15 = peg$literalExpectation("0-0-0", false);
+  var peg$e16 = peg$literalExpectation("0-0", false);
+  var peg$e17 = peg$classExpectation([["a", "z"], ["A", "Z"], ["1", "8"], "-", "="], false, false);
+  var peg$e18 = peg$classExpectation(["+", "#"], false, false);
+  var peg$e19 = peg$otherExpectation("suffix annotation");
+  var peg$e20 = peg$classExpectation(["!", "?"], false, false);
+  var peg$e21 = peg$otherExpectation("NAG");
+  var peg$e22 = peg$literalExpectation("$", false);
+  var peg$e23 = peg$otherExpectation("brace comment");
+  var peg$e24 = peg$literalExpectation("{", false);
+  var peg$e25 = peg$classExpectation(["}"], true, false);
+  var peg$e26 = peg$literalExpectation("}", false);
+  var peg$e27 = peg$otherExpectation("rest of line comment");
+  var peg$e28 = peg$literalExpectation(";", false);
+  var peg$e29 = peg$classExpectation(["\r", "\n"], true, false);
+  var peg$e30 = peg$otherExpectation("variation");
+  var peg$e31 = peg$literalExpectation("(", false);
+  var peg$e32 = peg$literalExpectation(")", false);
+  var peg$e33 = peg$otherExpectation("game termination marker");
+  var peg$e34 = peg$literalExpectation("1-0", false);
+  var peg$e35 = peg$literalExpectation("0-1", false);
+  var peg$e36 = peg$literalExpectation("1/2-1/2", false);
+  var peg$e37 = peg$literalExpectation("*", false);
+  var peg$e38 = peg$otherExpectation("whitespace");
+  var peg$e39 = peg$classExpectation([" ", "\t", "\r", "\n"], false, false);
+
+  var peg$f0 = function(headers, game) { return pgn(headers, game) };
+  var peg$f1 = function(tagPairs) { return Object.fromEntries(tagPairs) };
+  var peg$f2 = function(tagName, tagValue) { return [tagName, tagValue] };
+  var peg$f3 = function(root, marker) { return { root, marker} };
+  var peg$f4 = function(comment, moves) { return lineToTree(rootNode(comment), ...moves.flat()) };
+  var peg$f5 = function(san, suffix, nag, comment, variations) { return node(san, suffix, nag, comment, variations) };
+  var peg$f6 = function(nag) { return nag };
+  var peg$f7 = function(comment) { return comment.replace(/[\r\n]+/g, " ") };
+  var peg$f8 = function(comment) { return comment.trim() };
+  var peg$f9 = function(line) { return line };
+  var peg$f10 = function(result, comment) { return { result, comment } };
+  var peg$currPos = options.peg$currPos | 0;
+  var peg$posDetailsCache = [{ line: 1, column: 1 }];
+  var peg$maxFailPos = peg$currPos;
+  var peg$maxFailExpected = options.peg$maxFailExpected || [];
+  var peg$silentFails = options.peg$silentFails | 0;
+
+  var peg$result;
+
+  if (options.startRule) {
+    if (!(options.startRule in peg$startRuleFunctions)) {
+      throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
+    }
+
+    peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+  }
+
+  function peg$literalExpectation(text, ignoreCase) {
+    return { type: "literal", text: text, ignoreCase: ignoreCase };
+  }
+
+  function peg$classExpectation(parts, inverted, ignoreCase) {
+    return { type: "class", parts: parts, inverted: inverted, ignoreCase: ignoreCase };
+  }
+
+  function peg$endExpectation() {
+    return { type: "end" };
+  }
+
+  function peg$otherExpectation(description) {
+    return { type: "other", description: description };
+  }
+
+  function peg$computePosDetails(pos) {
+    var details = peg$posDetailsCache[pos];
+    var p;
+
+    if (details) {
+      return details;
+    } else {
+      if (pos >= peg$posDetailsCache.length) {
+        p = peg$posDetailsCache.length - 1;
+      } else {
+        p = pos;
+        while (!peg$posDetailsCache[--p]) {}
+      }
+
+      details = peg$posDetailsCache[p];
+      details = {
+        line: details.line,
+        column: details.column
+      };
+
+      while (p < pos) {
+        if (input.charCodeAt(p) === 10) {
+          details.line++;
+          details.column = 1;
+        } else {
+          details.column++;
+        }
+
+        p++;
+      }
+
+      peg$posDetailsCache[pos] = details;
+
+      return details;
+    }
+  }
+
+  function peg$computeLocation(startPos, endPos, offset) {
+    var startPosDetails = peg$computePosDetails(startPos);
+    var endPosDetails = peg$computePosDetails(endPos);
+
+    var res = {
+      source: peg$source,
+      start: {
+        offset: startPos,
+        line: startPosDetails.line,
+        column: startPosDetails.column
+      },
+      end: {
+        offset: endPos,
+        line: endPosDetails.line,
+        column: endPosDetails.column
+      }
+    };
+    return res;
+  }
+
+  function peg$fail(expected) {
+    if (peg$currPos < peg$maxFailPos) { return; }
+
+    if (peg$currPos > peg$maxFailPos) {
+      peg$maxFailPos = peg$currPos;
+      peg$maxFailExpected = [];
+    }
+
+    peg$maxFailExpected.push(expected);
+  }
+
+  function peg$buildStructuredError(expected, found, location) {
+    return new peg$SyntaxError(
+      peg$SyntaxError.buildMessage(expected, found),
+      expected,
+      found,
+      location
+    );
+  }
+
+  function peg$parsepgn() {
+    var s0, s1, s2;
+
+    s0 = peg$currPos;
+    s1 = peg$parsetagPairSection();
+    s2 = peg$parsemoveTextSection();
+    s0 = peg$f0(s1, s2);
+
+    return s0;
+  }
+
+  function peg$parsetagPairSection() {
+    var s0, s1, s2;
+
+    s0 = peg$currPos;
+    s1 = [];
+    s2 = peg$parsetagPair();
+    while (s2 !== peg$FAILED) {
+      s1.push(s2);
+      s2 = peg$parsetagPair();
+    }
+    s2 = peg$parse_();
+    s0 = peg$f1(s1);
+
+    return s0;
+  }
+
+  function peg$parsetagPair() {
+    var s0, s2, s4, s6, s7, s8, s10;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    peg$parse_();
+    if (input.charCodeAt(peg$currPos) === 91) {
+      s2 = peg$c0;
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e1); }
+    }
+    if (s2 !== peg$FAILED) {
+      peg$parse_();
+      s4 = peg$parsetagName();
+      if (s4 !== peg$FAILED) {
+        peg$parse_();
+        if (input.charCodeAt(peg$currPos) === 34) {
+          s6 = peg$c1;
+          peg$currPos++;
+        } else {
+          s6 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e2); }
+        }
+        if (s6 !== peg$FAILED) {
+          s7 = peg$parsetagValue();
+          if (input.charCodeAt(peg$currPos) === 34) {
+            s8 = peg$c1;
+            peg$currPos++;
+          } else {
+            s8 = peg$FAILED;
+            if (peg$silentFails === 0) { peg$fail(peg$e2); }
+          }
+          if (s8 !== peg$FAILED) {
+            peg$parse_();
+            if (input.charCodeAt(peg$currPos) === 93) {
+              s10 = peg$c2;
+              peg$currPos++;
+            } else {
+              s10 = peg$FAILED;
+              if (peg$silentFails === 0) { peg$fail(peg$e3); }
+            }
+            if (s10 !== peg$FAILED) {
+              s0 = peg$f2(s4, s7);
+            } else {
+              peg$currPos = s0;
+              s0 = peg$FAILED;
+            }
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$FAILED;
+        }
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
+      }
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      if (peg$silentFails === 0) { peg$fail(peg$e0); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsetagName() {
+    var s0, s1, s2;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    s1 = [];
+    s2 = input.charAt(peg$currPos);
+    if (peg$r0.test(s2)) {
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e5); }
+    }
+    if (s2 !== peg$FAILED) {
+      while (s2 !== peg$FAILED) {
+        s1.push(s2);
+        s2 = input.charAt(peg$currPos);
+        if (peg$r0.test(s2)) {
+          peg$currPos++;
+        } else {
+          s2 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e5); }
+        }
+      }
+    } else {
+      s1 = peg$FAILED;
+    }
+    if (s1 !== peg$FAILED) {
+      s0 = input.substring(s0, peg$currPos);
+    } else {
+      s0 = s1;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e4); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsetagValue() {
+    var s0, s1, s2;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    s1 = [];
+    s2 = input.charAt(peg$currPos);
+    if (peg$r1.test(s2)) {
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e7); }
+    }
+    while (s2 !== peg$FAILED) {
+      s1.push(s2);
+      s2 = input.charAt(peg$currPos);
+      if (peg$r1.test(s2)) {
+        peg$currPos++;
+      } else {
+        s2 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e7); }
+      }
+    }
+    s0 = input.substring(s0, peg$currPos);
+    peg$silentFails--;
+    s1 = peg$FAILED;
+    if (peg$silentFails === 0) { peg$fail(peg$e6); }
+
+    return s0;
+  }
+
+  function peg$parsemoveTextSection() {
+    var s0, s1, s3;
+
+    s0 = peg$currPos;
+    s1 = peg$parseline();
+    peg$parse_();
+    s3 = peg$parsegameTerminationMarker();
+    if (s3 === peg$FAILED) {
+      s3 = null;
+    }
+    peg$parse_();
+    s0 = peg$f3(s1, s3);
+
+    return s0;
+  }
+
+  function peg$parseline() {
+    var s0, s1, s2, s3;
+
+    s0 = peg$currPos;
+    s1 = peg$parsecomment();
+    if (s1 === peg$FAILED) {
+      s1 = null;
+    }
+    s2 = [];
+    s3 = peg$parsemove();
+    while (s3 !== peg$FAILED) {
+      s2.push(s3);
+      s3 = peg$parsemove();
+    }
+    s0 = peg$f4(s1, s2);
+
+    return s0;
+  }
+
+  function peg$parsemove() {
+    var s0, s4, s5, s6, s7, s8, s9, s10;
+
+    s0 = peg$currPos;
+    peg$parse_();
+    peg$parsemoveNumber();
+    peg$parse_();
+    s4 = peg$parsesan();
+    if (s4 !== peg$FAILED) {
+      s5 = peg$parsesuffixAnnotation();
+      if (s5 === peg$FAILED) {
+        s5 = null;
+      }
+      s6 = [];
+      s7 = peg$parsenag();
+      while (s7 !== peg$FAILED) {
+        s6.push(s7);
+        s7 = peg$parsenag();
+      }
+      s7 = peg$parse_();
+      s8 = peg$parsecomment();
+      if (s8 === peg$FAILED) {
+        s8 = null;
+      }
+      s9 = [];
+      s10 = peg$parsevariation();
+      while (s10 !== peg$FAILED) {
+        s9.push(s10);
+        s10 = peg$parsevariation();
+      }
+      s0 = peg$f5(s4, s5, s6, s8, s9);
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+
+    return s0;
+  }
+
+  function peg$parsemoveNumber() {
+    var s0, s1, s2, s3, s4, s5;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    s1 = [];
+    s2 = input.charAt(peg$currPos);
+    if (peg$r2.test(s2)) {
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e9); }
+    }
+    while (s2 !== peg$FAILED) {
+      s1.push(s2);
+      s2 = input.charAt(peg$currPos);
+      if (peg$r2.test(s2)) {
+        peg$currPos++;
+      } else {
+        s2 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e9); }
+      }
+    }
+    if (input.charCodeAt(peg$currPos) === 46) {
+      s2 = peg$c3;
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e10); }
+    }
+    if (s2 !== peg$FAILED) {
+      s3 = peg$parse_();
+      s4 = [];
+      s5 = input.charAt(peg$currPos);
+      if (peg$r3.test(s5)) {
+        peg$currPos++;
+      } else {
+        s5 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e11); }
+      }
+      while (s5 !== peg$FAILED) {
+        s4.push(s5);
+        s5 = input.charAt(peg$currPos);
+        if (peg$r3.test(s5)) {
+          peg$currPos++;
+        } else {
+          s5 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e11); }
+        }
+      }
+      s1 = [s1, s2, s3, s4];
+      s0 = s1;
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e8); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsesan() {
+    var s0, s1, s2, s3, s4, s5;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    s1 = peg$currPos;
+    if (input.substr(peg$currPos, 5) === peg$c4) {
+      s2 = peg$c4;
+      peg$currPos += 5;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e13); }
+    }
+    if (s2 === peg$FAILED) {
+      if (input.substr(peg$currPos, 3) === peg$c5) {
+        s2 = peg$c5;
+        peg$currPos += 3;
+      } else {
+        s2 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e14); }
+      }
+      if (s2 === peg$FAILED) {
+        if (input.substr(peg$currPos, 5) === peg$c6) {
+          s2 = peg$c6;
+          peg$currPos += 5;
+        } else {
+          s2 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e15); }
+        }
+        if (s2 === peg$FAILED) {
+          if (input.substr(peg$currPos, 3) === peg$c7) {
+            s2 = peg$c7;
+            peg$currPos += 3;
+          } else {
+            s2 = peg$FAILED;
+            if (peg$silentFails === 0) { peg$fail(peg$e16); }
+          }
+          if (s2 === peg$FAILED) {
+            s2 = peg$currPos;
+            s3 = input.charAt(peg$currPos);
+            if (peg$r0.test(s3)) {
+              peg$currPos++;
+            } else {
+              s3 = peg$FAILED;
+              if (peg$silentFails === 0) { peg$fail(peg$e5); }
+            }
+            if (s3 !== peg$FAILED) {
+              s4 = [];
+              s5 = input.charAt(peg$currPos);
+              if (peg$r4.test(s5)) {
+                peg$currPos++;
+              } else {
+                s5 = peg$FAILED;
+                if (peg$silentFails === 0) { peg$fail(peg$e17); }
+              }
+              if (s5 !== peg$FAILED) {
+                while (s5 !== peg$FAILED) {
+                  s4.push(s5);
+                  s5 = input.charAt(peg$currPos);
+                  if (peg$r4.test(s5)) {
+                    peg$currPos++;
+                  } else {
+                    s5 = peg$FAILED;
+                    if (peg$silentFails === 0) { peg$fail(peg$e17); }
+                  }
+                }
+              } else {
+                s4 = peg$FAILED;
+              }
+              if (s4 !== peg$FAILED) {
+                s3 = [s3, s4];
+                s2 = s3;
+              } else {
+                peg$currPos = s2;
+                s2 = peg$FAILED;
+              }
+            } else {
+              peg$currPos = s2;
+              s2 = peg$FAILED;
+            }
+          }
+        }
+      }
+    }
+    if (s2 !== peg$FAILED) {
+      s3 = input.charAt(peg$currPos);
+      if (peg$r5.test(s3)) {
+        peg$currPos++;
+      } else {
+        s3 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e18); }
+      }
+      if (s3 === peg$FAILED) {
+        s3 = null;
+      }
+      s2 = [s2, s3];
+      s1 = s2;
+    } else {
+      peg$currPos = s1;
+      s1 = peg$FAILED;
+    }
+    if (s1 !== peg$FAILED) {
+      s0 = input.substring(s0, peg$currPos);
+    } else {
+      s0 = s1;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e12); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsesuffixAnnotation() {
+    var s0, s1, s2;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    s1 = [];
+    s2 = input.charAt(peg$currPos);
+    if (peg$r6.test(s2)) {
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e20); }
+    }
+    while (s2 !== peg$FAILED) {
+      s1.push(s2);
+      if (s1.length >= 2) {
+        s2 = peg$FAILED;
+      } else {
+        s2 = input.charAt(peg$currPos);
+        if (peg$r6.test(s2)) {
+          peg$currPos++;
+        } else {
+          s2 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e20); }
+        }
+      }
+    }
+    if (s1.length < 1) {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    } else {
+      s0 = s1;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e19); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsenag() {
+    var s0, s2, s3, s4, s5;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    peg$parse_();
+    if (input.charCodeAt(peg$currPos) === 36) {
+      s2 = peg$c8;
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e22); }
+    }
+    if (s2 !== peg$FAILED) {
+      s3 = peg$currPos;
+      s4 = [];
+      s5 = input.charAt(peg$currPos);
+      if (peg$r2.test(s5)) {
+        peg$currPos++;
+      } else {
+        s5 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e9); }
+      }
+      if (s5 !== peg$FAILED) {
+        while (s5 !== peg$FAILED) {
+          s4.push(s5);
+          s5 = input.charAt(peg$currPos);
+          if (peg$r2.test(s5)) {
+            peg$currPos++;
+          } else {
+            s5 = peg$FAILED;
+            if (peg$silentFails === 0) { peg$fail(peg$e9); }
+          }
+        }
+      } else {
+        s4 = peg$FAILED;
+      }
+      if (s4 !== peg$FAILED) {
+        s3 = input.substring(s3, peg$currPos);
+      } else {
+        s3 = s4;
+      }
+      if (s3 !== peg$FAILED) {
+        s0 = peg$f6(s3);
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
+      }
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      if (peg$silentFails === 0) { peg$fail(peg$e21); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsecomment() {
+    var s0;
+
+    s0 = peg$parsebraceComment();
+    if (s0 === peg$FAILED) {
+      s0 = peg$parserestOfLineComment();
+    }
+
+    return s0;
+  }
+
+  function peg$parsebraceComment() {
+    var s0, s1, s2, s3, s4;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    if (input.charCodeAt(peg$currPos) === 123) {
+      s1 = peg$c9;
+      peg$currPos++;
+    } else {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e24); }
+    }
+    if (s1 !== peg$FAILED) {
+      s2 = peg$currPos;
+      s3 = [];
+      s4 = input.charAt(peg$currPos);
+      if (peg$r7.test(s4)) {
+        peg$currPos++;
+      } else {
+        s4 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e25); }
+      }
+      while (s4 !== peg$FAILED) {
+        s3.push(s4);
+        s4 = input.charAt(peg$currPos);
+        if (peg$r7.test(s4)) {
+          peg$currPos++;
+        } else {
+          s4 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e25); }
+        }
+      }
+      s2 = input.substring(s2, peg$currPos);
+      if (input.charCodeAt(peg$currPos) === 125) {
+        s3 = peg$c10;
+        peg$currPos++;
+      } else {
+        s3 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e26); }
+      }
+      if (s3 !== peg$FAILED) {
+        s0 = peg$f7(s2);
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
+      }
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e23); }
+    }
+
+    return s0;
+  }
+
+  function peg$parserestOfLineComment() {
+    var s0, s1, s2, s3, s4;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    if (input.charCodeAt(peg$currPos) === 59) {
+      s1 = peg$c11;
+      peg$currPos++;
+    } else {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e28); }
+    }
+    if (s1 !== peg$FAILED) {
+      s2 = peg$currPos;
+      s3 = [];
+      s4 = input.charAt(peg$currPos);
+      if (peg$r8.test(s4)) {
+        peg$currPos++;
+      } else {
+        s4 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e29); }
+      }
+      while (s4 !== peg$FAILED) {
+        s3.push(s4);
+        s4 = input.charAt(peg$currPos);
+        if (peg$r8.test(s4)) {
+          peg$currPos++;
+        } else {
+          s4 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e29); }
+        }
+      }
+      s2 = input.substring(s2, peg$currPos);
+      s0 = peg$f8(s2);
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e27); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsevariation() {
+    var s0, s2, s3, s5;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    peg$parse_();
+    if (input.charCodeAt(peg$currPos) === 40) {
+      s2 = peg$c12;
+      peg$currPos++;
+    } else {
+      s2 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e31); }
+    }
+    if (s2 !== peg$FAILED) {
+      s3 = peg$parseline();
+      if (s3 !== peg$FAILED) {
+        peg$parse_();
+        if (input.charCodeAt(peg$currPos) === 41) {
+          s5 = peg$c13;
+          peg$currPos++;
+        } else {
+          s5 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e32); }
+        }
+        if (s5 !== peg$FAILED) {
+          s0 = peg$f9(s3);
+        } else {
+          peg$currPos = s0;
+          s0 = peg$FAILED;
+        }
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
+      }
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      if (peg$silentFails === 0) { peg$fail(peg$e30); }
+    }
+
+    return s0;
+  }
+
+  function peg$parsegameTerminationMarker() {
+    var s0, s1, s3;
+
+    peg$silentFails++;
+    s0 = peg$currPos;
+    if (input.substr(peg$currPos, 3) === peg$c14) {
+      s1 = peg$c14;
+      peg$currPos += 3;
+    } else {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e34); }
+    }
+    if (s1 === peg$FAILED) {
+      if (input.substr(peg$currPos, 3) === peg$c15) {
+        s1 = peg$c15;
+        peg$currPos += 3;
+      } else {
+        s1 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e35); }
+      }
+      if (s1 === peg$FAILED) {
+        if (input.substr(peg$currPos, 7) === peg$c16) {
+          s1 = peg$c16;
+          peg$currPos += 7;
+        } else {
+          s1 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e36); }
+        }
+        if (s1 === peg$FAILED) {
+          if (input.charCodeAt(peg$currPos) === 42) {
+            s1 = peg$c17;
+            peg$currPos++;
+          } else {
+            s1 = peg$FAILED;
+            if (peg$silentFails === 0) { peg$fail(peg$e37); }
+          }
+        }
+      }
+    }
+    if (s1 !== peg$FAILED) {
+      peg$parse_();
+      s3 = peg$parsecomment();
+      if (s3 === peg$FAILED) {
+        s3 = null;
+      }
+      s0 = peg$f10(s1, s3);
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    peg$silentFails--;
+    if (s0 === peg$FAILED) {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e33); }
+    }
+
+    return s0;
+  }
+
+  function peg$parse_() {
+    var s0, s1;
+
+    peg$silentFails++;
+    s0 = [];
+    s1 = input.charAt(peg$currPos);
+    if (peg$r9.test(s1)) {
+      peg$currPos++;
+    } else {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e39); }
+    }
+    while (s1 !== peg$FAILED) {
+      s0.push(s1);
+      s1 = input.charAt(peg$currPos);
+      if (peg$r9.test(s1)) {
+        peg$currPos++;
+      } else {
+        s1 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e39); }
+      }
+    }
+    peg$silentFails--;
+    s1 = peg$FAILED;
+    if (peg$silentFails === 0) { peg$fail(peg$e38); }
+
+    return s0;
+  }
+
+  peg$result = peg$startRuleFunction();
+
+  if (options.peg$library) {
+    return /** @type {any} */ ({
+      peg$result,
+      peg$currPos,
+      peg$FAILED,
+      peg$maxFailExpected,
+      peg$maxFailPos
+    });
+  }
+  if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+    return peg$result;
+  } else {
+    if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+      peg$fail(peg$endExpectation());
+    }
+
+    throw peg$buildStructuredError(
+      peg$maxFailExpected,
+      peg$maxFailPos < input.length ? input.charAt(peg$maxFailPos) : null,
+      peg$maxFailPos < input.length
+        ? peg$computeLocation(peg$maxFailPos, peg$maxFailPos + 1)
+        : peg$computeLocation(peg$maxFailPos, peg$maxFailPos)
+    );
+  }
+}
+
+/**
+ * @license
+ * Copyright (c) 2025, Jeff Hlywa (jhlywa@gmail.com)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+const MASK64 = 0xffffffffffffffffn;
+function rotl(x, k) {
+    return ((x << k) | (x >> (64n - k))) & 0xffffffffffffffffn;
+}
+function wrappingMul(x, y) {
+    return (x * y) & MASK64;
+}
+// xoroshiro128**
+function xoroshiro128(state) {
+    return function () {
+        let s0 = BigInt(state & MASK64);
+        let s1 = BigInt((state >> 64n) & MASK64);
+        const result = wrappingMul(rotl(wrappingMul(s0, 5n), 7n), 9n);
+        s1 ^= s0;
+        s0 = (rotl(s0, 24n) ^ s1 ^ (s1 << 16n)) & MASK64;
+        s1 = rotl(s1, 37n);
+        state = (s1 << 64n) | s0;
+        return result;
+    };
+}
+const rand = xoroshiro128(0xa187eb39cdcaed8f31c4b365b102e01en);
+const PIECE_KEYS = Array.from({ length: 2 }, () => Array.from({ length: 6 }, () => Array.from({ length: 128 }, () => rand())));
+const EP_KEYS = Array.from({ length: 8 }, () => rand());
+const CASTLING_KEYS = Array.from({ length: 16 }, () => rand());
+const SIDE_KEY = rand();
+const WHITE = 'w';
+const BLACK = 'b';
+const PAWN = 'p';
+const KNIGHT = 'n';
+const BISHOP = 'b';
+const ROOK = 'r';
+const QUEEN = 'q';
+const KING = 'k';
+const DEFAULT_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+class Move {
+    color;
+    from;
+    to;
+    piece;
+    captured;
+    promotion;
+    /**
+     * @deprecated This field is deprecated and will be removed in version 2.0.0.
+     * Please use move descriptor functions instead: `isCapture`, `isPromotion`,
+     * `isEnPassant`, `isKingsideCastle`, `isQueensideCastle`, `isCastle`, and
+     * `isBigPawn`
+     */
+    flags;
+    san;
+    lan;
+    before;
+    after;
+    constructor(chess, internal) {
+        const { color, piece, from, to, flags, captured, promotion } = internal;
+        const fromAlgebraic = algebraic(from);
+        const toAlgebraic = algebraic(to);
+        this.color = color;
+        this.piece = piece;
+        this.from = fromAlgebraic;
+        this.to = toAlgebraic;
+        /*
+         * HACK: The chess['_method']() calls below invoke private methods in the
+         * Chess class to generate SAN and FEN. It's a bit of a hack, but makes the
+         * code cleaner elsewhere.
+         */
+        this.san = chess['_moveToSan'](internal, chess['_moves']({ legal: true }));
+        this.lan = fromAlgebraic + toAlgebraic;
+        this.before = chess.fen();
+        // Generate the FEN for the 'after' key
+        chess['_makeMove'](internal);
+        this.after = chess.fen();
+        chess['_undoMove']();
+        // Build the text representation of the move flags
+        this.flags = '';
+        for (const flag in BITS) {
+            if (BITS[flag] & flags) {
+                this.flags += FLAGS[flag];
+            }
+        }
+        if (captured) {
+            this.captured = captured;
+        }
+        if (promotion) {
+            this.promotion = promotion;
+            this.lan += promotion;
+        }
+    }
+    isCapture() {
+        return this.flags.indexOf(FLAGS['CAPTURE']) > -1;
+    }
+    isPromotion() {
+        return this.flags.indexOf(FLAGS['PROMOTION']) > -1;
+    }
+    isEnPassant() {
+        return this.flags.indexOf(FLAGS['EP_CAPTURE']) > -1;
+    }
+    isKingsideCastle() {
+        return this.flags.indexOf(FLAGS['KSIDE_CASTLE']) > -1;
+    }
+    isQueensideCastle() {
+        return this.flags.indexOf(FLAGS['QSIDE_CASTLE']) > -1;
+    }
+    isBigPawn() {
+        return this.flags.indexOf(FLAGS['BIG_PAWN']) > -1;
+    }
+}
+const EMPTY = -1;
+const FLAGS = {
+    NORMAL: 'n',
+    CAPTURE: 'c',
+    BIG_PAWN: 'b',
+    EP_CAPTURE: 'e',
+    PROMOTION: 'p',
+    KSIDE_CASTLE: 'k',
+    QSIDE_CASTLE: 'q',
+    NULL_MOVE: '-',
+};
+// prettier-ignore
+const SQUARES = [
+    'a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8',
+    'a7', 'b7', 'c7', 'd7', 'e7', 'f7', 'g7', 'h7',
+    'a6', 'b6', 'c6', 'd6', 'e6', 'f6', 'g6', 'h6',
+    'a5', 'b5', 'c5', 'd5', 'e5', 'f5', 'g5', 'h5',
+    'a4', 'b4', 'c4', 'd4', 'e4', 'f4', 'g4', 'h4',
+    'a3', 'b3', 'c3', 'd3', 'e3', 'f3', 'g3', 'h3',
+    'a2', 'b2', 'c2', 'd2', 'e2', 'f2', 'g2', 'h2',
+    'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1'
+];
+const BITS = {
+    NORMAL: 1,
+    CAPTURE: 2,
+    BIG_PAWN: 4,
+    EP_CAPTURE: 8,
+    PROMOTION: 16,
+    KSIDE_CASTLE: 32,
+    QSIDE_CASTLE: 64,
+    NULL_MOVE: 128,
+};
+/* eslint-disable @typescript-eslint/naming-convention */
+// these are required, according to spec
+const SEVEN_TAG_ROSTER = {
+    Event: '?',
+    Site: '?',
+    Date: '????.??.??',
+    Round: '?',
+    White: '?',
+    Black: '?',
+    Result: '*',
+};
+/**
+ * These nulls are placeholders to fix the order of tags (as they appear in PGN spec); null values will be
+ * eliminated in getHeaders()
+ */
+const SUPLEMENTAL_TAGS = {
+    WhiteTitle: null,
+    BlackTitle: null,
+    WhiteElo: null,
+    BlackElo: null,
+    WhiteUSCF: null,
+    BlackUSCF: null,
+    WhiteNA: null,
+    BlackNA: null,
+    WhiteType: null,
+    BlackType: null,
+    EventDate: null,
+    EventSponsor: null,
+    Section: null,
+    Stage: null,
+    Board: null,
+    Opening: null,
+    Variation: null,
+    SubVariation: null,
+    ECO: null,
+    NIC: null,
+    Time: null,
+    UTCTime: null,
+    UTCDate: null,
+    TimeControl: null,
+    SetUp: null,
+    FEN: null,
+    Termination: null,
+    Annotator: null,
+    Mode: null,
+    PlyCount: null,
+};
+const HEADER_TEMPLATE = {
+    ...SEVEN_TAG_ROSTER,
+    ...SUPLEMENTAL_TAGS,
+};
+/* eslint-enable @typescript-eslint/naming-convention */
+/*
+ * NOTES ABOUT 0x88 MOVE GENERATION ALGORITHM
+ * ----------------------------------------------------------------------------
+ * From https://github.com/jhlywa/chess.js/issues/230
+ *
+ * A lot of people are confused when they first see the internal representation
+ * of chess.js. It uses the 0x88 Move Generation Algorithm which internally
+ * stores the board as an 8x16 array. This is purely for efficiency but has a
+ * couple of interesting benefits:
+ *
+ * 1. 0x88 offers a very inexpensive "off the board" check. Bitwise AND (&) any
+ *    square with 0x88, if the result is non-zero then the square is off the
+ *    board. For example, assuming a knight square A8 (0 in 0x88 notation),
+ *    there are 8 possible directions in which the knight can move. These
+ *    directions are relative to the 8x16 board and are stored in the
+ *    PIECE_OFFSETS map. One possible move is A8 - 18 (up one square, and two
+ *    squares to the left - which is off the board). 0 - 18 = -18 & 0x88 = 0x88
+ *    (because of two-complement representation of -18). The non-zero result
+ *    means the square is off the board and the move is illegal. Take the
+ *    opposite move (from A8 to C7), 0 + 18 = 18 & 0x88 = 0. A result of zero
+ *    means the square is on the board.
+ *
+ * 2. The relative distance (or difference) between two squares on a 8x16 board
+ *    is unique and can be used to inexpensively determine if a piece on a
+ *    square can attack any other arbitrary square. For example, let's see if a
+ *    pawn on E7 can attack E2. The difference between E7 (20) - E2 (100) is
+ *    -80. We add 119 to make the ATTACKS array index non-negative (because the
+ *    worst case difference is A8 - H1 = -119). The ATTACKS array contains a
+ *    bitmask of pieces that can attack from that distance and direction.
+ *    ATTACKS[-80 + 119=39] gives us 24 or 0b11000 in binary. Look at the
+ *    PIECE_MASKS map to determine the mask for a given piece type. In our pawn
+ *    example, we would check to see if 24 & 0x1 is non-zero, which it is
+ *    not. So, naturally, a pawn on E7 can't attack a piece on E2. However, a
+ *    rook can since 24 & 0x8 is non-zero. The only thing left to check is that
+ *    there are no blocking pieces between E7 and E2. That's where the RAYS
+ *    array comes in. It provides an offset (in this case 16) to add to E7 (20)
+ *    to check for blocking pieces. E7 (20) + 16 = E6 (36) + 16 = E5 (52) etc.
+ */
+// prettier-ignore
+// eslint-disable-next-line
+const Ox88 = {
+    a8: 0, b8: 1, c8: 2, d8: 3, e8: 4, f8: 5, g8: 6, h8: 7,
+    a7: 16, b7: 17, c7: 18, d7: 19, e7: 20, f7: 21, g7: 22, h7: 23,
+    a6: 32, b6: 33, c6: 34, d6: 35, e6: 36, f6: 37, g6: 38, h6: 39,
+    a5: 48, b5: 49, c5: 50, d5: 51, e5: 52, f5: 53, g5: 54, h5: 55,
+    a4: 64, b4: 65, c4: 66, d4: 67, e4: 68, f4: 69, g4: 70, h4: 71,
+    a3: 80, b3: 81, c3: 82, d3: 83, e3: 84, f3: 85, g3: 86, h3: 87,
+    a2: 96, b2: 97, c2: 98, d2: 99, e2: 100, f2: 101, g2: 102, h2: 103,
+    a1: 112, b1: 113, c1: 114, d1: 115, e1: 116, f1: 117, g1: 118, h1: 119
+};
+const PAWN_OFFSETS = {
+    b: [16, 32, 17, 15],
+    w: [-16, -32, -17, -15],
+};
+const PIECE_OFFSETS = {
+    n: [-18, -33, -31, -14, 18, 33, 31, 14],
+    b: [-17, -15, 17, 15],
+    r: [-16, 1, 16, -1],
+    q: [-17, -16, -15, 1, 17, 16, 15, -1],
+    k: [-17, -16, -15, 1, 17, 16, 15, -1],
+};
+// prettier-ignore
+const ATTACKS = [
+    20, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 20, 0,
+    0, 20, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 20, 0, 0,
+    0, 0, 20, 0, 0, 0, 0, 24, 0, 0, 0, 0, 20, 0, 0, 0,
+    0, 0, 0, 20, 0, 0, 0, 24, 0, 0, 0, 20, 0, 0, 0, 0,
+    0, 0, 0, 0, 20, 0, 0, 24, 0, 0, 20, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 20, 2, 24, 2, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 2, 53, 56, 53, 2, 0, 0, 0, 0, 0, 0,
+    24, 24, 24, 24, 24, 24, 56, 0, 56, 24, 24, 24, 24, 24, 24, 0,
+    0, 0, 0, 0, 0, 2, 53, 56, 53, 2, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 20, 2, 24, 2, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 20, 0, 0, 24, 0, 0, 20, 0, 0, 0, 0, 0,
+    0, 0, 0, 20, 0, 0, 0, 24, 0, 0, 0, 20, 0, 0, 0, 0,
+    0, 0, 20, 0, 0, 0, 0, 24, 0, 0, 0, 0, 20, 0, 0, 0,
+    0, 20, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 20, 0, 0,
+    20, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 20
+];
+// prettier-ignore
+const RAYS = [
+    17, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 15, 0,
+    0, 17, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 15, 0, 0,
+    0, 0, 17, 0, 0, 0, 0, 16, 0, 0, 0, 0, 15, 0, 0, 0,
+    0, 0, 0, 17, 0, 0, 0, 16, 0, 0, 0, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 17, 0, 0, 16, 0, 0, 15, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 17, 0, 16, 0, 15, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 17, 16, 15, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1, 1, 0, -1, -1, -1, -1, -1, -1, -1, 0,
+    0, 0, 0, 0, 0, 0, -15, -16, -17, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, -15, 0, -16, 0, -17, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, -15, 0, 0, -16, 0, 0, -17, 0, 0, 0, 0, 0,
+    0, 0, 0, -15, 0, 0, 0, -16, 0, 0, 0, -17, 0, 0, 0, 0,
+    0, 0, -15, 0, 0, 0, 0, -16, 0, 0, 0, 0, -17, 0, 0, 0,
+    0, -15, 0, 0, 0, 0, 0, -16, 0, 0, 0, 0, 0, -17, 0, 0,
+    -15, 0, 0, 0, 0, 0, 0, -16, 0, 0, 0, 0, 0, 0, -17
+];
+const PIECE_MASKS = { p: 0x1, n: 0x2, b: 0x4, r: 0x8, q: 0x10, k: 0x20 };
+const SYMBOLS = 'pnbrqkPNBRQK';
+const PROMOTIONS = [KNIGHT, BISHOP, ROOK, QUEEN];
+const RANK_1 = 7;
+const RANK_2 = 6;
+/*
+ * const RANK_3 = 5
+ * const RANK_4 = 4
+ * const RANK_5 = 3
+ * const RANK_6 = 2
+ */
+const RANK_7 = 1;
+const RANK_8 = 0;
+const SIDES = {
+    [KING]: BITS.KSIDE_CASTLE,
+    [QUEEN]: BITS.QSIDE_CASTLE,
+};
+const ROOKS = {
+    w: [
+        { square: Ox88.a1, flag: BITS.QSIDE_CASTLE },
+        { square: Ox88.h1, flag: BITS.KSIDE_CASTLE },
+    ],
+    b: [
+        { square: Ox88.a8, flag: BITS.QSIDE_CASTLE },
+        { square: Ox88.h8, flag: BITS.KSIDE_CASTLE },
+    ],
+};
+const SECOND_RANK = { b: RANK_7, w: RANK_2 };
+const SAN_NULLMOVE = '--';
+// Extracts the zero-based rank of an 0x88 square.
+function rank(square) {
+    return square >> 4;
+}
+// Extracts the zero-based file of an 0x88 square.
+function file(square) {
+    return square & 0xf;
+}
+function isDigit(c) {
+    return '0123456789'.indexOf(c) !== -1;
+}
+// Converts a 0x88 square to algebraic notation.
+function algebraic(square) {
+    const f = file(square);
+    const r = rank(square);
+    return ('abcdefgh'.substring(f, f + 1) +
+        '87654321'.substring(r, r + 1));
+}
+function swapColor(color) {
+    return color === WHITE ? BLACK : WHITE;
+}
+function validateFen(fen) {
+    // 1st criterion: 6 space-seperated fields?
+    const tokens = fen.split(/\s+/);
+    if (tokens.length !== 6) {
+        return {
+            ok: false,
+            error: 'Invalid FEN: must contain six space-delimited fields',
+        };
+    }
+    // 2nd criterion: move number field is a integer value > 0?
+    const moveNumber = parseInt(tokens[5], 10);
+    if (isNaN(moveNumber) || moveNumber <= 0) {
+        return {
+            ok: false,
+            error: 'Invalid FEN: move number must be a positive integer',
+        };
+    }
+    // 3rd criterion: half move counter is an integer >= 0?
+    const halfMoves = parseInt(tokens[4], 10);
+    if (isNaN(halfMoves) || halfMoves < 0) {
+        return {
+            ok: false,
+            error: 'Invalid FEN: half move counter number must be a non-negative integer',
+        };
+    }
+    // 4th criterion: 4th field is a valid e.p.-string?
+    if (!/^(-|[abcdefgh][36])$/.test(tokens[3])) {
+        return { ok: false, error: 'Invalid FEN: en-passant square is invalid' };
+    }
+    // 5th criterion: 3th field is a valid castle-string?
+    if (/[^kKqQ-]/.test(tokens[2])) {
+        return { ok: false, error: 'Invalid FEN: castling availability is invalid' };
+    }
+    // 6th criterion: 2nd field is "w" (white) or "b" (black)?
+    if (!/^(w|b)$/.test(tokens[1])) {
+        return { ok: false, error: 'Invalid FEN: side-to-move is invalid' };
+    }
+    // 7th criterion: 1st field contains 8 rows?
+    const rows = tokens[0].split('/');
+    if (rows.length !== 8) {
+        return {
+            ok: false,
+            error: "Invalid FEN: piece data does not contain 8 '/'-delimited rows",
+        };
+    }
+    // 8th criterion: every row is valid?
+    for (let i = 0; i < rows.length; i++) {
+        // check for right sum of fields AND not two numbers in succession
+        let sumFields = 0;
+        let previousWasNumber = false;
+        for (let k = 0; k < rows[i].length; k++) {
+            if (isDigit(rows[i][k])) {
+                if (previousWasNumber) {
+                    return {
+                        ok: false,
+                        error: 'Invalid FEN: piece data is invalid (consecutive number)',
+                    };
+                }
+                sumFields += parseInt(rows[i][k], 10);
+                previousWasNumber = true;
+            }
+            else {
+                if (!/^[prnbqkPRNBQK]$/.test(rows[i][k])) {
+                    return {
+                        ok: false,
+                        error: 'Invalid FEN: piece data is invalid (invalid piece)',
+                    };
+                }
+                sumFields += 1;
+                previousWasNumber = false;
+            }
+        }
+        if (sumFields !== 8) {
+            return {
+                ok: false,
+                error: 'Invalid FEN: piece data is invalid (too many squares in rank)',
+            };
+        }
+    }
+    // 9th criterion: is en-passant square legal?
+    if ((tokens[3][1] == '3' && tokens[1] == 'w') ||
+        (tokens[3][1] == '6' && tokens[1] == 'b')) {
+        return { ok: false, error: 'Invalid FEN: illegal en-passant square' };
+    }
+    // 10th criterion: does chess position contain exact two kings?
+    const kings = [
+        { color: 'white', regex: /K/g },
+        { color: 'black', regex: /k/g },
+    ];
+    for (const { color, regex } of kings) {
+        if (!regex.test(tokens[0])) {
+            return { ok: false, error: `Invalid FEN: missing ${color} king` };
+        }
+        if ((tokens[0].match(regex) || []).length > 1) {
+            return { ok: false, error: `Invalid FEN: too many ${color} kings` };
+        }
+    }
+    // 11th criterion: are any pawns on the first or eighth rows?
+    if (Array.from(rows[0] + rows[7]).some((char) => char.toUpperCase() === 'P')) {
+        return {
+            ok: false,
+            error: 'Invalid FEN: some pawns are on the edge rows',
+        };
+    }
+    return { ok: true };
+}
+// this function is used to uniquely identify ambiguous moves
+function getDisambiguator(move, moves) {
+    const from = move.from;
+    const to = move.to;
+    const piece = move.piece;
+    let ambiguities = 0;
+    let sameRank = 0;
+    let sameFile = 0;
+    for (let i = 0, len = moves.length; i < len; i++) {
+        const ambigFrom = moves[i].from;
+        const ambigTo = moves[i].to;
+        const ambigPiece = moves[i].piece;
+        /*
+         * if a move of the same piece type ends on the same to square, we'll need
+         * to add a disambiguator to the algebraic notation
+         */
+        if (piece === ambigPiece && from !== ambigFrom && to === ambigTo) {
+            ambiguities++;
+            if (rank(from) === rank(ambigFrom)) {
+                sameRank++;
+            }
+            if (file(from) === file(ambigFrom)) {
+                sameFile++;
+            }
+        }
+    }
+    if (ambiguities > 0) {
+        if (sameRank > 0 && sameFile > 0) {
+            /*
+             * if there exists a similar moving piece on the same rank and file as
+             * the move in question, use the square as the disambiguator
+             */
+            return algebraic(from);
+        }
+        else if (sameFile > 0) {
+            /*
+             * if the moving piece rests on the same file, use the rank symbol as the
+             * disambiguator
+             */
+            return algebraic(from).charAt(1);
+        }
+        else {
+            // else use the file symbol
+            return algebraic(from).charAt(0);
+        }
+    }
+    return '';
+}
+function addMove(moves, color, from, to, piece, captured = undefined, flags = BITS.NORMAL) {
+    const r = rank(to);
+    if (piece === PAWN && (r === RANK_1 || r === RANK_8)) {
+        for (let i = 0; i < PROMOTIONS.length; i++) {
+            const promotion = PROMOTIONS[i];
+            moves.push({
+                color,
+                from,
+                to,
+                piece,
+                captured,
+                promotion,
+                flags: flags | BITS.PROMOTION,
+            });
+        }
+    }
+    else {
+        moves.push({
+            color,
+            from,
+            to,
+            piece,
+            captured,
+            flags,
+        });
+    }
+}
+function inferPieceType(san) {
+    let pieceType = san.charAt(0);
+    if (pieceType >= 'a' && pieceType <= 'h') {
+        const matches = san.match(/[a-h]\d.*[a-h]\d/);
+        if (matches) {
+            return undefined;
+        }
+        return PAWN;
+    }
+    pieceType = pieceType.toLowerCase();
+    if (pieceType === 'o') {
+        return KING;
+    }
+    return pieceType;
+}
+// parses all of the decorators out of a SAN string
+function strippedSan(move) {
+    return move.replace(/=/, '').replace(/[+#]?[?!]*$/, '');
+}
+class Chess {
+    _board = new Array(128);
+    _turn = WHITE;
+    _header = {};
+    _kings = { w: EMPTY, b: EMPTY };
+    _epSquare = -1;
+    _halfMoves = 0;
+    _moveNumber = 0;
+    _history = [];
+    _comments = {};
+    _castling = { w: 0, b: 0 };
+    _hash = 0n;
+    // tracks number of times a position has been seen for repetition checking
+    _positionCount = new Map();
+    constructor(fen = DEFAULT_POSITION, { skipValidation = false } = {}) {
+        this.load(fen, { skipValidation });
+    }
+    clear({ preserveHeaders = false } = {}) {
+        this._board = new Array(128);
+        this._kings = { w: EMPTY, b: EMPTY };
+        this._turn = WHITE;
+        this._castling = { w: 0, b: 0 };
+        this._epSquare = EMPTY;
+        this._halfMoves = 0;
+        this._moveNumber = 1;
+        this._history = [];
+        this._comments = {};
+        this._header = preserveHeaders ? this._header : { ...HEADER_TEMPLATE };
+        this._hash = this._computeHash();
+        this._positionCount = new Map();
+        /*
+         * Delete the SetUp and FEN headers (if preserved), the board is empty and
+         * these headers don't make sense in this state. They'll get added later
+         * via .load() or .put()
+         */
+        this._header['SetUp'] = null;
+        this._header['FEN'] = null;
+    }
+    load(fen, { skipValidation = false, preserveHeaders = false } = {}) {
+        let tokens = fen.split(/\s+/);
+        // append commonly omitted fen tokens
+        if (tokens.length >= 2 && tokens.length < 6) {
+            const adjustments = ['-', '-', '0', '1'];
+            fen = tokens.concat(adjustments.slice(-(6 - tokens.length))).join(' ');
+        }
+        tokens = fen.split(/\s+/);
+        if (!skipValidation) {
+            const { ok, error } = validateFen(fen);
+            if (!ok) {
+                throw new Error(error);
+            }
+        }
+        const position = tokens[0];
+        let square = 0;
+        this.clear({ preserveHeaders });
+        for (let i = 0; i < position.length; i++) {
+            const piece = position.charAt(i);
+            if (piece === '/') {
+                square += 8;
+            }
+            else if (isDigit(piece)) {
+                square += parseInt(piece, 10);
+            }
+            else {
+                const color = piece < 'a' ? WHITE : BLACK;
+                this._put({ type: piece.toLowerCase(), color }, algebraic(square));
+                square++;
+            }
+        }
+        this._turn = tokens[1];
+        if (tokens[2].indexOf('K') > -1) {
+            this._castling.w |= BITS.KSIDE_CASTLE;
+        }
+        if (tokens[2].indexOf('Q') > -1) {
+            this._castling.w |= BITS.QSIDE_CASTLE;
+        }
+        if (tokens[2].indexOf('k') > -1) {
+            this._castling.b |= BITS.KSIDE_CASTLE;
+        }
+        if (tokens[2].indexOf('q') > -1) {
+            this._castling.b |= BITS.QSIDE_CASTLE;
+        }
+        this._epSquare = tokens[3] === '-' ? EMPTY : Ox88[tokens[3]];
+        this._halfMoves = parseInt(tokens[4], 10);
+        this._moveNumber = parseInt(tokens[5], 10);
+        this._hash = this._computeHash();
+        this._updateSetup(fen);
+        this._incPositionCount();
+    }
+    fen({ forceEnpassantSquare = false, } = {}) {
+        let empty = 0;
+        let fen = '';
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            if (this._board[i]) {
+                if (empty > 0) {
+                    fen += empty;
+                    empty = 0;
+                }
+                const { color, type: piece } = this._board[i];
+                fen += color === WHITE ? piece.toUpperCase() : piece.toLowerCase();
+            }
+            else {
+                empty++;
+            }
+            if ((i + 1) & 0x88) {
+                if (empty > 0) {
+                    fen += empty;
+                }
+                if (i !== Ox88.h1) {
+                    fen += '/';
+                }
+                empty = 0;
+                i += 8;
+            }
+        }
+        let castling = '';
+        if (this._castling[WHITE] & BITS.KSIDE_CASTLE) {
+            castling += 'K';
+        }
+        if (this._castling[WHITE] & BITS.QSIDE_CASTLE) {
+            castling += 'Q';
+        }
+        if (this._castling[BLACK] & BITS.KSIDE_CASTLE) {
+            castling += 'k';
+        }
+        if (this._castling[BLACK] & BITS.QSIDE_CASTLE) {
+            castling += 'q';
+        }
+        // do we have an empty castling flag?
+        castling = castling || '-';
+        let epSquare = '-';
+        /*
+         * only print the ep square if en passant is a valid move (pawn is present
+         * and ep capture is not pinned)
+         */
+        if (this._epSquare !== EMPTY) {
+            if (forceEnpassantSquare) {
+                epSquare = algebraic(this._epSquare);
+            }
+            else {
+                const bigPawnSquare = this._epSquare + (this._turn === WHITE ? 16 : -16);
+                const squares = [bigPawnSquare + 1, bigPawnSquare - 1];
+                for (const square of squares) {
+                    // is the square off the board?
+                    if (square & 0x88) {
+                        continue;
+                    }
+                    const color = this._turn;
+                    // is there a pawn that can capture the epSquare?
+                    if (this._board[square]?.color === color &&
+                        this._board[square]?.type === PAWN) {
+                        // if the pawn makes an ep capture, does it leave its king in check?
+                        this._makeMove({
+                            color,
+                            from: square,
+                            to: this._epSquare,
+                            piece: PAWN,
+                            captured: PAWN,
+                            flags: BITS.EP_CAPTURE,
+                        });
+                        const isLegal = !this._isKingAttacked(color);
+                        this._undoMove();
+                        // if ep is legal, break and set the ep square in the FEN output
+                        if (isLegal) {
+                            epSquare = algebraic(this._epSquare);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return [
+            fen,
+            this._turn,
+            castling,
+            epSquare,
+            this._halfMoves,
+            this._moveNumber,
+        ].join(' ');
+    }
+    _pieceKey(i) {
+        if (!this._board[i]) {
+            return 0n;
+        }
+        const { color, type } = this._board[i];
+        const colorIndex = {
+            w: 0,
+            b: 1,
+        }[color];
+        const typeIndex = {
+            p: 0,
+            n: 1,
+            b: 2,
+            r: 3,
+            q: 4,
+            k: 5,
+        }[type];
+        return PIECE_KEYS[colorIndex][typeIndex][i];
+    }
+    _epKey() {
+        return this._epSquare === EMPTY ? 0n : EP_KEYS[this._epSquare & 7];
+    }
+    _castlingKey() {
+        const index = (this._castling.w >> 5) | (this._castling.b >> 3);
+        return CASTLING_KEYS[index];
+    }
+    _computeHash() {
+        let hash = 0n;
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            // did we run off the end of the board
+            if (i & 0x88) {
+                i += 7;
+                continue;
+            }
+            if (this._board[i]) {
+                hash ^= this._pieceKey(i);
+            }
+        }
+        hash ^= this._epKey();
+        hash ^= this._castlingKey();
+        if (this._turn === 'b') {
+            hash ^= SIDE_KEY;
+        }
+        return hash;
+    }
+    /*
+     * Called when the initial board setup is changed with put() or remove().
+     * modifies the SetUp and FEN properties of the header object. If the FEN
+     * is equal to the default position, the SetUp and FEN are deleted the setup
+     * is only updated if history.length is zero, ie moves haven't been made.
+     */
+    _updateSetup(fen) {
+        if (this._history.length > 0)
+            return;
+        if (fen !== DEFAULT_POSITION) {
+            this._header['SetUp'] = '1';
+            this._header['FEN'] = fen;
+        }
+        else {
+            this._header['SetUp'] = null;
+            this._header['FEN'] = null;
+        }
+    }
+    reset() {
+        this.load(DEFAULT_POSITION);
+    }
+    get(square) {
+        return this._board[Ox88[square]];
+    }
+    findPiece(piece) {
+        const squares = [];
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            // did we run off the end of the board
+            if (i & 0x88) {
+                i += 7;
+                continue;
+            }
+            // if empty square or wrong color
+            if (!this._board[i] || this._board[i]?.color !== piece.color) {
+                continue;
+            }
+            // check if square contains the requested piece
+            if (this._board[i].color === piece.color &&
+                this._board[i].type === piece.type) {
+                squares.push(algebraic(i));
+            }
+        }
+        return squares;
+    }
+    put({ type, color }, square) {
+        if (this._put({ type, color }, square)) {
+            this._updateCastlingRights();
+            this._updateEnPassantSquare();
+            this._updateSetup(this.fen());
+            return true;
+        }
+        return false;
+    }
+    _set(sq, piece) {
+        this._hash ^= this._pieceKey(sq);
+        this._board[sq] = piece;
+        this._hash ^= this._pieceKey(sq);
+    }
+    _put({ type, color }, square) {
+        // check for piece
+        if (SYMBOLS.indexOf(type.toLowerCase()) === -1) {
+            return false;
+        }
+        // check for valid square
+        if (!(square in Ox88)) {
+            return false;
+        }
+        const sq = Ox88[square];
+        // don't let the user place more than one king
+        if (type == KING &&
+            !(this._kings[color] == EMPTY || this._kings[color] == sq)) {
+            return false;
+        }
+        const currentPieceOnSquare = this._board[sq];
+        // if one of the kings will be replaced by the piece from args, set the `_kings` respective entry to `EMPTY`
+        if (currentPieceOnSquare && currentPieceOnSquare.type === KING) {
+            this._kings[currentPieceOnSquare.color] = EMPTY;
+        }
+        this._set(sq, { type: type, color: color });
+        if (type === KING) {
+            this._kings[color] = sq;
+        }
+        return true;
+    }
+    _clear(sq) {
+        this._hash ^= this._pieceKey(sq);
+        delete this._board[sq];
+    }
+    remove(square) {
+        const piece = this.get(square);
+        this._clear(Ox88[square]);
+        if (piece && piece.type === KING) {
+            this._kings[piece.color] = EMPTY;
+        }
+        this._updateCastlingRights();
+        this._updateEnPassantSquare();
+        this._updateSetup(this.fen());
+        return piece;
+    }
+    _updateCastlingRights() {
+        this._hash ^= this._castlingKey();
+        const whiteKingInPlace = this._board[Ox88.e1]?.type === KING &&
+            this._board[Ox88.e1]?.color === WHITE;
+        const blackKingInPlace = this._board[Ox88.e8]?.type === KING &&
+            this._board[Ox88.e8]?.color === BLACK;
+        if (!whiteKingInPlace ||
+            this._board[Ox88.a1]?.type !== ROOK ||
+            this._board[Ox88.a1]?.color !== WHITE) {
+            this._castling.w &= -65;
+        }
+        if (!whiteKingInPlace ||
+            this._board[Ox88.h1]?.type !== ROOK ||
+            this._board[Ox88.h1]?.color !== WHITE) {
+            this._castling.w &= -33;
+        }
+        if (!blackKingInPlace ||
+            this._board[Ox88.a8]?.type !== ROOK ||
+            this._board[Ox88.a8]?.color !== BLACK) {
+            this._castling.b &= -65;
+        }
+        if (!blackKingInPlace ||
+            this._board[Ox88.h8]?.type !== ROOK ||
+            this._board[Ox88.h8]?.color !== BLACK) {
+            this._castling.b &= -33;
+        }
+        this._hash ^= this._castlingKey();
+    }
+    _updateEnPassantSquare() {
+        if (this._epSquare === EMPTY) {
+            return;
+        }
+        const startSquare = this._epSquare + (this._turn === WHITE ? -16 : 16);
+        const currentSquare = this._epSquare + (this._turn === WHITE ? 16 : -16);
+        const attackers = [currentSquare + 1, currentSquare - 1];
+        if (this._board[startSquare] !== null ||
+            this._board[this._epSquare] !== null ||
+            this._board[currentSquare]?.color !== swapColor(this._turn) ||
+            this._board[currentSquare]?.type !== PAWN) {
+            this._hash ^= this._epKey();
+            this._epSquare = EMPTY;
+            return;
+        }
+        const canCapture = (square) => !(square & 0x88) &&
+            this._board[square]?.color === this._turn &&
+            this._board[square]?.type === PAWN;
+        if (!attackers.some(canCapture)) {
+            this._hash ^= this._epKey();
+            this._epSquare = EMPTY;
+        }
+    }
+    _attacked(color, square, verbose) {
+        const attackers = [];
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            // did we run off the end of the board
+            if (i & 0x88) {
+                i += 7;
+                continue;
+            }
+            // if empty square or wrong color
+            if (this._board[i] === undefined || this._board[i].color !== color) {
+                continue;
+            }
+            const piece = this._board[i];
+            const difference = i - square;
+            // skip - to/from square are the same
+            if (difference === 0) {
+                continue;
+            }
+            const index = difference + 119;
+            if (ATTACKS[index] & PIECE_MASKS[piece.type]) {
+                if (piece.type === PAWN) {
+                    if ((difference > 0 && piece.color === WHITE) ||
+                        (difference <= 0 && piece.color === BLACK)) {
+                        if (!verbose) {
+                            return true;
+                        }
+                        else {
+                            attackers.push(algebraic(i));
+                        }
+                    }
+                    continue;
+                }
+                // if the piece is a knight or a king
+                if (piece.type === 'n' || piece.type === 'k') {
+                    if (!verbose) {
+                        return true;
+                    }
+                    else {
+                        attackers.push(algebraic(i));
+                        continue;
+                    }
+                }
+                const offset = RAYS[index];
+                let j = i + offset;
+                let blocked = false;
+                while (j !== square) {
+                    if (this._board[j] != null) {
+                        blocked = true;
+                        break;
+                    }
+                    j += offset;
+                }
+                if (!blocked) {
+                    if (!verbose) {
+                        return true;
+                    }
+                    else {
+                        attackers.push(algebraic(i));
+                        continue;
+                    }
+                }
+            }
+        }
+        if (verbose) {
+            return attackers;
+        }
+        else {
+            return false;
+        }
+    }
+    attackers(square, attackedBy) {
+        if (!attackedBy) {
+            return this._attacked(this._turn, Ox88[square], true);
+        }
+        else {
+            return this._attacked(attackedBy, Ox88[square], true);
+        }
+    }
+    _isKingAttacked(color) {
+        const square = this._kings[color];
+        return square === -1 ? false : this._attacked(swapColor(color), square);
+    }
+    hash() {
+        return this._hash.toString(16);
+    }
+    isAttacked(square, attackedBy) {
+        return this._attacked(attackedBy, Ox88[square]);
+    }
+    isCheck() {
+        return this._isKingAttacked(this._turn);
+    }
+    inCheck() {
+        return this.isCheck();
+    }
+    isCheckmate() {
+        return this.isCheck() && this._moves().length === 0;
+    }
+    isStalemate() {
+        return !this.isCheck() && this._moves().length === 0;
+    }
+    isInsufficientMaterial() {
+        /*
+         * k.b. vs k.b. (of opposite colors) with mate in 1:
+         * 8/8/8/8/1b6/8/B1k5/K7 b - - 0 1
+         *
+         * k.b. vs k.n. with mate in 1:
+         * 8/8/8/8/1n6/8/B7/K1k5 b - - 2 1
+         */
+        const pieces = {
+            b: 0,
+            n: 0,
+            r: 0,
+            q: 0,
+            k: 0,
+            p: 0,
+        };
+        const bishops = [];
+        let numPieces = 0;
+        let squareColor = 0;
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            squareColor = (squareColor + 1) % 2;
+            if (i & 0x88) {
+                i += 7;
+                continue;
+            }
+            const piece = this._board[i];
+            if (piece) {
+                pieces[piece.type] = piece.type in pieces ? pieces[piece.type] + 1 : 1;
+                if (piece.type === BISHOP) {
+                    bishops.push(squareColor);
+                }
+                numPieces++;
+            }
+        }
+        // k vs. k
+        if (numPieces === 2) {
+            return true;
+        }
+        else if (
+        // k vs. kn .... or .... k vs. kb
+        numPieces === 3 &&
+            (pieces[BISHOP] === 1 || pieces[KNIGHT] === 1)) {
+            return true;
+        }
+        else if (numPieces === pieces[BISHOP] + 2) {
+            // kb vs. kb where any number of bishops are all on the same color
+            let sum = 0;
+            const len = bishops.length;
+            for (let i = 0; i < len; i++) {
+                sum += bishops[i];
+            }
+            if (sum === 0 || sum === len) {
+                return true;
+            }
+        }
+        return false;
+    }
+    isThreefoldRepetition() {
+        return this._getPositionCount(this._hash) >= 3;
+    }
+    isDrawByFiftyMoves() {
+        return this._halfMoves >= 100; // 50 moves per side = 100 half moves
+    }
+    isDraw() {
+        return (this.isDrawByFiftyMoves() ||
+            this.isStalemate() ||
+            this.isInsufficientMaterial() ||
+            this.isThreefoldRepetition());
+    }
+    isGameOver() {
+        return this.isCheckmate() || this.isDraw();
+    }
+    moves({ verbose = false, square = undefined, piece = undefined, } = {}) {
+        const moves = this._moves({ square, piece });
+        if (verbose) {
+            return moves.map((move) => new Move(this, move));
+        }
+        else {
+            return moves.map((move) => this._moveToSan(move, moves));
+        }
+    }
+    _moves({ legal = true, piece = undefined, square = undefined, } = {}) {
+        const forSquare = square ? square.toLowerCase() : undefined;
+        const forPiece = piece?.toLowerCase();
+        const moves = [];
+        const us = this._turn;
+        const them = swapColor(us);
+        let firstSquare = Ox88.a8;
+        let lastSquare = Ox88.h1;
+        let singleSquare = false;
+        // are we generating moves for a single square?
+        if (forSquare) {
+            // illegal square, return empty moves
+            if (!(forSquare in Ox88)) {
+                return [];
+            }
+            else {
+                firstSquare = lastSquare = Ox88[forSquare];
+                singleSquare = true;
+            }
+        }
+        for (let from = firstSquare; from <= lastSquare; from++) {
+            // did we run off the end of the board
+            if (from & 0x88) {
+                from += 7;
+                continue;
+            }
+            // empty square or opponent, skip
+            if (!this._board[from] || this._board[from].color === them) {
+                continue;
+            }
+            const { type } = this._board[from];
+            let to;
+            if (type === PAWN) {
+                if (forPiece && forPiece !== type)
+                    continue;
+                // single square, non-capturing
+                to = from + PAWN_OFFSETS[us][0];
+                if (!this._board[to]) {
+                    addMove(moves, us, from, to, PAWN);
+                    // double square
+                    to = from + PAWN_OFFSETS[us][1];
+                    if (SECOND_RANK[us] === rank(from) && !this._board[to]) {
+                        addMove(moves, us, from, to, PAWN, undefined, BITS.BIG_PAWN);
+                    }
+                }
+                // pawn captures
+                for (let j = 2; j < 4; j++) {
+                    to = from + PAWN_OFFSETS[us][j];
+                    if (to & 0x88)
+                        continue;
+                    if (this._board[to]?.color === them) {
+                        addMove(moves, us, from, to, PAWN, this._board[to].type, BITS.CAPTURE);
+                    }
+                    else if (to === this._epSquare) {
+                        addMove(moves, us, from, to, PAWN, PAWN, BITS.EP_CAPTURE);
+                    }
+                }
+            }
+            else {
+                if (forPiece && forPiece !== type)
+                    continue;
+                for (let j = 0, len = PIECE_OFFSETS[type].length; j < len; j++) {
+                    const offset = PIECE_OFFSETS[type][j];
+                    to = from;
+                    while (true) {
+                        to += offset;
+                        if (to & 0x88)
+                            break;
+                        if (!this._board[to]) {
+                            addMove(moves, us, from, to, type);
+                        }
+                        else {
+                            // own color, stop loop
+                            if (this._board[to].color === us)
+                                break;
+                            addMove(moves, us, from, to, type, this._board[to].type, BITS.CAPTURE);
+                            break;
+                        }
+                        /* break, if knight or king */
+                        if (type === KNIGHT || type === KING)
+                            break;
+                    }
+                }
+            }
+        }
+        /*
+         * check for castling if we're:
+         *   a) generating all moves, or
+         *   b) doing single square move generation on the king's square
+         */
+        if (forPiece === undefined || forPiece === KING) {
+            if (!singleSquare || lastSquare === this._kings[us]) {
+                // king-side castling
+                if (this._castling[us] & BITS.KSIDE_CASTLE) {
+                    const castlingFrom = this._kings[us];
+                    const castlingTo = castlingFrom + 2;
+                    if (!this._board[castlingFrom + 1] &&
+                        !this._board[castlingTo] &&
+                        !this._attacked(them, this._kings[us]) &&
+                        !this._attacked(them, castlingFrom + 1) &&
+                        !this._attacked(them, castlingTo)) {
+                        addMove(moves, us, this._kings[us], castlingTo, KING, undefined, BITS.KSIDE_CASTLE);
+                    }
+                }
+                // queen-side castling
+                if (this._castling[us] & BITS.QSIDE_CASTLE) {
+                    const castlingFrom = this._kings[us];
+                    const castlingTo = castlingFrom - 2;
+                    if (!this._board[castlingFrom - 1] &&
+                        !this._board[castlingFrom - 2] &&
+                        !this._board[castlingFrom - 3] &&
+                        !this._attacked(them, this._kings[us]) &&
+                        !this._attacked(them, castlingFrom - 1) &&
+                        !this._attacked(them, castlingTo)) {
+                        addMove(moves, us, this._kings[us], castlingTo, KING, undefined, BITS.QSIDE_CASTLE);
+                    }
+                }
+            }
+        }
+        /*
+         * return all pseudo-legal moves (this includes moves that allow the king
+         * to be captured)
+         */
+        if (!legal || this._kings[us] === -1) {
+            return moves;
+        }
+        // filter out illegal moves
+        const legalMoves = [];
+        for (let i = 0, len = moves.length; i < len; i++) {
+            this._makeMove(moves[i]);
+            if (!this._isKingAttacked(us)) {
+                legalMoves.push(moves[i]);
+            }
+            this._undoMove();
+        }
+        return legalMoves;
+    }
+    move(move, { strict = false } = {}) {
+        /*
+         * The move function can be called with in the following parameters:
+         *
+         * .move('Nxb7')       <- argument is a case-sensitive SAN string
+         *
+         * .move({ from: 'h7', <- argument is a move object
+         *         to :'h8',
+         *         promotion: 'q' })
+         *
+         *
+         * An optional strict argument may be supplied to tell chess.js to
+         * strictly follow the SAN specification.
+         */
+        let moveObj = null;
+        if (typeof move === 'string') {
+            moveObj = this._moveFromSan(move, strict);
+        }
+        else if (move === null) {
+            moveObj = this._moveFromSan(SAN_NULLMOVE, strict);
+        }
+        else if (typeof move === 'object') {
+            const moves = this._moves();
+            // convert the pretty move object to an ugly move object
+            for (let i = 0, len = moves.length; i < len; i++) {
+                if (move.from === algebraic(moves[i].from) &&
+                    move.to === algebraic(moves[i].to) &&
+                    (!('promotion' in moves[i]) || move.promotion === moves[i].promotion)) {
+                    moveObj = moves[i];
+                    break;
+                }
+            }
+        }
+        // failed to find move
+        if (!moveObj) {
+            if (typeof move === 'string') {
+                throw new Error(`Invalid move: ${move}`);
+            }
+            else {
+                throw new Error(`Invalid move: ${JSON.stringify(move)}`);
+            }
+        }
+        //disallow null moves when in check
+        if (this.isCheck() && moveObj.flags & BITS.NULL_MOVE) {
+            throw new Error('Null move not allowed when in check');
+        }
+        /*
+         * need to make a copy of move because we can't generate SAN after the move
+         * is made
+         */
+        const prettyMove = new Move(this, moveObj);
+        this._makeMove(moveObj);
+        this._incPositionCount();
+        return prettyMove;
+    }
+    _push(move) {
+        this._history.push({
+            move,
+            kings: { b: this._kings.b, w: this._kings.w },
+            turn: this._turn,
+            castling: { b: this._castling.b, w: this._castling.w },
+            epSquare: this._epSquare,
+            halfMoves: this._halfMoves,
+            moveNumber: this._moveNumber,
+        });
+    }
+    _movePiece(from, to) {
+        this._hash ^= this._pieceKey(from);
+        this._board[to] = this._board[from];
+        delete this._board[from];
+        this._hash ^= this._pieceKey(to);
+    }
+    _makeMove(move) {
+        const us = this._turn;
+        const them = swapColor(us);
+        this._push(move);
+        if (move.flags & BITS.NULL_MOVE) {
+            if (us === BLACK) {
+                this._moveNumber++;
+            }
+            this._halfMoves++;
+            this._turn = them;
+            this._epSquare = EMPTY;
+            return;
+        }
+        this._hash ^= this._epKey();
+        this._hash ^= this._castlingKey();
+        if (move.captured) {
+            this._hash ^= this._pieceKey(move.to);
+        }
+        this._movePiece(move.from, move.to);
+        // if ep capture, remove the captured pawn
+        if (move.flags & BITS.EP_CAPTURE) {
+            if (this._turn === BLACK) {
+                this._clear(move.to - 16);
+            }
+            else {
+                this._clear(move.to + 16);
+            }
+        }
+        // if pawn promotion, replace with new piece
+        if (move.promotion) {
+            this._clear(move.to);
+            this._set(move.to, { type: move.promotion, color: us });
+        }
+        // if we moved the king
+        if (this._board[move.to].type === KING) {
+            this._kings[us] = move.to;
+            // if we castled, move the rook next to the king
+            if (move.flags & BITS.KSIDE_CASTLE) {
+                const castlingTo = move.to - 1;
+                const castlingFrom = move.to + 1;
+                this._movePiece(castlingFrom, castlingTo);
+            }
+            else if (move.flags & BITS.QSIDE_CASTLE) {
+                const castlingTo = move.to + 1;
+                const castlingFrom = move.to - 2;
+                this._movePiece(castlingFrom, castlingTo);
+            }
+            // turn off castling
+            this._castling[us] = 0;
+        }
+        // turn off castling if we move a rook
+        if (this._castling[us]) {
+            for (let i = 0, len = ROOKS[us].length; i < len; i++) {
+                if (move.from === ROOKS[us][i].square &&
+                    this._castling[us] & ROOKS[us][i].flag) {
+                    this._castling[us] ^= ROOKS[us][i].flag;
+                    break;
+                }
+            }
+        }
+        // turn off castling if we capture a rook
+        if (this._castling[them]) {
+            for (let i = 0, len = ROOKS[them].length; i < len; i++) {
+                if (move.to === ROOKS[them][i].square &&
+                    this._castling[them] & ROOKS[them][i].flag) {
+                    this._castling[them] ^= ROOKS[them][i].flag;
+                    break;
+                }
+            }
+        }
+        this._hash ^= this._castlingKey();
+        // if big pawn move, update the en passant square
+        if (move.flags & BITS.BIG_PAWN) {
+            let epSquare;
+            if (us === BLACK) {
+                epSquare = move.to - 16;
+            }
+            else {
+                epSquare = move.to + 16;
+            }
+            if ((!((move.to - 1) & 0x88) &&
+                this._board[move.to - 1]?.type === PAWN &&
+                this._board[move.to - 1]?.color === them) ||
+                (!((move.to + 1) & 0x88) &&
+                    this._board[move.to + 1]?.type === PAWN &&
+                    this._board[move.to + 1]?.color === them)) {
+                this._epSquare = epSquare;
+                this._hash ^= this._epKey();
+            }
+            else {
+                this._epSquare = EMPTY;
+            }
+        }
+        else {
+            this._epSquare = EMPTY;
+        }
+        // reset the 50 move counter if a pawn is moved or a piece is captured
+        if (move.piece === PAWN) {
+            this._halfMoves = 0;
+        }
+        else if (move.flags & (BITS.CAPTURE | BITS.EP_CAPTURE)) {
+            this._halfMoves = 0;
+        }
+        else {
+            this._halfMoves++;
+        }
+        if (us === BLACK) {
+            this._moveNumber++;
+        }
+        this._turn = them;
+        this._hash ^= SIDE_KEY;
+    }
+    undo() {
+        const hash = this._hash;
+        const move = this._undoMove();
+        if (move) {
+            const prettyMove = new Move(this, move);
+            this._decPositionCount(hash);
+            return prettyMove;
+        }
+        return null;
+    }
+    _undoMove() {
+        const old = this._history.pop();
+        if (old === undefined) {
+            return null;
+        }
+        this._hash ^= this._epKey();
+        this._hash ^= this._castlingKey();
+        const move = old.move;
+        this._kings = old.kings;
+        this._turn = old.turn;
+        this._castling = old.castling;
+        this._epSquare = old.epSquare;
+        this._halfMoves = old.halfMoves;
+        this._moveNumber = old.moveNumber;
+        this._hash ^= this._epKey();
+        this._hash ^= this._castlingKey();
+        this._hash ^= SIDE_KEY;
+        const us = this._turn;
+        const them = swapColor(us);
+        if (move.flags & BITS.NULL_MOVE) {
+            return move;
+        }
+        this._movePiece(move.to, move.from);
+        // to undo any promotions
+        if (move.piece) {
+            this._clear(move.from);
+            this._set(move.from, { type: move.piece, color: us });
+        }
+        if (move.captured) {
+            if (move.flags & BITS.EP_CAPTURE) {
+                // en passant capture
+                let index;
+                if (us === BLACK) {
+                    index = move.to - 16;
+                }
+                else {
+                    index = move.to + 16;
+                }
+                this._set(index, { type: PAWN, color: them });
+            }
+            else {
+                // regular capture
+                this._set(move.to, { type: move.captured, color: them });
+            }
+        }
+        if (move.flags & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE)) {
+            let castlingTo, castlingFrom;
+            if (move.flags & BITS.KSIDE_CASTLE) {
+                castlingTo = move.to + 1;
+                castlingFrom = move.to - 1;
+            }
+            else {
+                castlingTo = move.to - 2;
+                castlingFrom = move.to + 1;
+            }
+            this._movePiece(castlingFrom, castlingTo);
+        }
+        return move;
+    }
+    pgn({ newline = '\n', maxWidth = 0, } = {}) {
+        /*
+         * using the specification from http://www.chessclub.com/help/PGN-spec
+         * example for html usage: .pgn({ max_width: 72, newline_char: "<br />" })
+         */
+        const result = [];
+        let headerExists = false;
+        /* add the PGN header information */
+        for (const i in this._header) {
+            /*
+             * TODO: order of enumerated properties in header object is not
+             * guaranteed, see ECMA-262 spec (section 12.6.4)
+             *
+             * By using HEADER_TEMPLATE, the order of tags should be preserved; we
+             * do have to check for null placeholders, though, and omit them
+             */
+            const headerTag = this._header[i];
+            if (headerTag)
+                result.push(`[${i} "${this._header[i]}"]` + newline);
+            headerExists = true;
+        }
+        if (headerExists && this._history.length) {
+            result.push(newline);
+        }
+        const appendComment = (moveString) => {
+            const comment = this._comments[this.fen()];
+            if (typeof comment !== 'undefined') {
+                const delimiter = moveString.length > 0 ? ' ' : '';
+                moveString = `${moveString}${delimiter}{${comment}}`;
+            }
+            return moveString;
+        };
+        // pop all of history onto reversed_history
+        const reversedHistory = [];
+        while (this._history.length > 0) {
+            reversedHistory.push(this._undoMove());
+        }
+        const moves = [];
+        let moveString = '';
+        // special case of a commented starting position with no moves
+        if (reversedHistory.length === 0) {
+            moves.push(appendComment(''));
+        }
+        // build the list of moves.  a move_string looks like: "3. e3 e6"
+        while (reversedHistory.length > 0) {
+            moveString = appendComment(moveString);
+            const move = reversedHistory.pop();
+            // make TypeScript stop complaining about move being undefined
+            if (!move) {
+                break;
+            }
+            // if the position started with black to move, start PGN with #. ...
+            if (!this._history.length && move.color === 'b') {
+                const prefix = `${this._moveNumber}. ...`;
+                // is there a comment preceding the first move?
+                moveString = moveString ? `${moveString} ${prefix}` : prefix;
+            }
+            else if (move.color === 'w') {
+                // store the previous generated move_string if we have one
+                if (moveString.length) {
+                    moves.push(moveString);
+                }
+                moveString = this._moveNumber + '.';
+            }
+            moveString =
+                moveString + ' ' + this._moveToSan(move, this._moves({ legal: true }));
+            this._makeMove(move);
+        }
+        // are there any other leftover moves?
+        if (moveString.length) {
+            moves.push(appendComment(moveString));
+        }
+        // is there a result? (there ALWAYS has to be a result according to spec; see Seven Tag Roster)
+        moves.push(this._header.Result || '*');
+        /*
+         * history should be back to what it was before we started generating PGN,
+         * so join together moves
+         */
+        if (maxWidth === 0) {
+            return result.join('') + moves.join(' ');
+        }
+        // TODO (jah): huh?
+        const strip = function () {
+            if (result.length > 0 && result[result.length - 1] === ' ') {
+                result.pop();
+                return true;
+            }
+            return false;
+        };
+        // NB: this does not preserve comment whitespace.
+        const wrapComment = function (width, move) {
+            for (const token of move.split(' ')) {
+                if (!token) {
+                    continue;
+                }
+                if (width + token.length > maxWidth) {
+                    while (strip()) {
+                        width--;
+                    }
+                    result.push(newline);
+                    width = 0;
+                }
+                result.push(token);
+                width += token.length;
+                result.push(' ');
+                width++;
+            }
+            if (strip()) {
+                width--;
+            }
+            return width;
+        };
+        // wrap the PGN output at max_width
+        let currentWidth = 0;
+        for (let i = 0; i < moves.length; i++) {
+            if (currentWidth + moves[i].length > maxWidth) {
+                if (moves[i].includes('{')) {
+                    currentWidth = wrapComment(currentWidth, moves[i]);
+                    continue;
+                }
+            }
+            // if the current move will push past max_width
+            if (currentWidth + moves[i].length > maxWidth && i !== 0) {
+                // don't end the line with whitespace
+                if (result[result.length - 1] === ' ') {
+                    result.pop();
+                }
+                result.push(newline);
+                currentWidth = 0;
+            }
+            else if (i !== 0) {
+                result.push(' ');
+                currentWidth++;
+            }
+            result.push(moves[i]);
+            currentWidth += moves[i].length;
+        }
+        return result.join('');
+    }
+    /**
+     * @deprecated Use `setHeader` and `getHeaders` instead. This method will return null header tags (which is not what you want)
+     */
+    header(...args) {
+        for (let i = 0; i < args.length; i += 2) {
+            if (typeof args[i] === 'string' && typeof args[i + 1] === 'string') {
+                this._header[args[i]] = args[i + 1];
+            }
+        }
+        return this._header;
+    }
+    // TODO: value validation per spec
+    setHeader(key, value) {
+        this._header[key] = value ?? SEVEN_TAG_ROSTER[key] ?? null;
+        return this.getHeaders();
+    }
+    removeHeader(key) {
+        if (key in this._header) {
+            this._header[key] = SEVEN_TAG_ROSTER[key] || null;
+            return true;
+        }
+        return false;
+    }
+    // return only non-null headers (omit placemarker nulls)
+    getHeaders() {
+        const nonNullHeaders = {};
+        for (const [key, value] of Object.entries(this._header)) {
+            if (value !== null) {
+                nonNullHeaders[key] = value;
+            }
+        }
+        return nonNullHeaders;
+    }
+    loadPgn(pgn, { strict = false, newlineChar = '\r?\n', } = {}) {
+        // If newlineChar is not the default, replace all instances with \n
+        if (newlineChar !== '\r?\n') {
+            pgn = pgn.replace(new RegExp(newlineChar, 'g'), '\n');
+        }
+        const parsedPgn = peg$parse(pgn);
+        // Put the board in the starting position
+        this.reset();
+        // parse PGN header
+        const headers = parsedPgn.headers;
+        let fen = '';
+        for (const key in headers) {
+            // check to see user is including fen (possibly with wrong tag case)
+            if (key.toLowerCase() === 'fen') {
+                fen = headers[key];
+            }
+            this.header(key, headers[key]);
+        }
+        /*
+         * the permissive parser should attempt to load a fen tag, even if it's the
+         * wrong case and doesn't include a corresponding [SetUp "1"] tag
+         */
+        if (!strict) {
+            if (fen) {
+                this.load(fen, { preserveHeaders: true });
+            }
+        }
+        else {
+            /*
+             * strict parser - load the starting position indicated by [Setup '1']
+             * and [FEN position]
+             */
+            if (headers['SetUp'] === '1') {
+                if (!('FEN' in headers)) {
+                    throw new Error('Invalid PGN: FEN tag must be supplied with SetUp tag');
+                }
+                // don't clear the headers when loading
+                this.load(headers['FEN'], { preserveHeaders: true });
+            }
+        }
+        let node = parsedPgn.root;
+        while (node) {
+            if (node.move) {
+                const move = this._moveFromSan(node.move, strict);
+                if (move == null) {
+                    throw new Error(`Invalid move in PGN: ${node.move}`);
+                }
+                else {
+                    this._makeMove(move);
+                    this._incPositionCount();
+                }
+            }
+            if (node.comment !== undefined) {
+                this._comments[this.fen()] = node.comment;
+            }
+            node = node.variations[0];
+        }
+        /*
+         * Per section 8.2.6 of the PGN spec, the Result tag pair must match match
+         * the termination marker. Only do this when headers are present, but the
+         * result tag is missing
+         */
+        const result = parsedPgn.result;
+        if (result &&
+            Object.keys(this._header).length &&
+            this._header['Result'] !== result) {
+            this.setHeader('Result', result);
+        }
+    }
+    /*
+     * Convert a move from 0x88 coordinates to Standard Algebraic Notation
+     * (SAN)
+     *
+     * @param {boolean} strict Use the strict SAN parser. It will throw errors
+     * on overly disambiguated moves (see below):
+     *
+     * r1bqkbnr/ppp2ppp/2n5/1B1pP3/4P3/8/PPPP2PP/RNBQK1NR b KQkq - 2 4
+     * 4. ... Nge7 is overly disambiguated because the knight on c6 is pinned
+     * 4. ... Ne7 is technically the valid SAN
+     */
+    _moveToSan(move, moves) {
+        let output = '';
+        if (move.flags & BITS.KSIDE_CASTLE) {
+            output = 'O-O';
+        }
+        else if (move.flags & BITS.QSIDE_CASTLE) {
+            output = 'O-O-O';
+        }
+        else if (move.flags & BITS.NULL_MOVE) {
+            return SAN_NULLMOVE;
+        }
+        else {
+            if (move.piece !== PAWN) {
+                const disambiguator = getDisambiguator(move, moves);
+                output += move.piece.toUpperCase() + disambiguator;
+            }
+            if (move.flags & (BITS.CAPTURE | BITS.EP_CAPTURE)) {
+                if (move.piece === PAWN) {
+                    output += algebraic(move.from)[0];
+                }
+                output += 'x';
+            }
+            output += algebraic(move.to);
+            if (move.promotion) {
+                output += '=' + move.promotion.toUpperCase();
+            }
+        }
+        this._makeMove(move);
+        if (this.isCheck()) {
+            if (this.isCheckmate()) {
+                output += '#';
+            }
+            else {
+                output += '+';
+            }
+        }
+        this._undoMove();
+        return output;
+    }
+    // convert a move from Standard Algebraic Notation (SAN) to 0x88 coordinates
+    _moveFromSan(move, strict = false) {
+        // strip off any move decorations: e.g Nf3+?! becomes Nf3
+        let cleanMove = strippedSan(move);
+        if (!strict) {
+            if (cleanMove === '0-0') {
+                cleanMove = 'O-O';
+            }
+            else if (cleanMove === '0-0-0') {
+                cleanMove = 'O-O-O';
+            }
+        }
+        //first implementation of null with a dummy move (black king moves from a8 to a8), maybe this can be implemented better
+        if (cleanMove == SAN_NULLMOVE) {
+            const res = {
+                color: this._turn,
+                from: 0,
+                to: 0,
+                piece: 'k',
+                flags: BITS.NULL_MOVE,
+            };
+            return res;
+        }
+        let pieceType = inferPieceType(cleanMove);
+        let moves = this._moves({ legal: true, piece: pieceType });
+        // strict parser
+        for (let i = 0, len = moves.length; i < len; i++) {
+            if (cleanMove === strippedSan(this._moveToSan(moves[i], moves))) {
+                return moves[i];
+            }
+        }
+        // the strict parser failed
+        if (strict) {
+            return null;
+        }
+        let piece = undefined;
+        let matches = undefined;
+        let from = undefined;
+        let to = undefined;
+        let promotion = undefined;
+        /*
+         * The default permissive (non-strict) parser allows the user to parse
+         * non-standard chess notations. This parser is only run after the strict
+         * Standard Algebraic Notation (SAN) parser has failed.
+         *
+         * When running the permissive parser, we'll run a regex to grab the piece, the
+         * to/from square, and an optional promotion piece. This regex will
+         * parse common non-standard notation like: Pe2-e4, Rc1c4, Qf3xf7,
+         * f7f8q, b1c3
+         *
+         * NOTE: Some positions and moves may be ambiguous when using the permissive
+         * parser. For example, in this position: 6k1/8/8/B7/8/8/8/BN4K1 w - - 0 1,
+         * the move b1c3 may be interpreted as Nc3 or B1c3 (a disambiguated bishop
+         * move). In these cases, the permissive parser will default to the most
+         * basic interpretation (which is b1c3 parsing to Nc3).
+         */
+        let overlyDisambiguated = false;
+        matches = cleanMove.match(/([pnbrqkPNBRQK])?([a-h][1-8])x?-?([a-h][1-8])([qrbnQRBN])?/);
+        if (matches) {
+            piece = matches[1];
+            from = matches[2];
+            to = matches[3];
+            promotion = matches[4];
+            if (from.length == 1) {
+                overlyDisambiguated = true;
+            }
+        }
+        else {
+            /*
+             * The [a-h]?[1-8]? portion of the regex below handles moves that may be
+             * overly disambiguated (e.g. Nge7 is unnecessary and non-standard when
+             * there is one legal knight move to e7). In this case, the value of
+             * 'from' variable will be a rank or file, not a square.
+             */
+            matches = cleanMove.match(/([pnbrqkPNBRQK])?([a-h]?[1-8]?)x?-?([a-h][1-8])([qrbnQRBN])?/);
+            if (matches) {
+                piece = matches[1];
+                from = matches[2];
+                to = matches[3];
+                promotion = matches[4];
+                if (from.length == 1) {
+                    overlyDisambiguated = true;
+                }
+            }
+        }
+        pieceType = inferPieceType(cleanMove);
+        moves = this._moves({
+            legal: true,
+            piece: piece ? piece : pieceType,
+        });
+        if (!to) {
+            return null;
+        }
+        for (let i = 0, len = moves.length; i < len; i++) {
+            if (!from) {
+                // if there is no from square, it could be just 'x' missing from a capture
+                if (cleanMove ===
+                    strippedSan(this._moveToSan(moves[i], moves)).replace('x', '')) {
+                    return moves[i];
+                }
+                // hand-compare move properties with the results from our permissive regex
+            }
+            else if ((!piece || piece.toLowerCase() == moves[i].piece) &&
+                Ox88[from] == moves[i].from &&
+                Ox88[to] == moves[i].to &&
+                (!promotion || promotion.toLowerCase() == moves[i].promotion)) {
+                return moves[i];
+            }
+            else if (overlyDisambiguated) {
+                /*
+                 * SPECIAL CASE: we parsed a move string that may have an unneeded
+                 * rank/file disambiguator (e.g. Nge7).  The 'from' variable will
+                 */
+                const square = algebraic(moves[i].from);
+                if ((!piece || piece.toLowerCase() == moves[i].piece) &&
+                    Ox88[to] == moves[i].to &&
+                    (from == square[0] || from == square[1]) &&
+                    (!promotion || promotion.toLowerCase() == moves[i].promotion)) {
+                    return moves[i];
+                }
+            }
+        }
+        return null;
+    }
+    ascii() {
+        let s = '   +------------------------+\n';
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            // display the rank
+            if (file(i) === 0) {
+                s += ' ' + '87654321'[rank(i)] + ' |';
+            }
+            if (this._board[i]) {
+                const piece = this._board[i].type;
+                const color = this._board[i].color;
+                const symbol = color === WHITE ? piece.toUpperCase() : piece.toLowerCase();
+                s += ' ' + symbol + ' ';
+            }
+            else {
+                s += ' . ';
+            }
+            if ((i + 1) & 0x88) {
+                s += '|\n';
+                i += 8;
+            }
+        }
+        s += '   +------------------------+\n';
+        s += '     a  b  c  d  e  f  g  h';
+        return s;
+    }
+    perft(depth) {
+        const moves = this._moves({ legal: false });
+        let nodes = 0;
+        const color = this._turn;
+        for (let i = 0, len = moves.length; i < len; i++) {
+            this._makeMove(moves[i]);
+            if (!this._isKingAttacked(color)) {
+                if (depth - 1 > 0) {
+                    nodes += this.perft(depth - 1);
+                }
+                else {
+                    nodes++;
+                }
+            }
+            this._undoMove();
+        }
+        return nodes;
+    }
+    setTurn(color) {
+        if (this._turn == color) {
+            return false;
+        }
+        this.move('--');
+        return true;
+    }
+    turn() {
+        return this._turn;
+    }
+    board() {
+        const output = [];
+        let row = [];
+        for (let i = Ox88.a8; i <= Ox88.h1; i++) {
+            if (this._board[i] == null) {
+                row.push(null);
+            }
+            else {
+                row.push({
+                    square: algebraic(i),
+                    type: this._board[i].type,
+                    color: this._board[i].color,
+                });
+            }
+            if ((i + 1) & 0x88) {
+                output.push(row);
+                row = [];
+                i += 8;
+            }
+        }
+        return output;
+    }
+    squareColor(square) {
+        if (square in Ox88) {
+            const sq = Ox88[square];
+            return (rank(sq) + file(sq)) % 2 === 0 ? 'light' : 'dark';
+        }
+        return null;
+    }
+    history({ verbose = false } = {}) {
+        const reversedHistory = [];
+        const moveHistory = [];
+        while (this._history.length > 0) {
+            reversedHistory.push(this._undoMove());
+        }
+        while (true) {
+            const move = reversedHistory.pop();
+            if (!move) {
+                break;
+            }
+            if (verbose) {
+                moveHistory.push(new Move(this, move));
+            }
+            else {
+                moveHistory.push(this._moveToSan(move, this._moves()));
+            }
+            this._makeMove(move);
+        }
+        return moveHistory;
+    }
+    /*
+     * Keeps track of position occurrence counts for the purpose of repetition
+     * checking. Old positions are removed from the map if their counts are reduced to 0.
+     */
+    _getPositionCount(hash) {
+        return this._positionCount.get(hash) ?? 0;
+    }
+    _incPositionCount() {
+        this._positionCount.set(this._hash, (this._positionCount.get(this._hash) ?? 0) + 1);
+    }
+    _decPositionCount(hash) {
+        const currentCount = this._positionCount.get(hash) ?? 0;
+        if (currentCount === 1) {
+            this._positionCount.delete(hash);
+        }
+        else {
+            this._positionCount.set(hash, currentCount - 1);
+        }
+    }
+    _pruneComments() {
+        const reversedHistory = [];
+        const currentComments = {};
+        const copyComment = (fen) => {
+            if (fen in this._comments) {
+                currentComments[fen] = this._comments[fen];
+            }
+        };
+        while (this._history.length > 0) {
+            reversedHistory.push(this._undoMove());
+        }
+        copyComment(this.fen());
+        while (true) {
+            const move = reversedHistory.pop();
+            if (!move) {
+                break;
+            }
+            this._makeMove(move);
+            copyComment(this.fen());
+        }
+        this._comments = currentComments;
+    }
+    getComment() {
+        return this._comments[this.fen()];
+    }
+    setComment(comment) {
+        this._comments[this.fen()] = comment.replace('{', '[').replace('}', ']');
+    }
+    /**
+     * @deprecated Renamed to `removeComment` for consistency
+     */
+    deleteComment() {
+        return this.removeComment();
+    }
+    removeComment() {
+        const comment = this._comments[this.fen()];
+        delete this._comments[this.fen()];
+        return comment;
+    }
+    getComments() {
+        this._pruneComments();
+        return Object.keys(this._comments).map((fen) => {
+            return { fen: fen, comment: this._comments[fen] };
+        });
+    }
+    /**
+     * @deprecated Renamed to `removeComments` for consistency
+     */
+    deleteComments() {
+        return this.removeComments();
+    }
+    removeComments() {
+        this._pruneComments();
+        return Object.keys(this._comments).map((fen) => {
+            const comment = this._comments[fen];
+            delete this._comments[fen];
+            return { fen: fen, comment: comment };
+        });
+    }
+    setCastlingRights(color, rights) {
+        for (const side of [KING, QUEEN]) {
+            if (rights[side] !== undefined) {
+                if (rights[side]) {
+                    this._castling[color] |= SIDES[side];
+                }
+                else {
+                    this._castling[color] &= ~SIDES[side];
+                }
+            }
+        }
+        this._updateCastlingRights();
+        const result = this.getCastlingRights(color);
+        return ((rights[KING] === undefined || rights[KING] === result[KING]) &&
+            (rights[QUEEN] === undefined || rights[QUEEN] === result[QUEEN]));
+    }
+    getCastlingRights(color) {
+        return {
+            [KING]: (this._castling[color] & SIDES[KING]) !== 0,
+            [QUEEN]: (this._castling[color] & SIDES[QUEEN]) !== 0,
+        };
+    }
+    moveNumber() {
+        return this._moveNumber;
+    }
+}
+
+exports.BISHOP = BISHOP;
+exports.BLACK = BLACK;
+exports.Chess = Chess;
+exports.DEFAULT_POSITION = DEFAULT_POSITION;
+exports.KING = KING;
+exports.KNIGHT = KNIGHT;
+exports.Move = Move;
+exports.PAWN = PAWN;
+exports.QUEEN = QUEEN;
+exports.ROOK = ROOK;
+exports.SEVEN_TAG_ROSTER = SEVEN_TAG_ROSTER;
+exports.SQUARES = SQUARES;
+exports.WHITE = WHITE;
+exports.validateFen = validateFen;
+exports.xoroshiro128 = xoroshiro128;
+//# sourceMappingURL=chess.js.map
+
+  return exports.Chess || module.exports.Chess || Chess;
+})();
+
+// --- 150 PUZZLES BANK EMBEDDED ---
+const PUZZLES = [{"id":"00008","fen":"r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24","moves":["f2g3","e6e7","b2b1","b3c1","b1c1","h6c1"],"rating":1811,"themes":["crushing","hangingPiece","long","middlegame"],"sourceGame":"https://lichess.org/787zsVup/black#48","difficulty":"hard"},{"id":"0000D","fen":"5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27","moves":["d3d6","f8d8","d6d8","f6d8"],"rating":1529,"themes":["advantage","endgame","short"],"sourceGame":"https://lichess.org/F8M8OS71#53","difficulty":"medium"},{"id":"0008Q","fen":"8/4R3/1p2P3/p4r2/P6p/1P3Pk1/4K3/8 w - - 1 64","moves":["e7f7","f5e5","e2f1","e5e6"],"rating":1383,"themes":["advantage","endgame","rookEndgame","short"],"sourceGame":"https://lichess.org/MQSyb3KW#127","difficulty":"medium"},{"id":"0009B","fen":"r2qr1k1/b1p2ppp/pp4n1/P1P1p3/4P1n1/B2P2Pb/3NBP1P/RN1QR1K1 b - - 1 16","moves":["b6c5","e2g4","h3g4","d1g4"],"rating":1084,"themes":["advantage","middlegame","short"],"sourceGame":"https://lichess.org/4MWQCxQ6/black#32","difficulty":"easy"},{"id":"000Pw","fen":"6k1/5p1p/4p3/4q3/3nN3/2Q3P1/PP3P1P/6K1 w - - 2 37","moves":["e4d2","d4e2","g1f1","e2c3"],"rating":1530,"themes":["crushing","endgame","fork","short"],"sourceGame":"https://lichess.org/au2lCK5o#73","difficulty":"medium"},{"id":"000Sa","fen":"2Q2bk1/5p1p/p5p1/2p3P1/2r1B3/7P/qPQ2P2/2K4R b - - 0 32","moves":["c4c2","e4c2","a2a1","c2b1"],"rating":1476,"themes":["advantage","endgame","short"],"sourceGame":"https://lichess.org/lTTa9lwd/black#64","difficulty":"medium"},{"id":"000Zo","fen":"4r3/1k6/pp3r2/1b2P2p/3R1p2/P1R2P2/1P4PP/6K1 w - - 0 35","moves":["e5f6","e8e1","g1f2","e1f1"],"rating":1363,"themes":["endgame","mate","mateIn2","operaMate","short"],"sourceGame":"https://lichess.org/n8Ff742v#69","difficulty":"medium"},{"id":"000h0","fen":"5rk1/p5p1/3bpr1p/1Pp4q/3pR3/1P1Q1N2/P4PPP/4R1K1 w - - 4 22","moves":["e4e6","f6f3","g2f3","h5h2","g1f1","h2h3","f1e2","h3e6"],"rating":2048,"themes":["advantage","interference","kingsideAttack","middlegame","veryLong"],"sourceGame":"https://lichess.org/OWe6M5dF#43","difficulty":"hard"},{"id":"000hf","fen":"r1bqk2r/pp1nbNp1/2p1p2p/8/2BP4/1PN3P1/P3QP1P/3R1RK1 b kq - 0 19","moves":["e8f7","e2e6","f7f8","e6f7"],"rating":1391,"themes":["mate","mateIn2","middlegame","short"],"sourceGame":"https://lichess.org/71ygsFeE/black#38","difficulty":"medium"},{"id":"000lC","fen":"3r3r/pQNk1ppp/1qnb1n2/1B6/8/8/PPP3PP/3R1R1K w - - 5 19","moves":["d1d6","d7d6","b7b6","a7b6"],"rating":1356,"themes":["advantage","hangingPiece","middlegame","short"],"sourceGame":"https://lichess.org/vaqz2bx6#37","difficulty":"medium"},{"id":"000o3","fen":"8/2p1k3/6p1/1p1P1p2/1P3P2/3K2Pp/7P/8 b - - 1 43","moves":["e7d6","d3d4","g6g5","f4g5"],"rating":959,"themes":["crushing","endgame","pawnEndgame","short","zugzwang"],"sourceGame":"https://lichess.org/BAY91mF3/black#86","difficulty":"easy"},{"id":"000qP","fen":"8/7R/8/5p2/4bk1P/8/2r2K2/6R1 w - - 7 51","moves":["f2f1","f4f3","f1e1","c2c1","e1d2","c1g1"],"rating":2167,"themes":["crushing","endgame","exposedKing","long","skewer"],"sourceGame":"https://lichess.org/r4xUR6fC#101","difficulty":"hard"},{"id":"00143","fen":"r2q1rk1/5ppp/1np5/p1b5/2p1B3/P7/1P3PPP/R1BQ1RK1 b - - 1 17","moves":["d8f6","d1h5","h7h6","h5c5"],"rating":1797,"themes":["advantage","middlegame","short"],"sourceGame":"https://lichess.org/jcuxlI63/black#34","difficulty":"hard"},{"id":"0017R","fen":"r2qk2r/pp2ppbp/1n1p2p1/3Pn3/2P5/2NBBP1P/PP3P2/R2QK2R b KQkq - 0 12","moves":["e5c4","d3c4","b6c4","d1a4","d8d7","a4c4"],"rating":1655,"themes":["advantage","fork","long","middlegame"],"sourceGame":"https://lichess.org/ol84k0z4/black#24","difficulty":"medium"},{"id":"0018P","fen":"5R2/1p6/p1p5/2P1rk2/2K3p1/2P1p1P1/1P5P/8 b - - 1 44","moves":["f5e6","f8e8","e6f5","e8e5","f5e5","c4d3","e5d5","d3e3","a6a5","e3f4","d5c4","f4g4"],"rating":1903,"themes":["crushing","endgame","exposedKing","rookEndgame","veryLong"],"sourceGame":"https://lichess.org/Xg1Gtfjr/black#88","difficulty":"hard"},{"id":"001Fg","fen":"2R2r1k/pQ4pp/5rp1/3B4/q2n4/7P/P4PP1/5RK1 w - - 3 30","moves":["c8c7","d4e2","g1h2","a4f4","h2h1","e2g3","f2g3","f4f1"],"rating":1256,"themes":["advantage","middlegame","veryLong"],"sourceGame":"https://lichess.org/y0QalMAw#59","difficulty":"medium"},{"id":"001XA","fen":"1qr2rk1/pb2bppp/8/8/2p1N3/P1Bn2P1/2Q2PBP/1R3RK1 b - - 3 23","moves":["b8c7","b1b7","c7b7","e4f6","e7f6","g2b7"],"rating":1687,"themes":["crushing","discoveredAttack","long","master","middlegame","sacrifice"],"sourceGame":"https://lichess.org/KZRiN695/black#46","difficulty":"medium"},{"id":"001aK","fen":"6k1/5p2/4p3/P1B5/2P4P/4Pnp1/Rb1rN3/5K2 b - - 1 33","moves":["d2e2","f1e2","g3g2","e3e4","f3d4","e2f2"],"rating":2056,"themes":["crushing","endgame","hangingPiece","long","quietMove"],"sourceGame":"https://lichess.org/Epr0AiEh/black#66","difficulty":"hard"},{"id":"001cr","fen":"8/3B2pp/p5k1/2p3P1/1p1p1K2/8/1P6/8 b - - 0 38","moves":["c5c4","d7e8"],"rating":1517,"themes":["bishopEndgame","endgame","mate","mateIn1","oneMove"],"sourceGame":"https://lichess.org/7FFNwibw/black#76","difficulty":"medium"},{"id":"001h8","fen":"2r3k1/2r4p/4p1p1/1p1q1pP1/p1bP1P1Q/P6R/5B2/2R3K1 b - - 5 34","moves":["c4e2","h4h7","c7h7","c1c8","g8g7","c8c7"],"rating":1749,"themes":["crushing","deflection","kingsideAttack","long","middlegame","sacrifice"],"sourceGame":"https://lichess.org/IxCahP6X/black#68","difficulty":"hard"},{"id":"001kG","fen":"rnbq3r/1p2bkpp/p4n2/8/2pNP3/2N5/PPP3PP/R1BQ1RK1 b - - 1 11","moves":["e7c5","d1h5","f7g8","h5c5"],"rating":1974,"themes":["advantage","opening","pin","short"],"sourceGame":"https://lichess.org/xXAEaVto/black#22","difficulty":"hard"},{"id":"001m3","fen":"7r/6k1/2b1pp2/8/P1N3p1/5nP1/4RP2/Q4K2 w - - 2 38","moves":["e2e6","h8h1","f1e2","h1a1"],"rating":1455,"themes":["advantage","endgame","short","skewer"],"sourceGame":"https://lichess.org/LELOz22f#75","difficulty":"medium"},{"id":"001om","fen":"5r1k/pp4pp/5p2/1BbQp1r1/6K1/7P/1PP3P1/3R3R w - - 2 26","moves":["g4h4","c5f2","g2g3","f2g3"],"rating":1018,"themes":["mate","mateIn2","middlegame","morphysMate","short"],"sourceGame":"https://lichess.org/VWOIWtIh#51","difficulty":"easy"},{"id":"001pC","fen":"r4rk1/pp3ppp/3b4/2p1pPB1/7N/2PP3n/PP4PP/R2Q1RqK w - - 5 18","moves":["f1g1","h3f2"],"rating":848,"themes":["mate","mateIn1","middlegame","oneMove","smotheredMate"],"sourceGame":"https://lichess.org/d04UP3XD#35","difficulty":"easy"},{"id":"001uD","fen":"6k1/1p3pp1/1p5p/2r1p3/2n5/r3PN2/2RnNPPP/2R3K1 b - - 1 32","moves":["f7f6","f3d2","c4d2","c2d2","c5c1","e2c1"],"rating":1890,"themes":["advantage","long","middlegame"],"sourceGame":"https://lichess.org/2qkVLUl6/black#64","difficulty":"hard"},{"id":"001w5","fen":"1rb2rk1/q5P1/4p2p/3p3p/3P1P2/2P5/2QK3P/3R2R1 b - - 0 29","moves":["f8f7","c2h7","g8h7","g7g8q"],"rating":1034,"themes":["advancedPawn","attraction","mate","mateIn2","middlegame","promotion","short"],"sourceGame":"https://lichess.org/0e1vxAEn/black#58","difficulty":"easy"},{"id":"001wR","fen":"6nr/pp3p1p/k1p5/8/1QN5/2P1P3/4KPqP/8 b - - 5 26","moves":["b7b5","b4a5","a6b7","c4d6","b7b8","a5d8"],"rating":1152,"themes":["endgame","long","mate","mateIn3"],"sourceGame":"https://lichess.org/ruvbd9JW/black#52","difficulty":"easy"},{"id":"001wb","fen":"r3k2r/pb1p1ppp/1b4q1/1Q2P3/8/2NP1Pn1/PP4PP/R1B2R1K w kq - 1 17","moves":["h2g3","g6h5"],"rating":1149,"themes":["mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/hNzYRMWP#33","difficulty":"easy"},{"id":"001wr","fen":"r4rk1/p3ppbp/Pp1q1np1/3PpbB1/2B5/2N5/1PPQ1PPP/3RR1K1 w - - 4 18","moves":["f2f3","d6c5","g1h1","c5c4"],"rating":989,"themes":["advantage","fork","master","masterVsMaster","middlegame","short"],"sourceGame":"https://lichess.org/KnJ2mojX#35","difficulty":"easy"},{"id":"001xO","fen":"k1r1b3/p1r1nppp/1p1qpn2/2Np4/1P1P4/PQRBPN2/5PPP/2R3K1 w - - 0 19","moves":["d3a6","b6c5","a6c8","c5c4"],"rating":1780,"themes":["crushing","master","masterVsMaster","middlegame","sacrifice","short"],"sourceGame":"https://lichess.org/fNCePFgY#37","difficulty":"hard"},{"id":"001xl","fen":"8/4R1k1/p5pp/3B4/5q2/8/5P1P/6K1 b - - 5 40","moves":["g7f6","e7f7","f6e5","f7f4"],"rating":1299,"themes":["advantage","endgame","master","masterVsMaster","short","skewer","superGM"],"sourceGame":"https://lichess.org/bEQkfPQD/black#80","difficulty":"medium"},{"id":"002Ds","fen":"8/1pp5/p2p4/P2Pk2p/1PP1p2P/2n1K2P/3N4/8 b - - 0 45","moves":["b7b6","b4b5","c3d1","e3e2","a6b5","a5a6"],"rating":1992,"themes":["crushing","endgame","knightEndgame","long"],"sourceGame":"https://lichess.org/2SrvOtZN/black#90","difficulty":"hard"},{"id":"002HE","fen":"1qr2rk1/1p1p1ppp/pB2p1n1/7n/2P1P3/1Q2NP1P/PP2B1Pb/3R1RK1 w - - 1 20","moves":["g1f2","b8g3"],"rating":1116,"themes":["master","mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/U21EXYdv#39","difficulty":"easy"},{"id":"002KJ","fen":"r3kb1r/ppq2ppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 b kq - 2 10","moves":["f8e7","f3e5","c7e5","e2g4"],"rating":1569,"themes":["crushing","discoveredAttack","middlegame","short"],"sourceGame":"https://lichess.org/2NpTzh7O/black#20","difficulty":"medium"},{"id":"002LF","fen":"7r/p2q1pk1/1pp3p1/8/6P1/4Q3/PP1R1P1r/5KN1 b - - 0 38","moves":["d7g4","e3e5","f7f6","e5c7","g7h6","c7h2"],"rating":2185,"themes":["advantage","endgame","interference","long"],"sourceGame":"https://lichess.org/md88dHiL/black#76","difficulty":"hard"},{"id":"002Mm","fen":"rn1qr1k1/ppp3pQ/3p1pP1/3Pp3/2P1P3/8/PP3PP1/R1B1K3 b Q - 2 16","moves":["g8f8","h7h8","f8e7","h8g7"],"rating":927,"themes":["deflection","mate","mateIn2","middlegame","short"],"sourceGame":"https://lichess.org/wAkPv4uG/black#32","difficulty":"easy"},{"id":"002O7","fen":"r3qrk1/2p2pp1/p2bpn1p/2ppNb2/3P1P2/1PP1P1B1/P2N2PP/R2Q1RK1 b - - 0 14","moves":["f5g4","e5g4","f6g4","d1g4"],"rating":1008,"themes":["crushing","middlegame","short"],"sourceGame":"https://lichess.org/dFEPPiEc/black#28","difficulty":"easy"},{"id":"002Q2","fen":"7k/p4R1p/3p3r/2pN1n2/2PbBBb1/3P2P1/P3r3/5R1K w - - 1 28","moves":["f4h6","f5g3"],"rating":956,"themes":["cornerMate","mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/yqAJ1jMv#55","difficulty":"easy"},{"id":"002Tf","fen":"r3kbnr/ppp1qppp/2n5/3pP3/5B2/4PQ2/PPP2PPP/RN2KB1R w KQkq - 1 7","moves":["f1b5","e7b4","b1c3","b4b2"],"rating":1561,"themes":["advantage","fork","opening","short"],"sourceGame":"https://lichess.org/Zq56PwHK#13","difficulty":"medium"},{"id":"002Ua","fen":"r4rk1/pp3ppp/3p1q2/P1P1p3/2B5/2B2n2/2P2P1P/R2Q1RK1 w - - 0 16","moves":["g1h1","f6f4","d1f3","f4f3"],"rating":1666,"themes":["crushing","kingsideAttack","middlegame","short"],"sourceGame":"https://lichess.org/06i3eMVp#31","difficulty":"medium"},{"id":"002Uy","fen":"8/8/1p6/k7/P1R5/1K5r/8/8 w - - 26 64","moves":["c4c3","h3c3","b3c3","a5a4","c3b2","a4b4"],"rating":1565,"themes":["crushing","defensiveMove","endgame","long","rookEndgame"],"sourceGame":"https://lichess.org/sLU7YN1A#127","difficulty":"medium"},{"id":"002bK","fen":"8/7p/2b1k3/p2p1pPB/1n1P3P/N1p1P3/4K3/8 b - - 1 42","moves":["c6b5","a3b5","c3c2","e2d2"],"rating":1100,"themes":["advantage","endgame","hangingPiece","short"],"sourceGame":"https://lichess.org/IFGj8W5s/black#84","difficulty":"easy"},{"id":"002p5","fen":"r1bqr1k1/pp1nbpp1/2p2n2/6P1/2BP4/P7/1PQNNPP1/R3K2R b KQ - 0 13","moves":["f6d5","c2h7","g8f8","h7h8"],"rating":908,"themes":["kingsideAttack","mate","mateIn2","middlegame","short"],"sourceGame":"https://lichess.org/meSoQkhU/black#26","difficulty":"easy"},{"id":"0039T","fen":"1r5r/p3kp2/4p2p/4P3/3R1Pp1/6P1/P1P4P/4K2R w K - 1 25","moves":["d4a4","b8b1","e1f2","b1h1","a4a7","e7f8"],"rating":1121,"themes":["crushing","defensiveMove","endgame","long","rookEndgame","skewer"],"sourceGame":"https://lichess.org/BrtVeJlj#49","difficulty":"easy"},{"id":"003AX","fen":"2r2rk1/5ppp/bq2p3/p1ppP1N1/Pb1P2P1/1P2P2P/2QN4/2R1K2R b K - 1 18","moves":["c5d4","c2h7"],"rating":1014,"themes":["kingsideAttack","mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/kRgejRSt/black#36","difficulty":"easy"},{"id":"003IX","fen":"8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43","moves":["f4f5","e4g3"],"rating":1698,"themes":["endgame","mate","mateIn1","oneMove"],"sourceGame":"https://lichess.org/576Btq56#85","difficulty":"medium"},{"id":"003Jb","fen":"6k1/3bqr1p/2rpp1pR/p7/Pp1QP3/1B3P2/1PP3P1/2KR4 w - - 6 22","moves":["d4a7","e7g5","c1b1","g5h6"],"rating":993,"themes":["advantage","fork","master","middlegame","short"],"sourceGame":"https://lichess.org/8RvK0idj#43","difficulty":"easy"},{"id":"003S3","fen":"r4k1r/pNqnppb1/6pn/2p3Np/7P/2P2Q2/PP3PP1/R1B1K2R b KQ - 2 15","moves":["a8b8","g5e6","f8g8","e6c7"],"rating":1336,"themes":["advantage","middlegame","pin","short"],"sourceGame":"https://lichess.org/Eu6S0GPA/black#30","difficulty":"medium"},{"id":"003Tx","fen":"2r5/pR5p/5p1k/4p3/4r3/B4nPP/PP3P2/1K2R3 w - - 0 27","moves":["e1e4","f3d2","b1a1","c8c1"],"rating":1511,"themes":["backRankMate","endgame","fork","mate","mateIn2","short"],"sourceGame":"https://lichess.org/A7j9VEC0#53","difficulty":"medium"},{"id":"003UW","fen":"8/6pk/7p/2p5/2qp4/5PP1/P3QK1P/8 b - - 1 40","moves":["c4d5","e2e4","d5e4","f3e4"],"rating":1473,"themes":["advantage","endgame","queenEndgame","short"],"sourceGame":"https://lichess.org/cXMga3rb/black#80","difficulty":"medium"},{"id":"003aS","fen":"8/8/5k1p/6p1/1R4PP/1p2KP2/8/1r6 w - - 0 43","moves":["h4h5","b3b2","b4b6","f6e5","f3f4","g5f4"],"rating":2086,"themes":["advancedPawn","crushing","defensiveMove","endgame","long","rookEndgame"],"sourceGame":"https://lichess.org/I7ZktFeR#85","difficulty":"hard"},{"id":"003eP","fen":"8/r1b1q2k/2p3p1/2Pp4/1P2p1n1/2B1P3/NQ6/2K4R b - - 1 36","moves":["h7g8","h1h8","g8f7","h8h7","f7e8","h7e7"],"rating":1156,"themes":["crushing","exposedKing","long","middlegame","skewer"],"sourceGame":"https://lichess.org/n9vCFmKh/black#72","difficulty":"easy"},{"id":"003jH","fen":"rn3rk1/p5pp/3N4/4np1q/5Q2/1P3K2/PB1P2P1/2R4R w - - 0 25","moves":["f3f2","e5d3","f2e3","d3f4","h1h5","f4h5"],"rating":1089,"themes":["crushing","fork","long","middlegame"],"sourceGame":"https://lichess.org/3CQGofXT#49","difficulty":"easy"},{"id":"003jb","fen":"r3kb1r/p4ppp/b1p1p3/3q4/3Q4/4BN2/PPP2PPP/R3K2R b KQkq - 0 11","moves":["c6c5","d4a4","a6b5","a4b5"],"rating":962,"themes":["crushing","fork","master","middlegame","short"],"sourceGame":"https://lichess.org/960EzUS0/black#22","difficulty":"easy"},{"id":"003jv","fen":"1R6/1p2k2p/p2n2p1/4K3/8/6P1/P6P/8 w - - 10 37","moves":["b8h8","d6f7","e5e4","f7h8"],"rating":1006,"themes":["crushing","endgame","fork","short"],"sourceGame":"https://lichess.org/n0UvwK36#73","difficulty":"easy"},{"id":"003md","fen":"r1b1k2N/ppp3pp/2n5/2bp4/7q/1B4n1/PPPP1P1P/RNBQ1RK1 w q - 0 10","moves":["f1e1","g3e4","e1e4","d5e4","d1h5","h4h5","b3f7","h5f7"],"rating":2171,"themes":["crushing","defensiveMove","middlegame","veryLong"],"sourceGame":"https://lichess.org/ALtR2fxT#19","difficulty":"hard"},{"id":"003mh","fen":"r4k1r/1pp2p2/p2p3p/3N4/3P2q1/8/PPP5/1K2Q1NR b - - 1 23","moves":["a8e8","e1e8","f8e8","d5f6","e8e7","f6g4"],"rating":1325,"themes":["advantage","attraction","fork","long","middlegame","sacrifice"],"sourceGame":"https://lichess.org/HSa4keKZ/black#46","difficulty":"medium"},{"id":"003o0","fen":"r1bqk2r/pp1nbppp/3p4/1B1p4/3P1B2/8/PPP2PPP/R2QK1NR w KQkq - 2 9","moves":["g1f3","d8a5","d1d2","a5b5"],"rating":1001,"themes":["advantage","fork","master","opening","short"],"sourceGame":"https://lichess.org/Ae0t9V1Z#17","difficulty":"easy"},{"id":"003r5","fen":"r2qr1k1/ppp2ppp/4b3/3P4/1nP2Q2/2N2N1P/PP3KP1/R4R2 w - - 1 15","moves":["d5e6","b4d3","f2g1","d3f4"],"rating":1130,"themes":["crushing","fork","middlegame","short"],"sourceGame":"https://lichess.org/JPN97v7j#29","difficulty":"easy"},{"id":"003wQ","fen":"2r2rk1/6pp/3Q1q2/8/3N1B2/6P1/PP1K3P/R4b2 w - - 0 24","moves":["a1f1","f6d6","f4d6","f8f1"],"rating":1814,"themes":["advantage","discoveredAttack","middlegame","pin","short"],"sourceGame":"https://lichess.org/W3wvnzlo#47","difficulty":"hard"},{"id":"0040n","fen":"r7/p2k1pp1/p1p1pn2/3p4/3P4/P3PQp1/1PP2P1q/2K4R w - - 0 20","moves":["h1h2","g3h2","f3h3","f6g4"],"rating":1268,"themes":["advancedPawn","advantage","endgame","short"],"sourceGame":"https://lichess.org/WIUWcrdG#39","difficulty":"medium"},{"id":"0048h","fen":"4r3/p5k1/2p2R1p/2Pp4/1P1pr1P1/P6P/8/3R3K w - - 1 35","moves":["f6c6","e4e1","d1e1","e8e1","h1g2","d4d3"],"rating":1152,"themes":["crushing","endgame","exposedKing","long","rookEndgame"],"sourceGame":"https://lichess.org/dq15P00L#69","difficulty":"easy"},{"id":"004Ax","fen":"8/8/4R1kp/p7/5rPK/8/7P/8 b - - 2 42","moves":["g6f7","e6h6","f4f6","h6h7","f7g6","h7a7"],"rating":1999,"themes":["crushing","endgame","exposedKing","long","rookEndgame"],"sourceGame":"https://lichess.org/x2mMwVJD/black#84","difficulty":"hard"},{"id":"004BW","fen":"r1bk2r1/ppq2pQp/3bpn2/1BpnN3/5P2/1P6/PBPP2PP/RN2K2R w KQ - 3 13","moves":["e5f7","d8e7","g7g8","f6g8"],"rating":1687,"themes":["advantage","master","middlegame","short"],"sourceGame":"https://lichess.org/EXlG6TZs#25","difficulty":"medium"},{"id":"004JD","fen":"3r4/R7/2p5/p1P2p2/1p4k1/nP6/P2KNP2/8 w - - 3 41","moves":["d2e3","a3c2"],"rating":1291,"themes":["cornerMate","endgame","mate","mateIn1","oneMove"],"sourceGame":"https://lichess.org/6vTeEc3x#81","difficulty":"medium"},{"id":"004LZ","fen":"8/7R/5p2/p7/7P/2p5/3k2r1/1K2N3 w - - 3 48","moves":["e1g2","c3c2","b1a2","c2c1q","h7d7","d2e2"],"rating":1195,"themes":["advancedPawn","crushing","defensiveMove","deflection","endgame","long","promotion"],"sourceGame":"https://lichess.org/drahwNdj#95","difficulty":"easy"},{"id":"004Lu","fen":"8/p1p4p/4Pk2/2PP1p1P/1r3r2/5B2/P3RK2/8 b - - 3 38","moves":["f6e7","d5d6","c7d6","c5d6","e7d6","e6e7"],"rating":1201,"themes":["advancedPawn","advantage","endgame","exposedKing","long","master"],"sourceGame":"https://lichess.org/WMeZuWza/black#76","difficulty":"medium"},{"id":"004Ud","fen":"r1bqk2r/p3Bppp/3p4/1ppn4/4P3/4Q3/PPP2PPP/2KR1B1R b kq - 0 11","moves":["d5e7","f1b5","c8d7","d1d6","d7b5","d6d8"],"rating":1575,"themes":["advantage","interference","long","middlegame"],"sourceGame":"https://lichess.org/pJ7nXTvE/black#22","difficulty":"medium"},{"id":"004WZ","fen":"r6k/1b3pp1/p1q1pn1p/2p5/P1B5/1PN4Q/2P1RP1P/R4Kr1 w - - 2 26","moves":["f1g1","c6h1"],"rating":866,"themes":["mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/BQIdXPOM#51","difficulty":"easy"},{"id":"004d8","fen":"8/4kr2/R2p4/1p1Pp1p1/5p2/3K1P2/PPP5/8 b - - 0 39","moves":["g5g4","a6a7","e7f6","a7f7","f6f7","f3g4"],"rating":1608,"themes":["crushing","endgame","long","rookEndgame"],"sourceGame":"https://lichess.org/FrR3BHbW/black#78","difficulty":"medium"},{"id":"004mT","fen":"5Q2/8/1b1kp1p1/5p2/3p4/5qPK/7P/8 b - - 1 51","moves":["d6c6","f8a8","c6d6","a8f3"],"rating":1361,"themes":["advantage","endgame","short","skewer"],"sourceGame":"https://lichess.org/Jqhi4ozb/black#102","difficulty":"medium"},{"id":"004nd","fen":"3q2k1/2r5/pp3p1Q/2b1n3/P3N3/2P5/1P4PP/R6K b - - 0 24","moves":["c7d7","e4f6","d8f6","h6f6"],"rating":898,"themes":["crushing","fork","middlegame","short"],"sourceGame":"https://lichess.org/IajkZZBp/black#48","difficulty":"easy"},{"id":"004u0","fen":"6k1/ppq3pp/2p1rp2/4r3/4p1Q1/P5RP/1P3PP1/3R2K1 b - - 3 34","moves":["e6e8","d1d7","c7d7","g4d7"],"rating":1325,"themes":["advantage","endgame","short"],"sourceGame":"https://lichess.org/3gEqoQeQ/black#68","difficulty":"medium"},{"id":"004zI","fen":"2q3k1/4br1p/6RQ/1p1n2p1/7P/1P4P1/1B2PP2/6K1 b - - 0 27","moves":["h7g6","h6h8"],"rating":1420,"themes":["endgame","mate","mateIn1","oneMove"],"sourceGame":"https://lichess.org/HE33gdt4/black#54","difficulty":"medium"},{"id":"0050w","fen":"5rk1/1p2p1rp/p2p4/2pPb2R/2P1P3/1P1BKP1R/8/8 b - - 4 30","moves":["g7g3","h3g3","e5g3","h5g5","g8f7","g5g3"],"rating":1131,"themes":["crushing","endgame","fork","long"],"sourceGame":"https://lichess.org/QD8pUcTR/black#60","difficulty":"easy"},{"id":"0054a","fen":"r1b2rk1/ppq2ppp/8/4b2Q/4R3/3B4/PP3PPP/R1B3K1 b - - 1 15","moves":["g7g6","h5e5","c7e5","e4e5"],"rating":1454,"themes":["advantage","middlegame","short"],"sourceGame":"https://lichess.org/kZlE1pvD/black#30","difficulty":"medium"},{"id":"0055Y","fen":"r1b2rk1/p3pp2/2B4b/2Qpq3/3N2pp/4P3/2P2PPP/1R2K2R b K - 1 23","moves":["h6e3","f2e3","e5e3","e1d1"],"rating":2055,"themes":["advantage","defensiveMove","middlegame","short"],"sourceGame":"https://lichess.org/7Jpwzowt/black#46","difficulty":"hard"},{"id":"005Bm","fen":"4rk2/p1q5/1p3Q1b/8/1p5N/2P1p3/P3P3/2K5 b - - 0 43","moves":["c7f7","h4g6","f8g8","f6h8"],"rating":1434,"themes":["endgame","mate","mateIn2","pin","short"],"sourceGame":"https://lichess.org/KKslCMev/black#86","difficulty":"medium"},{"id":"005Ep","fen":"5kr1/ppR3p1/3R3p/8/1r1n4/8/1P3PPP/2K5 b - - 4 31","moves":["d4b5","d6d8"],"rating":708,"themes":["endgame","mate","mateIn1","oneMove"],"sourceGame":"https://lichess.org/ttFEoJfQ/black#62","difficulty":"easy"},{"id":"005HG","fen":"r2q1rk1/p1p2pp1/3bbn1p/4N3/2Q5/1P4P1/PB1PPP1P/RN2K2R w KQ - 1 12","moves":["c4c2","d6e5","b2e5","d8d5","f2f3","d5e5"],"rating":1788,"themes":["advantage","clearance","fork","long","opening"],"sourceGame":"https://lichess.org/JTymzeq9#23","difficulty":"hard"},{"id":"005f3","fen":"r5k1/2p1pp2/pp4p1/1q1r4/5P2/2QP2R1/PP6/1K4R1 b - - 0 32","moves":["d5h5","g3g6","f7g6","g1g6","g8f7","c3g7","f7e8","g7g8","e8d7","g8e6","d7d8","g6g8"],"rating":1974,"themes":["crushing","endgame","sacrifice","veryLong"],"sourceGame":"https://lichess.org/Prb24UzR/black#64","difficulty":"hard"},{"id":"005gP","fen":"8/8/3p4/2kP4/1p4P1/2pK4/P7/8 w - - 1 42","moves":["g4g5","c5d5","g5g6","d5e6","g6g7","e6f7","a2a4","b4a3","g7g8r","f7g8"],"rating":1723,"themes":["crushing","enPassant","endgame","pawnEndgame","veryLong"],"sourceGame":"https://lichess.org/I76OvKQT#83","difficulty":"hard"},{"id":"005nD","fen":"3rk2r/2qn1pp1/p1Q1R3/3n3p/8/8/PP4PP/5R1K b k - 0 23","moves":["f7e6","c6e6","d5e7","e6f7"],"rating":1111,"themes":["fork","mate","mateIn2","middlegame","short"],"sourceGame":"https://lichess.org/hlgaj6lV/black#46","difficulty":"easy"},{"id":"005wJ","fen":"r3kb1r/ppqn1ppp/4pn2/1Q2Nb2/3P4/8/PP2PPPP/RNB1KB1R w KQkq - 4 9","moves":["e5d7","c7c1"],"rating":1364,"themes":["hangingPiece","mate","mateIn1","oneMove","opening"],"sourceGame":"https://lichess.org/2mU9GJhQ#17","difficulty":"medium"},{"id":"005wy","fen":"1r6/pp2kpp1/2n1p1n1/3p2PQ/5P2/2PqP3/PP1N4/2KR3R w - - 3 27","moves":["h5h7","c6b4","c3b4","b8c8","d2c4","c8c4"],"rating":1780,"themes":["long","mate","mateIn3","middlegame","queensideAttack","sacrifice"],"sourceGame":"https://lichess.org/mBQMheB4#53","difficulty":"hard"},{"id":"005x9","fen":"r1b1kb1Q/ppp4p/6pB/3P4/2pn4/8/PPP1qPPP/RN1K3R w q - 2 13","moves":["d1c1","e2c2"],"rating":707,"themes":["mate","mateIn1","middlegame","oneMove","queensideAttack"],"sourceGame":"https://lichess.org/TiwHxq8n#25","difficulty":"easy"},{"id":"0068B","fen":"r1q3k1/4bppp/pp2pn2/4B3/8/2N2Q2/PPPR1PPP/6K1 b - - 0 18","moves":["f6d7","d2d7","c8d7","f3a8"],"rating":1459,"themes":["crushing","deflection","middlegame","short"],"sourceGame":"https://lichess.org/LNdzAgWP/black#36","difficulty":"medium"},{"id":"0068D","fen":"7r/pppk4/2pb1r2/8/2NP2p1/2P5/PP2RPP1/4R1K1 w - - 2 26","moves":["c4d6","f6h6","f2f4","g4g3","e2e7","d7d6","g1f1","h6h1"],"rating":1949,"themes":["crushing","endgame","veryLong"],"sourceGame":"https://lichess.org/WNAZgV2o#51","difficulty":"hard"},{"id":"006E1","fen":"5rk1/R4pp1/1p5p/3Q4/1PPp2q1/3P2P1/5P2/4nK2 w - - 0 34","moves":["f1e1","f8e8","e1f1","g4h3","d5g2","e8e1","f1e1","h3g2"],"rating":1572,"themes":["crushing","deflection","endgame","veryLong"],"sourceGame":"https://lichess.org/KaLKLKD5#67","difficulty":"medium"},{"id":"006HV","fen":"1r6/5k2/2p1pNp1/p5Pp/1pQ1P2P/2P4R/KP3P2/3q4 w - - 4 31","moves":["c4c6","b4b3","a2a3","d1a1"],"rating":1159,"themes":["endgame","mate","mateIn2","short"],"sourceGame":"https://lichess.org/ibb2c72C#61","difficulty":"easy"},{"id":"006RM","fen":"1k1r3r/2q5/pp1n2p1/8/1Q6/3R2P1/PPP2P1P/3R2K1 b - - 4 29","moves":["c7c5","b4c5","b6c5","d3d6","d8d6","d1d6"],"rating":1445,"themes":["crushing","long","middlegame"],"sourceGame":"https://lichess.org/ceS0QvtT/black#58","difficulty":"medium"},{"id":"006cZ","fen":"3r1rk1/1p4p1/p1p3Qp/2q5/8/3n1N1P/PP1R2P1/5R1K b - - 7 28","moves":["g8h8","d2d3","d8d3","g6d3"],"rating":1374,"themes":["advantage","master","masterVsMaster","middlegame","short"],"sourceGame":"https://lichess.org/qrbDEp56/black#56","difficulty":"medium"},{"id":"006fF","fen":"r1b4r/pp1k2pp/2nb2q1/1B1p2B1/3p3Q/8/PPP2PPP/3RR1K1 b - - 5 17","moves":["h7h6","h4g4","d7c7","g5d8","h8d8","g4g6"],"rating":1702,"themes":["advantage","discoveredAttack","exposedKing","long","middlegame"],"sourceGame":"https://lichess.org/mAf9SSin/black#34","difficulty":"hard"},{"id":"006om","fen":"1r3k2/5p1p/2p1pp2/P2n4/2r1N3/P4PK1/2R2P1P/2R5 b - - 9 29","moves":["c4a4","e4c5","a4a5","c5d7","f8g7","d7b8"],"rating":1921,"themes":["crushing","endgame","fork","long","master"],"sourceGame":"https://lichess.org/BMIgw1OR/black#58","difficulty":"hard"},{"id":"006pe","fen":"r4r2/2q1NN2/4bQpk/2n4p/pp5P/8/1PP2PP1/2KR3R b - - 0 28","moves":["e6f7","e7f5","h6h7","f6g7"],"rating":1588,"themes":["master","mate","mateIn2","middlegame","pin","short"],"sourceGame":"https://lichess.org/gkSEAS27/black#56","difficulty":"medium"},{"id":"006wz","fen":"2r5/4ppkp/5bp1/1p6/1P6/P3B3/2r2PPP/1R1R2K1 b - - 2 22","moves":["f6b2","b1b2","c2b2","e3d4","f7f6","d4b2"],"rating":1426,"themes":["attraction","crushing","endgame","fork","long","sacrifice"],"sourceGame":"https://lichess.org/qT0W6o27/black#44","difficulty":"medium"},{"id":"006yP","fen":"6R1/8/Kpk1p3/1p1pP3/6P1/PPP1r3/8/8 b - - 3 40","moves":["e3c3","g8c8","c6d7","c8c3"],"rating":819,"themes":["crushing","endgame","master","rookEndgame","short","skewer"],"sourceGame":"https://lichess.org/vf9MOLH1/black#80","difficulty":"easy"},{"id":"0071K","fen":"3N1r2/6R1/kp6/p2pPp1Q/2pP2P1/2q5/2P5/2K5 w - - 0 38","moves":["g7a7","a6a7","h5h7","a7a6"],"rating":1131,"themes":["crushing","defensiveMove","endgame","hangingPiece","short"],"sourceGame":"https://lichess.org/gY0ZkxR4#75","difficulty":"easy"},{"id":"00734","fen":"rn3bk1/2rqp2p/2p3p1/3p1p2/3P1P1B/pP1BP3/P1Q2PRP/1KR5 b - - 0 26","moves":["b8a6","d3f5","e7e6","f5g6"],"rating":1692,"themes":["crushing","middlegame","pin","short"],"sourceGame":"https://lichess.org/jM0Jnw0u/black#52","difficulty":"medium"},{"id":"00761","fen":"3r2k1/1b3pbR/p2P2P1/3p2N1/2p5/2P2N2/PP6/2K5 b - - 0 28","moves":["f7g6","h7g7","g8g7","g5e6","g7g8","e6d8"],"rating":1357,"themes":["attraction","crushing","endgame","exposedKing","fork","long","sacrifice"],"sourceGame":"https://lichess.org/vu70Maig/black#56","difficulty":"medium"},{"id":"00798","fen":"6K1/4k3/4P3/6pp/6rP/4R1P1/8/8 w - - 0 60","moves":["g8g7","g5h4","g7h6","h4g3"],"rating":1895,"themes":["crushing","discoveredAttack","endgame","rookEndgame","short"],"sourceGame":"https://lichess.org/4DOjQjiM#119","difficulty":"hard"},{"id":"007QU","fen":"2rq1rk1/1b3p1p/p3p3/1p1pB1p1/2nP2N1/1RP1PP2/P1Q3PP/3R2K1 b - - 1 22","moves":["f7f5","g4h6"],"rating":1144,"themes":["mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/ZduvBU6U/black#44","difficulty":"easy"},{"id":"007eS","fen":"6k1/p4p2/1p5p/4r3/P3B3/1P3P2/2PK2PP/8 w - - 0 29","moves":["d2e3","f7f5","g2g4","f5e4"],"rating":1197,"themes":["advantage","endgame","short"],"sourceGame":"https://lichess.org/8qs8bafy#57","difficulty":"easy"},{"id":"007en","fen":"rn3rk1/4pp1p/3p2pB/2q4P/3bP1b1/Pp2Q3/1P2B3/1K1R2NR w - - 0 20","moves":["e3d4","c5c2","b1a1","a8a3","b2a3","c2a2"],"rating":1842,"themes":["long","mate","mateIn3","middlegame","queensideAttack","sacrifice"],"sourceGame":"https://lichess.org/jzE2yKAk#39","difficulty":"hard"},{"id":"007hv","fen":"6k1/5p1p/1p4p1/p1bN1p2/2Pq1P2/1P5P/1P1Q2P1/7K w - - 1 32","moves":["d2c3","d4g1"],"rating":971,"themes":["endgame","master","mate","mateIn1","oneMove"],"sourceGame":"https://lichess.org/i64FoDh8#63","difficulty":"easy"},{"id":"007ku","fen":"r1bq3Q/1np2kp1/p5B1/1p1Pp3/1Pn2BP1/2b2P2/P3K3/R4N2 b - - 5 35","moves":["f7g6","h8h5","g6f6","f4g5"],"rating":1663,"themes":["mate","mateIn2","middlegame","short"],"sourceGame":"https://lichess.org/QveLbBjG/black#70","difficulty":"medium"},{"id":"007tv","fen":"r3k1nr/1pp2ppp/1pnp2q1/4p1B1/2B1P3/3P1Q1P/PPP2PP1/R4RK1 b kq - 0 11","moves":["g6g5","f3f7","e8d8","f7f8","d8d7","f8a8"],"rating":1108,"themes":["advantage","attackingF2F7","long","middlegame","skewer"],"sourceGame":"https://lichess.org/ky7qZNjk/black#22","difficulty":"easy"},{"id":"0082f","fen":"r4rk1/2q2ppp/3pp3/4Pb1N/pp6/1B4Q1/PPP3PP/1K1RR3 b - - 0 21","moves":["a4b3","g3g7"],"rating":882,"themes":["kingsideAttack","mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/fHfmODEz/black#42","difficulty":"easy"},{"id":"0088O","fen":"7Q/2p5/1p2prp1/p4k1p/P4p1P/8/6RK/3q4 b - - 2 37","moves":["d1a4","g2g5","f5e4","h8f6"],"rating":1133,"themes":["crushing","deflection","endgame","short"],"sourceGame":"https://lichess.org/GmH1DPx6/black#74","difficulty":"easy"},{"id":"008D5","fen":"r1bqk2r/pp3ppp/4p2n/3pP3/1b1P1P2/2N5/PP4PP/R1BQKB1R b KQkq - 2 9","moves":["h6f5","d1a4","c8d7","a4b4"],"rating":1421,"themes":["advantage","fork","master","opening","short"],"sourceGame":"https://lichess.org/jIGC2FuP/black#18","difficulty":"medium"},{"id":"008P4","fen":"8/4k3/1p1p4/rP2p1p1/P2nP1P1/3BK3/8/R7 w - - 0 35","moves":["e3d2","d4b3","d2c3","b3a1"],"rating":703,"themes":["crushing","endgame","fork","short"],"sourceGame":"https://lichess.org/3GoHPRp3#69","difficulty":"easy"},{"id":"008Sk","fen":"8/6pp/3Bp2k/p2pP2P/P2bp1PK/8/r7/5R2 b - - 2 37","moves":["d4f2","f1f2","g7g5","h4g3","a2f2","g3f2"],"rating":1912,"themes":["crushing","endgame","long"],"sourceGame":"https://lichess.org/rah6MiKa/black#74","difficulty":"hard"},{"id":"008Y3","fen":"r5k1/1p1rqpp1/p3pnp1/2PN4/8/1Q5P/PP3PP1/3RR1K1 b - - 0 24","moves":["e7c5","d5f6","g7f6","d1d7"],"rating":1054,"themes":["advantage","discoveredAttack","kingsideAttack","master","middlegame","short"],"sourceGame":"https://lichess.org/jAILX5BH/black#48","difficulty":"easy"},{"id":"008cl","fen":"r3k2r/ppp2p1p/2n1pp2/7q/2PN2b1/2BP1Pb1/PP2B1P1/R2Q1RK1 w kq - 1 16","moves":["f3g4","h5h2"],"rating":828,"themes":["mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/K27KSt2D#31","difficulty":"easy"},{"id":"008lc","fen":"7k/pb1qn2n/1p2R2Q/2p2p2/2Pp4/3B4/PP3PrP/4RK2 b - - 1 27","moves":["g2g7","h6g7","h8g7","e6e7","d7e7","e1e7"],"rating":1974,"themes":["attraction","crushing","exposedKing","fork","long","middlegame"],"sourceGame":"https://lichess.org/UdZXrVA5/black#54","difficulty":"hard"},{"id":"008nF","fen":"2rq1rk1/7p/1n4pb/1R2p3/pPpP1P2/P1B5/3NQ1PP/2R3K1 w - - 0 31","moves":["e2e5","f8e8","e5e8","d8e8"],"rating":2168,"themes":["crushing","master","middlegame","short","trappedPiece"],"sourceGame":"https://lichess.org/tYO5rrIU#61","difficulty":"hard"},{"id":"008qL","fen":"r7/6pk/p2p4/2p1p1qp/1pP1PrP1/1P1Q1P1P/1P4K1/R4R2 w - - 0 25","moves":["d3d6","a8d8","d6d8","g5d8"],"rating":1843,"themes":["advantage","endgame","short"],"sourceGame":"https://lichess.org/TUrSVmLC#49","difficulty":"hard"},{"id":"008rw","fen":"rn2kb1r/pp2pppp/2p2n2/4q3/8/2N4Q/PPPPBPPP/R1B1K2R b KQkq - 2 8","moves":["g7g6","h3c8"],"rating":912,"themes":["mate","mateIn1","oneMove","opening"],"sourceGame":"https://lichess.org/t8GAyoIk/black#16","difficulty":"easy"},{"id":"008tL","fen":"8/7k/pR5p/3p4/5r2/2P1p2P/P5P1/6K1 w - - 0 40","moves":["b6a6","e3e2","a6e6","f4f1"],"rating":1193,"themes":["advancedPawn","crushing","endgame","master","rookEndgame","short"],"sourceGame":"https://lichess.org/yhNupFCi#79","difficulty":"easy"},{"id":"0091A","fen":"1r3rk1/q4ppp/p3Pb2/3nN3/P2P4/7Q/1B4PP/1R3RK1 b - - 0 24","moves":["b8b2","e6f7","f8f7","h3c8","f7f8","c8e6"],"rating":2177,"themes":["advancedPawn","advantage","kingsideAttack","long","middlegame"],"sourceGame":"https://lichess.org/XYVC46Km/black#48","difficulty":"hard"},{"id":"0092z","fen":"2r3k1/2qR1ppp/p7/2p2Q2/P7/7P/5PP1/6K1 b - - 3 26","moves":["c7c6","f5f7","g8h8","f7g7"],"rating":991,"themes":["endgame","mate","mateIn2","short"],"sourceGame":"https://lichess.org/fjaha7q0/black#52","difficulty":"easy"},{"id":"0095W","fen":"8/pp1r2kp/q2P1ppb/4p3/2N1P3/1Q5P/PPR2PP1/6K1 w - - 3 32","moves":["c4e5","f6e5","c2c7","a6d6"],"rating":1832,"themes":["advantage","endgame","hangingPiece","short"],"sourceGame":"https://lichess.org/CaL8Bl7F#63","difficulty":"hard"},{"id":"009BH","fen":"3r2k1/6p1/4Q3/4B3/1p3P2/4PKP1/3q4/8 b - - 17 51","moves":["g8h8","e6h6","h8g8","h6g7"],"rating":1513,"themes":["endgame","mate","mateIn2","pin","short"],"sourceGame":"https://lichess.org/QauOOpOY/black#102","difficulty":"medium"},{"id":"009FP","fen":"r1b1k1nr/ppp2pbp/3ppqp1/8/2BnP3/N2P2QP/PPP2PP1/R1B1K2R b KQkq - 4 9","moves":["e6e5","c1g5","f6g5","g3g5"],"rating":1339,"themes":["advantage","opening","short","trappedPiece"],"sourceGame":"https://lichess.org/2ndCtdd9/black#18","difficulty":"medium"},{"id":"009IO","fen":"3rk3/5p1r/p2Np1p1/3bP3/P2n4/8/1P3RPP/5RK1 b - - 4 25","moves":["e8e7","f2f7","h7f7","f1f7"],"rating":1162,"themes":["hookMate","mate","mateIn2","middlegame","short"],"sourceGame":"https://lichess.org/LJBrm9Or/black#50","difficulty":"easy"},{"id":"009J1","fen":"rn2k2r/pp2bp1p/2p1pNp1/6B1/5P2/7P/PPP4P/2K1RR2 b - - 3 17","moves":["e8f8","g5h6"],"rating":1243,"themes":["mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/lPhlt9XF/black#34","difficulty":"medium"},{"id":"009Wc","fen":"1r3rk1/1pq2pbp/p1p1pnp1/2N1N3/3P4/1QP5/PP3PPP/3RR1K1 w - - 2 19","moves":["e5d7","f6d7","c5d7","c7d7"],"rating":1076,"themes":["crushing","middlegame","short"],"sourceGame":"https://lichess.org/WnthPrdl#37","difficulty":"easy"},{"id":"009XT","fen":"rn1qk2r/pp3ppp/3bp1b1/3p4/3Pn2N/3BB3/PPP2PPP/RN1Q1RK1 w kq - 4 10","moves":["h4g6","d6h2","g1h1","h7g6"],"rating":1950,"themes":["crushing","intermezzo","opening","short"],"sourceGame":"https://lichess.org/bf23N8Ng#19","difficulty":"hard"},{"id":"009aD","fen":"r4k1r/pp3pp1/4p3/3pP1np/6bq/1PP2P2/P3B1PP/RN1Q1RK1 w - - 1 14","moves":["f3g4","h5g4","e2g4","h4h2"],"rating":1426,"themes":["advantage","kingsideAttack","middlegame","short"],"sourceGame":"https://lichess.org/aITVdulW#27","difficulty":"medium"},{"id":"009bR","fen":"4r2k/3q2r1/1p4pQ/p1pP4/2P4P/1N4p1/PP3RK1/8 b - - 1 37","moves":["g7h7","f2f8","e8f8","h6f8"],"rating":1024,"themes":["endgame","mate","mateIn2","short"],"sourceGame":"https://lichess.org/rvHGlZar/black#74","difficulty":"easy"},{"id":"009eX","fen":"2r3k1/7p/6q1/p1Np4/Qp2pr2/P4P2/1PR2P1K/5R2 w - - 0 36","moves":["f1g1","f4h4"],"rating":922,"themes":["mate","mateIn1","middlegame","oneMove"],"sourceGame":"https://lichess.org/BlIww047#71","difficulty":"easy"},{"id":"009hH","fen":"k3r3/p3q3/1pp5/3pnB2/1P1Q4/1KPP4/P4R2/8 w - - 0 41","moves":["f2e2","e5f3","e2e7","f3d4","c3d4","e8e7"],"rating":1980,"themes":["advantage","endgame","long"],"sourceGame":"https://lichess.org/LEg5X8PU#81","difficulty":"hard"},{"id":"009wR","fen":"1R2R3/p7/1p1k3p/1Pb5/P5p1/6P1/5rKP/8 w - - 6 41","moves":["g2h1","f2f1","h1g2","f1g1"],"rating":1250,"themes":["endgame","mate","mateIn2","operaMate","short"],"sourceGame":"https://lichess.org/tBBaKL5q#81","difficulty":"medium"},{"id":"009zR","fen":"3r4/p1p2ppp/4k3/6Q1/5P2/4P3/Prqn2PP/3R1RK1 w - - 3 22","moves":["g5d8","d2f3","g1h1","c2g2"],"rating":1620,"themes":["discoveredAttack","endgame","mate","mateIn2","short"],"sourceGame":"https://lichess.org/SctCD3fJ#43","difficulty":"medium"},{"id":"00A1H","fen":"2r3k1/4brp1/2p3b1/2Pp1q1p/3B3P/2P2N2/PP3P1K/R2Q2R1 w - - 1 31","moves":["f3g5","f5f4","h2g2","e7g5"],"rating":2041,"themes":["crushing","middlegame","short"],"sourceGame":"https://lichess.org/GeoPB5fa#61","difficulty":"hard"},{"id":"00A5m","fen":"8/1p6/p1p2p2/P3b3/1PK3P1/2PBk3/8/8 b - - 3 60","moves":["e3d2","d3f5","e5c7","f5c8","b7b6","a5b6","c7b6","c8a6"],"rating":1965,"themes":["bishopEndgame","crushing","endgame","quietMove","veryLong"],"sourceGame":"https://lichess.org/Y4Ftfosz/black#120","difficulty":"hard"},{"id":"00AEM","fen":"r4rk1/p2q1p1p/1p3Qp1/2p4P/3p4/5R2/PPP2PP1/4R1K1 b - - 0 22","moves":["d7d8","e1e7","d8e7","f6e7"],"rating":1700,"themes":["crushing","endgame","short"],"sourceGame":"https://lichess.org/xJtWPx56/black#44","difficulty":"hard"},{"id":"00Ac7","fen":"8/2p1pk1p/Pp4p1/8/p1P2P2/3r2P1/3PR2P/3K4 b - - 1 33","moves":["a4a3","a6a7","d3d8","e2e3","a3a2","e3a3"],"rating":2099,"themes":["advancedPawn","advantage","endgame","long","rookEndgame"],"sourceGame":"https://lichess.org/SIcsTksL/black#66","difficulty":"hard"},{"id":"00AcQ","fen":"8/1bpp2k1/1p5r/1P2P3/3P1P2/2P1n1K1/2Q3P1/8 w - - 0 30","moves":["c2a2","h6g6","g3f2","g6g2"],"rating":1741,"themes":["crushing","endgame","short"],"sourceGame":"https://lichess.org/MqFuiB4J#59","difficulty":"hard"},{"id":"00Ar2","fen":"r2q1r2/1n4pk/p6p/1pp2pb1/3n1B2/P1NPN2P/1PPQ1PP1/R3R1K1 w - - 0 21","moves":["c3d5","g5f4","d5f4","d8g5","d2d1","g5f4"],"rating":1738,"themes":["advantage","clearance","long","middlegame"],"sourceGame":"https://lichess.org/fRlxRFsV#41","difficulty":"hard"},{"id":"00C3O","fen":"r2qkbnr/pp4pp/2p2p2/4n2b/2B1P3/2N2N2/PPP3PP/R1BQ1RK1 w kq - 0 10","moves":["d1e2","h5f3","g2f3","d8d4"],"rating":2037,"themes":["crushing","kingsideAttack","opening","short"],"sourceGame":"https://lichess.org/F4Vo1eZG#19","difficulty":"hard"},{"id":"00CXr","fen":"r2k2nr/pp2qBb1/3p3p/Q5p1/3n1B2/2N2R2/PPP3P1/R5K1 b - - 1 18","moves":["b7b6","a5d5","d4f3","g2f3","a8c8","f4d6"],"rating":1909,"themes":["advantage","long","middlegame","sacrifice"],"sourceGame":"https://lichess.org/sr8OoFsx/black#36","difficulty":"hard"},{"id":"00D12","fen":"8/6pp/8/3kP3/1p1P2P1/rPpK3P/4R3/8 b - - 1 39","moves":["a3b3","e5e6","c3c2","d3c2","b3c3","c2d2"],"rating":2133,"themes":["crushing","endgame","long","rookEndgame"],"sourceGame":"https://lichess.org/iC0vC5to/black#78","difficulty":"hard"},{"id":"00D77","fen":"5rk1/bpp3pp/p1npb3/4p3/1P2Nr1q/P1PP3P/1B1QBPR1/2K3R1 b - - 2 21","moves":["h4h3","g2g7","g8h8","e4g5"],"rating":1798,"themes":["crushing","kingsideAttack","middlegame","short"],"sourceGame":"https://lichess.org/PgppfwbE/black#42","difficulty":"hard"},{"id":"00DII","fen":"2rr2k1/p5p1/1p5p/2pP1p1P/2q5/P4QR1/5PP1/4R1K1 b - - 3 31","moves":["c4d5","e1e8","g8f7","f3d5","d8d5","e8c8"],"rating":1790,"themes":["advantage","endgame","intermezzo","long"],"sourceGame":"https://lichess.org/vJnBcDxi/black#62","difficulty":"hard"},{"id":"00DKr","fen":"3r1k2/2p1R3/p2p2n1/1p6/1P1P2Q1/7P/5qPK/3R4 w - - 2 42","moves":["d1e1","g6e7","e1e4","f8e8"],"rating":2142,"themes":["advantage","defensiveMove","endgame","short"],"sourceGame":"https://lichess.org/mYdqj7UD#83","difficulty":"hard"},{"id":"00EgR","fen":"N2k3r/1b1n1Bpp/p7/1pb1P3/6P1/4p3/PPP4P/1K1R3R w - - 1 20","moves":["e5e6","b7h1","d1d7","d8c8","d7c7","c8b8"],"rating":1770,"themes":["advantage","long","middlegame"],"sourceGame":"https://lichess.org/PfKZb868#39","difficulty":"hard"},{"id":"00Ezc","fen":"rnb1k2r/ppp4p/3b1qp1/3P1pBQ/4p2N/2N5/PPP2PPP/R3R1K1 b kq - 1 13","moves":["f6f7","c3e4","f5e4","e1e4"],"rating":1982,"themes":["crushing","middlegame","short"],"sourceGame":"https://lichess.org/DlEjvVuJ/black#26","difficulty":"hard"},{"id":"00FF5","fen":"r3k3/ppp1qp2/1b1p3p/4p2r/2B1P1b1/P1PP1P2/1P4PQ/RN3R1K b q - 2 18","moves":["e7h4","c4f7","e8e7","f7h5"],"rating":1942,"themes":["attackingF2F7","crushing","middlegame","short"],"sourceGame":"https://lichess.org/YBDgjNpz/black#36","difficulty":"hard"},{"id":"00FND","fen":"8/1P6/8/7p/3P4/3k1p1P/4p3/3K4 w - - 0 49","moves":["d1e1","d3e3","h3h4","f3f2"],"rating":1828,"themes":["advancedPawn","endgame","mate","mateIn2","pawnEndgame","short"],"sourceGame":"https://lichess.org/C4mOV5Og#97","difficulty":"hard"}];
+
+// SVGs
+const PIECES = {
+  p: (color) => `<svg viewBox="0 0 100 100" class="piece-svg"><circle cx="50" cy="30" r="15" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><path d="M36 52 H64 L68 72 H32 Z" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="26" y="72" width="48" height="14" rx="6" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="40" y="52" width="20" height="5" rx="2" fill="${color==='w'?'#1B1B1B':'#FAFAFA'}"/></svg>`,
+  n: (color) => `<svg viewBox="0 0 100 100" class="piece-svg"><path d="M26 90 H78 V80 C78 62 72 50 62 44 C72 40 78 30 74 20 L64 24 L58 10 L48 22 C32 26 20 40 20 56 L36 62 C40 54 46 52 52 52 C46 62 38 70 30 80 Z" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><circle cx="52" cy="34" r="3.2" fill="${color==='w'?'#1B1B1B':'#FAFAFA'}"/><rect x="22" y="82" width="60" height="10" rx="4" fill="${color==='w'?'#1B1B1B':'#FAFAFA'}"/></svg>`,
+  b: (color) => `<svg viewBox="0 0 100 100" class="piece-svg"><circle cx="50" cy="22" r="8" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><path d="M50 32 C38 32 32 44 32 58 C32 72 38 78 50 78 C62 78 68 72 68 58 C68 44 62 32 50 32 Z" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="24" y="74" width="52" height="14" rx="6" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><line x1="44" y1="38" x2="56" y2="50" stroke="${color==='w'?'#1B1B1B':'#FAFAFA'}" stroke-width="4" stroke-linecap="round"/></svg>`,
+  r: (color) => `<svg viewBox="0 0 100 100" class="piece-svg"><path d="M26 20 H36 V30 H44 V20 H56 V30 H64 V20 H74 V42 L68 50 V78 L76 84 V92 H24 V84 L32 78 V50 L26 42 Z" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="38" y="60" width="24" height="5" rx="2.5" fill="${color==='w'?'#1B1B1B':'#FAFAFA'}"/></svg>`,
+  q: (color) => `<svg viewBox="0 0 100 100" class="piece-svg"><circle cx="50" cy="14" r="7" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><circle cx="24" cy="26" r="6" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><circle cx="76" cy="26" r="6" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><path d="M28 88 L22 30 L38 52 L50 24 L62 52 L78 30 L72 88 Z" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="22" y="82" width="56" height="12" rx="5" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="34" y="66" width="32" height="5" rx="2.5" fill="${color==='w'?'#1B1B1B':'#FAFAFA'}"/></svg>`,
+  k: (color) => `<svg viewBox="0 0 100 100" class="piece-svg"><line x1="50" y1="12" x2="50" y2="28" stroke="${color==='w'?'#FAFAFA':'#1B1B1B'}" stroke-width="6" stroke-linecap="round"/><line x1="42" y1="20" x2="58" y2="20" stroke="${color==='w'?'#FAFAFA':'#1B1B1B'}" stroke-width="6" stroke-linecap="round"/><path d="M30 84 L26 40 L40 50 L50 32 L60 50 L74 40 L70 84 Z" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="22" y="80" width="56" height="14" rx="6" fill="${color==='w'?'#FAFAFA':'#1B1B1B'}"/><rect x="36" y="62" width="28" height="5" rx="2.5" fill="${color==='w'?'#1B1B1B':'#FAFAFA'}"/></svg>`
+};
+
+// State
+let currentView = 'hub'; // 'hub' | 'practice' | 'sprint' | 'speed_duel'
+let activeTheme = 'All 150';
+let practicePuzzles = [...PUZZLES];
+let puzzleIdx = 0;
+let currentChess = null;
+let setupFen = '';
+let solutionMoves = [];
+let solutionStep = 0;
+let solverTurn = 'w';
+let selectedSq = null;
+let hintSq = null;
+let isSolved = false;
+let isReplying = false;
+let practiceNotice = 'Find the best continuation.';
+let sessionSolved = 0;
+let sessionErrors = 0;
+
+// Mate Sprint State
+let sprintPuzzles = PUZZLES.filter(p => p.themes.includes('mateIn1'));
+let sprintIdx = 0;
+let sprintScore = 0;
+let sprintStrikes = 0;
+let sprintTimer = 180;
+let sprintInterval = null;
+
+// Speed Duel State
+let mathDuration = 60;
+let mathDifficulty = 'easy';
+let mathDeadline = 0;
+let mathTimerInterval = null;
+let mathTimeLeft = 60;
+let mathCorrect = 0;
+let mathErrors = 0;
+let mathQuestion = null;
+let mathInput = '';
+let mathMissed = [];
+let mathPhase = 'setup'; // 'setup' | 'countdown' | 'active' | 'results' | 'retry'
+let retryQueue = [];
+let retryIdx = 0;
+
+// Progress Store in LocalStorage
+function getStoredProgress() {
+  try {
+    return JSON.parse(localStorage.getItem('chaturanga-training-v2')) || {
+      bankSolved: [],
+      mathsBestScore: 0,
+      bestRush: 0
+    };
+  } catch(e) {
+    return { bankSolved: [], mathsBestScore: 0, bestRush: 0 };
+  }
+}
+
+function saveBankSolve(id) {
+  const p = getStoredProgress();
+  if (!p.bankSolved.includes(id)) {
+    p.bankSolved.push(id);
+    localStorage.setItem('chaturanga-training-v2', JSON.stringify(p));
+  }
+}
+
+function saveMathScore(score) {
+  const p = getStoredProgress();
+  p.mathsBestScore = Math.max(p.mathsBestScore || 0, score);
+  localStorage.setItem('chaturanga-training-v2', JSON.stringify(p));
+}
+
+function saveRushScore(score) {
+  const p = getStoredProgress();
+  p.bestRush = Math.max(p.bestRush || 0, score);
+  localStorage.setItem('chaturanga-training-v2', JSON.stringify(p));
+}
+
+// ==========================================
+// RENDER: Training Hub
+// ==========================================
+function showHub() {
+  currentView = 'hub';
+  if (sprintInterval) clearInterval(sprintInterval);
+  if (mathTimerInterval) clearInterval(mathTimerInterval);
+  render();
+}
+
+function renderHub() {
+  const prog = getStoredProgress();
+  const solvedCount = Math.min(150, prog.bankSolved.length);
+  const pct = Math.round((solvedCount / 150) * 100);
+
+  return `
+    <div class="hub-title-row">
+      <div>
+        <div class="kicker">CHESS, MATHS &amp; SHARPER MOVES</div>
+        <h1 class="hub-title">TRAINING</h1>
+      </div>
+      <div class="device-pill">Progress stays on this device</div>
+    </div>
+
+    <div class="section-subhead">
+      <h2>CHOOSE YOUR MODE</h2>
+      <span>Tap to practise →</span>
+    </div>
+
+    <div class="bento-grid">
+      <button class="bento-card bento-card-yellow" onclick="startPractice('All 150')">
+        <div>
+          <div class="bento-kicker">150 PUZZLES · OFFLINE BANK</div>
+          <div class="bento-title">PUZZLE PRACTICE</div>
+        </div>
+        <div class="bento-illustration">
+          ${PIECES.n('w')}
+        </div>
+        <div class="bento-bottom">
+          <div class="bento-desc">Untimed · Choose a theme</div>
+          <div class="btn-arrow-circle">↗</div>
+        </div>
+      </button>
+
+      <button class="bento-card bento-card-lavender" onclick="startSprint()">
+        <div>
+          <div class="bento-kicker">CHESS AGAINST THE CLOCK</div>
+          <div class="bento-title">MATE SPRINT</div>
+        </div>
+        <div class="bento-illustration" style="gap:8px">
+          ${PIECES.q('w')}
+          <span style="font-family:'Bebas Neue', Impact; font-size:44px; font-weight:900;">3:00</span>
+        </div>
+        <div class="bento-bottom">
+          <div class="bento-desc">3 min · 3 mistakes ends run</div>
+          <span style="font-size:11px; font-weight:bold">Best: ${prog.bestRush || 0}</span>
+        </div>
+      </button>
+
+      <button class="bento-card bento-card-teal" onclick="startSpeedDuel()">
+        <div>
+          <div class="bento-kicker">QUICK MATHS · SOLO PRACTICE</div>
+          <div class="bento-title">SPEED DUEL</div>
+        </div>
+        <div class="bento-illustration">
+          <span style="font-family:'Bebas Neue', Impact; font-size:52px; font-weight:900;">7 × 8</span>
+        </div>
+        <div class="bento-bottom">
+          <div class="bento-desc">Timer · Errors · Review misses</div>
+          <div class="btn-arrow-circle">↗</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="secondary-grid">
+      <div class="card-charcoal">
+        <div>
+          <div class="kicker">PICK A PATTERN</div>
+          <h2 style="font-size:24px; color:#FFF; margin-bottom:8px">WHAT WILL YOU SPOT TODAY?</h2>
+          <div class="pattern-chips">
+            <button class="chip" onclick="startPractice('All 150')">All 150</button>
+            <button class="chip" onclick="startPractice('Mate')">Mate</button>
+            <button class="chip" onclick="startPractice('Fork')">Fork</button>
+            <button class="chip" onclick="startPractice('Pin')">Pin</button>
+            <button class="chip" onclick="startPractice('Endgame')">Endgame</button>
+          </div>
+        </div>
+        <p style="font-size:11px; color:var(--text-secondary)">Lichess open database · CC0 · Included locally</p>
+      </div>
+
+      <div class="card-charcoal">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <h2 style="font-size:24px; color:#FFF">YOUR PRACTICE</h2>
+          <span style="font-size:11px; color:var(--text-secondary); font-weight:600">On this device</span>
+        </div>
+        <div class="stats-row-3">
+          <div class="stat-col">
+            <div class="stat-val">${solvedCount}/150</div>
+            <div class="stat-lbl">Unique Solved</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-val">${solvedCount > 0 ? pct + '%' : '—'}</div>
+            <div class="stat-lbl">Accuracy</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-val">${prog.mathsBestScore || 0}</div>
+            <div class="stat-lbl">Maths Best</div>
+          </div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width: ${pct}%"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+// PUZZLE PRACTICE
+// ==========================================
+function startPractice(theme) {
+  activeTheme = theme;
+  if (!theme || theme.toLowerCase().includes('all')) {
+    practicePuzzles = [...PUZZLES];
+  } else {
+    practicePuzzles = PUZZLES.filter(p => p.themes.some(t => t.toLowerCase().includes(theme.toLowerCase())));
+  }
+  puzzleIdx = 0;
+  loadPuzzle();
+  currentView = 'practice';
+  render();
+}
+
+function loadPuzzle() {
+  const p = practicePuzzles[puzzleIdx];
+  if (!p) return;
+  const c = new Chess(p.fen);
+  // Apply opponent's setup move moves[0]
+  const u0 = p.moves[0];
+  c.move({ from: u0.slice(0,2), to: u0.slice(2,4), promotion: u0.length > 4 ? u0[4] : undefined });
+  setupFen = c.fen();
+  currentChess = new Chess(setupFen);
+  solverTurn = currentChess.turn();
+  solutionMoves = p.moves.slice(1);
+  solutionStep = 0;
+  selectedSq = null;
+  hintSq = null;
+  isSolved = false;
+  isReplying = false;
+  practiceNotice = 'Find the best continuation.';
+}
+
+function nextPuzzle() {
+  if (practicePuzzles.length === 0) return;
+  puzzleIdx = (puzzleIdx + 1) % practicePuzzles.length;
+  loadPuzzle();
+  render();
+}
+
+function showHint() {
+  if (isSolved || isReplying) return;
+  const uci = solutionMoves[solutionStep];
+  if (uci) {
+    hintSq = uci.slice(0, 2);
+    practiceNotice = 'Hint: Look at the piece on ' + hintSq.toUpperCase();
+    render();
+  }
+}
+
+function handleSquareClick(sq) {
+  if (isSolved || isReplying || !currentChess) return;
+
+  if (!selectedSq) {
+    const piece = currentChess.get(sq);
+    if (piece && piece.color === currentChess.turn()) {
+      selectedSq = sq;
+      render();
+    }
+    return;
+  }
+
+  if (selectedSq === sq) {
+    selectedSq = null;
+    render();
+    return;
+  }
+
+  const moves = currentChess.moves({ square: selectedSq, verbose: true });
+  const legal = moves.find(m => m.to === sq);
+
+  if (legal) {
+    const expected = solutionMoves[solutionStep];
+    const candidateUci = selectedSq + sq + (legal.promotion || '');
+    const isDirectMatch = candidateUci === expected || candidateUci.slice(0,4) === expected.slice(0,4);
+
+    const testChess = new Chess(currentChess.fen());
+    testChess.move({ from: selectedSq, to: sq, promotion: legal.promotion || 'q' });
+    const deliversMate = testChess.isCheckmate();
+    const isMatePz = practicePuzzles[puzzleIdx].themes.some(t => t.toLowerCase().includes('mate'));
+
+    if (isDirectMatch || (isMatePz && deliversMate)) {
+      currentChess.move({ from: selectedSq, to: sq, promotion: legal.promotion || 'q' });
+      selectedSq = null;
+      hintSq = null;
+
+      const nextStep = solutionStep + 1;
+      if (nextStep >= solutionMoves.length || deliversMate) {
+        isSolved = true;
+        practiceNotice = deliversMate ? 'Checkmate! Brilliant finish.' : 'Solved! Outstanding tactic.';
+        sessionSolved++;
+        saveBankSolve(practicePuzzles[puzzleIdx].id);
+        render();
+      } else {
+        solutionStep = nextStep;
+        isReplying = true;
+        practiceNotice = 'Opponent is replying...';
+        render();
+
+        setTimeout(() => {
+          const oppUci = solutionMoves[nextStep];
+          currentChess.move({ from: oppUci.slice(0,2), to: oppUci.slice(2,4), promotion: oppUci[4] });
+          solutionStep = nextStep + 1;
+          isReplying = false;
+          practiceNotice = 'Your turn to continue.';
+          render();
+        }, 350);
+      }
+    } else {
+      sessionErrors++;
+      practiceNotice = 'Not quite right. Try another move.';
+      selectedSq = null;
+      render();
+    }
+  } else {
+    const piece = currentChess.get(sq);
+    if (piece && piece.color === currentChess.turn()) {
+      selectedSq = sq;
+    } else {
+      selectedSq = null;
+    }
+    render();
+  }
+}
+
+function renderPractice() {
+  const p = practicePuzzles[puzzleIdx];
+  const flip = solverTurn === 'b';
+  const ranks = flip ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+  const files = flip ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+
+  const legalTargs = selectedSq ? currentChess.moves({ square: selectedSq, verbose: true }).map(m => m.to) : [];
+
+  let boardHtml = '';
+  ranks.forEach((r, rIdx) => {
+    files.forEach((f, fIdx) => {
+      const sq = f + r;
+      const isDark = (rIdx + fIdx) % 2 === 1;
+      const piece = currentChess.get(sq);
+      const isSel = selectedSq === sq;
+      const isHint = hintSq === sq;
+      const isDot = legalTargs.includes(sq) && !piece;
+      const isCap = legalTargs.includes(sq) && piece;
+
+      boardHtml += `
+        <div class="square ${isDark?'dark':'light'} ${isSel?'selected':''} ${isHint?'hint':''}" onclick="handleSquareClick('${sq}')">
+          ${fIdx === 0 ? `<span class="coord-rank">${r}</span>` : ''}
+          ${rIdx === 7 ? `<span class="coord-file">${f}</span>` : ''}
+          ${piece ? PIECES[piece.type](piece.color) : ''}
+          ${isDot ? '<div class="move-dot"></div>' : ''}
+          ${isCap ? '<div class="capture-ring"></div>' : ''}
+        </div>
+      `;
+    });
+  });
+
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+      <div>
+        <div class="kicker">LICHESS PUZZLE BANK</div>
+        <h1 class="hub-title" style="font-size:36px">PUZZLE PRACTICE</h1>
+      </div>
+      <button class="btn-exit" onclick="showHub()">← Modes</button>
+    </div>
+
+    <div class="session-layout">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+          <div style="font-size:24px; font-weight:900; font-family:'Bebas Neue', Impact;">
+            ${solverTurn === 'w' ? 'WHITE TO MOVE' : 'BLACK TO MOVE'}
+          </div>
+          <div class="device-pill">${puzzleIdx + 1} / ${practicePuzzles.length}</div>
+        </div>
+
+        <div class="board-wrapper">
+          ${boardHtml}
+        </div>
+
+        <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center">
+          <div style="font-size:13px; font-weight:600; color:${isSolved?'var(--color-lime)':(practiceNotice.includes('Not quite')?'var(--color-red)':'var(--text-secondary)')}">
+            ${practiceNotice}
+          </div>
+          <div style="display:flex; gap:10px">
+            <button class="chip" onclick="showHint()">Hint</button>
+            <button class="chip" onclick="nextPuzzle()">Skip →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-charcoal" style="gap:20px">
+        <div class="kicker">YOUR SESSION</div>
+        <div class="stats-row-3">
+          <div class="stat-col" style="background:#242424; padding:10px; border-radius:14px; text-align:center">
+            <div class="stat-val">∞</div>
+            <div class="stat-lbl">Untimed</div>
+          </div>
+          <div class="stat-col" style="background:#242424; padding:10px; border-radius:14px; text-align:center">
+            <div class="stat-val" style="color:var(--color-lime)">${sessionSolved}</div>
+            <div class="stat-lbl">Solved</div>
+          </div>
+          <div class="stat-col" style="background:#242424; padding:10px; border-radius:14px; text-align:center">
+            <div class="stat-val" style="color:var(--color-red)">${sessionErrors}</div>
+            <div class="stat-lbl">Errors</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size:20px; color:#FFF; margin-bottom:10px">MIXED TACTICS</h3>
+          <div style="display:flex; flex-wrap:wrap; gap:6px">
+            ${p.themes.map(t => `<span class="device-pill" style="padding:4px 10px; font-size:10px">${t}</span>`).join('')}
+          </div>
+        </div>
+
+        <div style="font-size:11px; color:var(--text-secondary); border-top:1px solid #2B2B2B; padding-top:14px">
+          <div>Lichess puzzle ${p.id} · Rating ${p.rating}</div>
+          <div style="margin-top:4px">150 distinct puzzles. Daily puzzle remains a separate bonus in the app.</div>
+        </div>
+
+        <button class="lime-btn" onclick="nextPuzzle()">Next puzzle →</button>
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+// MATE SPRINT
+// ==========================================
+function startSprint() {
+  currentView = 'sprint';
+  sprintIdx = 0;
+  sprintScore = 0;
+  sprintStrikes = 0;
+  sprintTimer = 180;
+  loadSprintPuzzle();
+
+  if (sprintInterval) clearInterval(sprintInterval);
+  sprintInterval = setInterval(() => {
+    sprintTimer--;
+    if (sprintTimer <= 0) {
+      clearInterval(sprintInterval);
+      saveRushScore(sprintScore);
+      alert('Time up! Sprint finished: ' + sprintScore + ' solves.');
+      showHub();
+    } else {
+      render();
+    }
+  }, 1000);
+
+  render();
+}
+
+function loadSprintPuzzle() {
+  const p = sprintPuzzles[sprintIdx];
+  if (!p) {
+    clearInterval(sprintInterval);
+    saveRushScore(sprintScore);
+    alert('Incredible! You cleared all 20 mate-in-one puzzles!');
+    showHub();
+    return;
+  }
+  const c = new Chess(p.fen);
+  const u0 = p.moves[0];
+  c.move({ from: u0.slice(0,2), to: u0.slice(2,4), promotion: u0[4] });
+  currentChess = c;
+  solverTurn = c.turn();
+  selectedSq = null;
+}
+
+function handleSprintSquareClick(sq) {
+  if (!currentChess) return;
+
+  if (!selectedSq) {
+    const piece = currentChess.get(sq);
+    if (piece && piece.color === currentChess.turn()) {
+      selectedSq = sq;
+      render();
+    }
+    return;
+  }
+
+  if (selectedSq === sq) {
+    selectedSq = null;
+    render();
+    return;
+  }
+
+  const moves = currentChess.moves({ square: selectedSq, verbose: true });
+  const legal = moves.find(m => m.to === sq);
+
+  if (legal) {
+    const test = new Chess(currentChess.fen());
+    test.move({ from: selectedSq, to: sq, promotion: 'q' });
+    if (test.isCheckmate()) {
+      sprintScore++;
+      sprintIdx++;
+      loadSprintPuzzle();
+      render();
+    } else {
+      sprintStrikes++;
+      selectedSq = null;
+      if (sprintStrikes >= 3) {
+        clearInterval(sprintInterval);
+        saveRushScore(sprintScore);
+        alert('3 Strikes! Sprint complete: ' + sprintScore + ' solves.');
+        showHub();
+      } else {
+        render();
+      }
+    }
+  } else {
+    selectedSq = null;
+    render();
+  }
+}
+
+function renderSprint() {
+  const p = sprintPuzzles[sprintIdx];
+  const flip = solverTurn === 'b';
+  const ranks = flip ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+  const files = flip ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+  const legalTargs = selectedSq ? currentChess.moves({ square: selectedSq, verbose: true }).map(m => m.to) : [];
+
+  let boardHtml = '';
+  ranks.forEach((r, rIdx) => {
+    files.forEach((f, fIdx) => {
+      const sq = f + r;
+      const isDark = (rIdx + fIdx) % 2 === 1;
+      const piece = currentChess.get(sq);
+      const isSel = selectedSq === sq;
+      const isDot = legalTargs.includes(sq) && !piece;
+      const isCap = legalTargs.includes(sq) && piece;
+
+      boardHtml += `
+        <div class="square ${isDark?'dark':'light'} ${isSel?'selected':''}" onclick="handleSprintSquareClick('${sq}')">
+          ${piece ? PIECES[piece.type](piece.color) : ''}
+          ${isDot ? '<div class="move-dot"></div>' : ''}
+          ${isCap ? '<div class="capture-ring"></div>' : ''}
+        </div>
+      `;
+    });
+  });
+
+  const mins = Math.floor(sprintTimer / 60);
+  const secs = String(sprintTimer % 60).padStart(2, '0');
+
+  return `
+    <div style="max-width:600px; margin:0 auto">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+        <div>
+          <div class="kicker">CHESS AGAINST THE CLOCK</div>
+          <h1 class="hub-title" style="font-size:36px">MATE SPRINT</h1>
+        </div>
+        <button class="btn-exit" onclick="showHub()">End Sprint</button>
+      </div>
+
+      <div class="stats-row-3" style="margin-bottom:16px">
+        <div class="stat-col" style="background:#1A1A1A; padding:12px; border-radius:16px; text-align:center">
+          <div class="stat-val" style="color:var(--color-lavender)">${mins}:${secs}</div>
+          <div class="stat-lbl">Time Left</div>
+        </div>
+        <div class="stat-col" style="background:#1A1A1A; padding:12px; border-radius:16px; text-align:center">
+          <div class="stat-val" style="color:var(--color-lime)">${sprintScore}</div>
+          <div class="stat-lbl">Solved</div>
+        </div>
+        <div class="stat-col" style="background:#1A1A1A; padding:12px; border-radius:16px; text-align:center">
+          <div class="stat-val" style="color:var(--color-red)">${'●'.repeat(sprintStrikes)}${'○'.repeat(3 - sprintStrikes)}</div>
+          <div class="stat-lbl">Strikes (3 max)</div>
+        </div>
+      </div>
+
+      <div class="board-wrapper">
+        ${boardHtml}
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+// SPEED DUEL SOLO PRACTICE
+// ==========================================
+function startSpeedDuel() {
+  currentView = 'speed_duel';
+  mathPhase = 'setup';
+  render();
+}
+
+function generateMathQuestion() {
+  const ops = ['+', '-', '×', '÷'];
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  let max = mathDifficulty === 'easy' ? 12 : (mathDifficulty === 'medium' ? 30 : 99);
+  let a = Math.floor(Math.random() * (max - 2)) + 2;
+  let b = Math.floor(Math.random() * (max - 2)) + 2;
+  let ans = 0;
+
+  if (op === '+') { ans = a + b; }
+  else if (op === '-') { if (a < b) { const t = a; a = b; b = t; } ans = a - b; }
+  else if (op === '×') {
+    if (mathDifficulty === 'hard') { a = Math.min(a, 25); b = Math.min(b, 12); }
+    ans = a * b;
+  }
+  else if (op === '÷') {
+    const divisor = Math.floor(Math.random() * 10) + 2;
+    const quotient = Math.floor(Math.random() * 12) + 1;
+    a = divisor * quotient;
+    b = divisor;
+    ans = quotient;
+  }
+
+  return { prompt: `${a} ${op} ${b} = ?`, answer: ans };
+}
+
+function launchMathCountdown() {
+  mathPhase = 'countdown';
+  let cnt = 3;
+  render();
+  const cTimer = setInterval(() => {
+    cnt--;
+    if (cnt <= 0) {
+      clearInterval(cTimer);
+      startMathSession();
+    } else {
+      const el = document.getElementById('cnt-val');
+      if (el) el.textContent = cnt;
+    }
+  }, 750);
+}
+
+function startMathSession() {
+  mathPhase = 'active';
+  mathCorrect = 0;
+  mathErrors = 0;
+  mathMissed = [];
+  mathInput = '';
+  mathQuestion = generateMathQuestion();
+  mathDeadline = Date.now() + mathDuration * 1000;
+  mathTimeLeft = mathDuration;
+
+  if (mathTimerInterval) clearInterval(mathTimerInterval);
+  mathTimerInterval = setInterval(() => {
+    const leftMs = mathDeadline - Date.now();
+    mathTimeLeft = Math.max(0, Math.ceil(leftMs / 1000));
+    if (leftMs <= 0) {
+      clearInterval(mathTimerInterval);
+      mathPhase = 'results';
+      saveMathScore(mathCorrect);
+    }
+    render();
+  }, 200);
+
+  render();
+}
+
+function handleKeypadDigit(digit) {
+  if (mathInput.length < 6) {
+    mathInput += digit;
+    render();
+  }
+}
+
+function handleKeypadBackspace() {
+  mathInput = mathInput.slice(0, -1);
+  render();
+}
+
+function handleKeypadClear() {
+  mathInput = '';
+  render();
+}
+
+function submitMathAnswer() {
+  if (!mathInput.trim()) return;
+  const val = parseInt(mathInput.trim(), 10);
+  if (isNaN(val)) return;
+
+  if (mathPhase === 'active') {
+    if (val === mathQuestion.answer) {
+      mathCorrect++;
+    } else {
+      mathErrors++;
+      mathMissed.push({ prompt: mathQuestion.prompt, entered: mathInput, answer: mathQuestion.answer });
+    }
+    mathInput = '';
+    mathQuestion = generateMathQuestion();
+    render();
+  } else if (mathPhase === 'retry') {
+    const item = retryQueue[retryIdx];
+    mathInput = '';
+    retryIdx++;
+    if (retryIdx >= retryQueue.length) {
+      mathPhase = 'results';
+    }
+    render();
+  }
+}
+
+function retryMissed() {
+  if (mathMissed.length === 0) return;
+  retryQueue = [...mathMissed];
+  retryIdx = 0;
+  mathInput = '';
+  mathPhase = 'retry';
+  render();
+}
+
+// Global keydown handler for math practice
+window.addEventListener('keydown', (e) => {
+  if (currentView === 'speed_duel' && (mathPhase === 'active' || mathPhase === 'retry')) {
+    if (e.key >= '0' && e.key <= '9') {
+      e.preventDefault();
+      handleKeypadDigit(e.key);
+    } else if (e.key === 'Backspace') {
+      e.preventDefault();
+      handleKeypadBackspace();
+    } else if (e.key === 'Delete' || e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      handleKeypadClear();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      submitMathAnswer();
+    }
+  }
+});
+
+function renderSpeedDuel() {
+  if (mathPhase === 'setup') {
+    return `
+      <div class="speed-duel-container">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <div class="kicker">QUICK MATHS · SOLO PRACTICE</div>
+            <h1 class="hub-title" style="font-size:36px">SPEED DUEL</h1>
+          </div>
+          <button class="btn-exit" onclick="showHub()">← Modes</button>
+        </div>
+
+        <div class="card-charcoal" style="gap:20px">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase">Session Duration</label>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:8px">
+              ${[30, 60, 120].map(d => `
+                <button class="chip ${mathDuration===d?'active':''}" style="padding:12px; font-size:14px" onclick="mathDuration=${d}; render()">${d}S</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase">Difficulty</label>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:8px">
+              ${['easy', 'medium', 'hard'].map(l => `
+                <button class="chip ${mathDifficulty===l?'active':''}" style="padding:12px; font-size:14px; text-transform:uppercase" onclick="mathDifficulty='${l}'; render()">${l}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <button class="lime-btn" style="padding:16px" onclick="launchMathCountdown()">START PRACTICE →</button>
+        </div>
+      </div>
+    `;
+  }
+
+  if (mathPhase === 'countdown') {
+    return `
+      <div style="text-align:center; padding:100px 0">
+        <div class="kicker">GET READY</div>
+        <div id="cnt-val" style="font-family:'Bebas Neue', Impact; font-size:120px; color:var(--color-teal); line-height:1">3</div>
+      </div>
+    `;
+  }
+
+  if (mathPhase === 'results') {
+    const total = mathCorrect + mathErrors;
+    const acc = total > 0 ? Math.round((mathCorrect / total) * 100) : 100;
+
+    return `
+      <div class="speed-duel-container">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <div class="kicker">PRACTICE COMPLETE</div>
+            <h1 class="hub-title" style="font-size:36px">RESULTS</h1>
+          </div>
+          <button class="btn-exit" onclick="showHub()">← Modes</button>
+        </div>
+
+        <div class="stats-row-3">
+          <div class="stat-col" style="background:#1A1A1A; padding:12px; border-radius:16px; text-align:center">
+            <div class="stat-val" style="color:var(--color-lime)">${mathCorrect}</div>
+            <div class="stat-lbl">Correct</div>
+          </div>
+          <div class="stat-col" style="background:#1A1A1A; padding:12px; border-radius:16px; text-align:center">
+            <div class="stat-val" style="color:var(--color-red)">${mathErrors}</div>
+            <div class="stat-lbl">Errors</div>
+          </div>
+          <div class="stat-col" style="background:#1A1A1A; padding:12px; border-radius:16px; text-align:center">
+            <div class="stat-val">${acc}%</div>
+            <div class="stat-lbl">Accuracy</div>
+          </div>
+        </div>
+
+        ${mathMissed.length > 0 ? `
+          <div class="card-charcoal" style="gap:12px">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:12px; font-weight:700; text-transform:uppercase">Review Missed (${mathMissed.length})</span>
+              <button class="chip" style="background:var(--color-teal); color:#000" onclick="retryMissed()">Retry Missed Only ↺</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto">
+              ${mathMissed.map(m => `
+                <div style="display:flex; justify-content:space-between; padding:8px 12px; background:#242424; border-radius:10px; font-size:13px">
+                  <span>${m.prompt.replace('= ?','')}</span>
+                  <span><s style="color:var(--color-red)">${m.entered}</s> <b style="color:var(--color-lime); margin-left:8px">= ${m.answer}</b></span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : `
+          <div class="card-charcoal" style="text-align:center; padding:30px">
+            <div style="font-size:32px">🎯</div>
+            <h3 style="font-size:20px; color:var(--color-lime)">Flawless Session!</h3>
+          </div>
+        `}
+
+        <button class="lime-btn" onclick="startMathSession()">Play Again ↻</button>
+      </div>
+    `;
+  }
+
+  // Active / Retry keypad screen
+  const curPrompt = mathPhase === 'retry' ? retryQueue[retryIdx].prompt : mathQuestion.prompt;
+
+  return `
+    <div class="speed-duel-container">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <div class="kicker">QUICK MATHS · SOLO PRACTICE</div>
+          <h1 class="hub-title" style="font-size:32px">${mathPhase==='retry'?'RETRY MISSED':'SPEED DUEL'}</h1>
+        </div>
+        <button class="btn-exit" onclick="showHub()">← Modes</button>
+      </div>
+
+      ${mathPhase === 'active' ? `
+        <div class="stats-row-3">
+          <div class="stat-col" style="background:#1A1A1A; padding:10px; border-radius:14px; text-align:center">
+            <div class="stat-val">${mathTimeLeft}S</div>
+            <div class="stat-lbl">Remaining</div>
+          </div>
+          <div class="stat-col" style="background:#1A1A1A; padding:10px; border-radius:14px; text-align:center">
+            <div class="stat-val">${mathCorrect}</div>
+            <div class="stat-lbl">Correct</div>
+          </div>
+          <div class="stat-col" style="background:#1A1A1A; padding:10px; border-radius:14px; text-align:center">
+            <div class="stat-val">${mathErrors}</div>
+            <div class="stat-lbl">Errors</div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="card-charcoal" style="gap:16px">
+        <div style="text-align:center; font-family:'Bebas Neue', Impact; font-size:54px; letter-spacing:2px; padding:12px 0">
+          ${curPrompt}
+        </div>
+
+        <div style="height:56px; border-radius:14px; background:#111; border:1px solid #333; display:flex; align-items:center; justify-content:center; font-size:32px; font-family:monospace; font-weight:bold; color:var(--color-teal)">
+          ${mathInput || '<span style="color:#444">?</span>'}
+        </div>
+
+        <div class="keypad-grid">
+          ${[1,2,3,4,5,6,7,8,9].map(n => `
+            <button class="key-btn" onclick="handleKeypadDigit('${n}')">${n}</button>
+          `).join('')}
+          <button class="key-btn" onclick="handleKeypadBackspace()">⌫</button>
+          <button class="key-btn" onclick="handleKeypadDigit('0')">0</button>
+          <button class="key-btn" onclick="handleKeypadClear()">C</button>
+        </div>
+
+        <button class="lime-btn" onclick="submitMathAnswer()">Check answer ↵</button>
+        <p style="text-align:center; font-size:11px; color:var(--text-secondary)">Type an answer, then press Enter.</p>
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+// ROOT RENDERER
+// ==========================================
+function render() {
+  const root = document.getElementById('app-root');
+  if (currentView === 'hub') {
+    root.innerHTML = renderHub();
+  } else if (currentView === 'practice') {
+    root.innerHTML = renderPractice();
+  } else if (currentView === 'sprint') {
+    root.innerHTML = renderSprint();
+  } else if (currentView === 'speed_duel') {
+    root.innerHTML = renderSpeedDuel();
+  }
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

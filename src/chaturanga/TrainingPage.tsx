@@ -1,11 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Chess, Square } from "chess.js";
 import {
   PUZZLES,
   isPuzzleMate,
-  recordAttempt,
-  emptyProgress,
-  TrainingProgress,
+  TrainingProgressV2,
+  migrateProgress,
+  recordBankSolve,
+  recordMathsScore,
+  getBankProgressRatio,
+  getAccuracyPercent,
 } from "./training";
 import {
   fetchLichessDailyPuzzle,
@@ -13,56 +16,78 @@ import {
   PreparedLichessPuzzle,
 } from "./lichessPuzzles";
 import PositionBoard from "./PositionBoard";
-import { usePreferences } from "./preferences";
+import MatiksPiece from "../components/MatiksPiece";
+import PuzzlePracticeSession from "./PuzzlePracticeSession";
+import MateSprintSession from "./MateSprintSession";
+import SpeedDuelPractice from "./SpeedDuelPractice";
+
+type TrainingView =
+  | "hub"
+  | "puzzle_practice"
+  | "mate_sprint"
+  | "speed_duel"
+  | "daily_puzzle"
+  | "starter_triad";
 
 export default function TrainingPage({ onExit }: { onExit: () => void }) {
-  const { prefs } = usePreferences();
-  const startIndex = Math.max(
-    0,
-    PUZZLES.findIndex(
-      (p) => p.id === localStorage.getItem("chaturanga-next-puzzle"),
-    ),
-  );
-  const [index, setIndex] = useState(startIndex);
-  const [fen, setFen] = useState(PUZZLES[startIndex].fen);
-  const [selected, setSelected] = useState<Square | null>(null);
-  const [notice, setNotice] = useState("");
-  const [solved, setSolved] = useState(false);
-  const [rush, setRush] = useState(false);
-  const [deadline, setDeadline] = useState(0);
-  const [now, setNow] = useState(Date.now());
-  const [score, setScore] = useState(0);
-  const [strikes, setStrikes] = useState(0);
+  const [currentView, setCurrentView] = useState<TrainingView>("hub");
+  const [selectedPattern, setSelectedPattern] = useState<string>("All 150");
 
-  // Lichess Daily Puzzle state
-  const [lichessPuzzle, setLichessPuzzle] = useState<PreparedLichessPuzzle | null>(null);
-  const [loadingLichess, setLoadingLichess] = useState(false);
-  const [lichessError, setLichessError] = useState<string | null>(null);
-  const [isLichessMode, setIsLichessMode] = useState(false);
-  const [lichessStep, setLichessStep] = useState(0);
-  const [isOpponentReplying, setIsOpponentReplying] = useState(false);
-
-  const [progress, setProgress] = useState<TrainingProgress>(() => {
+  // Local storage progress migration & state
+  const [progress, setProgress] = useState<TrainingProgressV2>(() => {
     try {
-      return (
-        JSON.parse(
-          localStorage.getItem("chaturanga-training-v1") || "null",
-        ) || emptyProgress
-      );
+      const v2 = localStorage.getItem("chaturanga-training-v2");
+      if (v2) return migrateProgress(JSON.parse(v2));
+
+      const v1 = localStorage.getItem("chaturanga-training-v1");
+      if (v1) return migrateProgress(JSON.parse(v1));
+
+      return migrateProgress(null);
     } catch {
-      return emptyProgress;
+      return migrateProgress(null);
     }
   });
 
-  const nextTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (nextTimer.current) clearTimeout(nextTimer.current);
-    },
-    [],
-  );
+  // Save progress safely on change
+  useEffect(() => {
+    try {
+      localStorage.setItem("chaturanga-training-v2", JSON.stringify(progress));
+      // Keep v1 compatible copy
+      localStorage.setItem(
+        "chaturanga-training-v1",
+        JSON.stringify({
+          solved: progress.solved,
+          attempts: progress.attempts,
+          correct: progress.correct,
+          bestRush: progress.bestRush,
+          byPuzzle: progress.byPuzzle,
+        }),
+      );
+    } catch {
+      // Storage error ignored
+    }
+  }, [progress]);
 
-  // Fetch Lichess daily puzzle on mount (uses cached data if visited today)
+  // Lichess Daily Puzzle state (Preserved as secondary bonus)
+  const [lichessPuzzle, setLichessPuzzle] =
+    useState<PreparedLichessPuzzle | null>(null);
+  const [loadingLichess, setLoadingLichess] = useState(false);
+  const [lichessError, setLichessError] = useState<string | null>(null);
+  const [dailyFen, setDailyFen] = useState("");
+  const [dailyStep, setDailyStep] = useState(0);
+  const [dailySelected, setDailySelected] = useState<Square | null>(null);
+  const [dailyNotice, setDailyNotice] = useState("");
+  const [dailySolved, setDailySolved] = useState(false);
+  const [dailyOpponentReplying, setDailyOpponentReplying] = useState(false);
+
+  // Starter Triad state (Preserved)
+  const [starterIndex, setStarterIndex] = useState(0);
+  const [starterFen, setStarterFen] = useState(PUZZLES[0].fen);
+  const [starterSelected, setStarterSelected] = useState<Square | null>(null);
+  const [starterSolved, setStarterSolved] = useState(false);
+  const [starterNotice, setStarterNotice] = useState("");
+
+  // Fetch Lichess daily puzzle on mount
   useEffect(() => {
     let active = true;
     setLoadingLichess(true);
@@ -70,6 +95,7 @@ export default function TrainingPage({ onExit }: { onExit: () => void }) {
       if (!active) return;
       if (res.puzzle) {
         setLichessPuzzle(res.puzzle);
+        setDailyFen(res.puzzle.setupFen);
         setLichessError(null);
       } else {
         setLichessError(res.error || "Could not load Lichess daily puzzle.");
@@ -81,12 +107,13 @@ export default function TrainingPage({ onExit }: { onExit: () => void }) {
     };
   }, []);
 
-  const handleRetryLichess = () => {
+  const handleRetryDailyFetch = () => {
     setLoadingLichess(true);
     setLichessError(null);
     fetchLichessDailyPuzzle(true).then((res) => {
       if (res.puzzle) {
         setLichessPuzzle(res.puzzle);
+        setDailyFen(res.puzzle.setupFen);
         setLichessError(null);
       } else {
         setLichessError(res.error || "Could not load Lichess daily puzzle.");
@@ -95,552 +122,625 @@ export default function TrainingPage({ onExit }: { onExit: () => void }) {
     });
   };
 
-  const c = new Chess(fen);
-  const puzzle = PUZZLES[index];
-  const legal = selected
-    ? c.moves({ square: selected, verbose: true }).map((m) => m.to)
-    : [];
-
-  useEffect(() => {
-    localStorage.setItem("chaturanga-training-v1", JSON.stringify(progress));
-  }, [progress]);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    if (rush && (now >= deadline || strikes >= 3)) {
-      setRush(false);
-      setNotice(
-        `Sprint complete: ${score} solves. Outstanding effort!`,
-      );
-      setProgress((p) => ({ ...p, bestRush: Math.max(p.bestRush, score) }));
-    }
-  }, [now, deadline, strikes, rush, score]);
-
-  const choose = (i: number) => {
-    if (nextTimer.current) {
-      clearTimeout(nextTimer.current);
-      nextTimer.current = null;
-    }
-    setIsLichessMode(false);
-    setIndex(i);
-    setFen(PUZZLES[i].fen);
-    setSelected(null);
-    setSolved(false);
-    setNotice("");
+  const handleRecordBankSolve = (
+    bankId: string,
+    correct: boolean,
+    assisted = false,
+  ) => {
+    setProgress((prev) => recordBankSolve(prev, bankId, correct, assisted));
   };
 
-  const playLichess = () => {
-    if (!lichessPuzzle) return;
-    if (nextTimer.current) {
-      clearTimeout(nextTimer.current);
-      nextTimer.current = null;
-    }
-    setRush(false);
-    setIsLichessMode(true);
-    setFen(lichessPuzzle.setupFen);
-    setLichessStep(0);
-    setSelected(null);
-    setSolved(false);
-    setNotice("");
+  const handleRecordMathsScore = (score: number) => {
+    setProgress((prev) => recordMathsScore(prev, score));
   };
 
-  const click = (sq: Square) => {
-    if (solved || isOpponentReplying) return;
+  const handleRecordRush = (score: number) => {
+    setProgress((prev) => ({
+      ...prev,
+      bestRush: Math.max(prev.bestRush, score),
+    }));
+  };
 
-    if (isLichessMode && lichessPuzzle) {
-      if (selected && legal.includes(sq)) {
-        let promo = undefined;
-        if (c.get(selected)?.type === "p" && (sq[1] === "1" || sq[1] === "8")) {
-          promo = "q";
-        }
-        const moveUci = `${selected}${sq}${promo || ""}`;
-        const expectedUci = lichessPuzzle.solution[lichessStep];
+  // Launch puzzle practice pre-filtered by pattern chip
+  const handleLaunchPattern = (pattern: string) => {
+    setSelectedPattern(pattern);
+    setCurrentView("puzzle_practice");
+  };
 
-        const isCorrect = moveUci.toLowerCase() === expectedUci.toLowerCase();
+  // Daily puzzle move handler
+  const handleDailySquare = (sq: Square) => {
+    if (!lichessPuzzle || dailySolved || dailyOpponentReplying) return;
 
-        if (isCorrect) {
-          c.move({ from: selected, to: sq, promotion: promo });
-          const nextFen = c.fen();
-          setFen(nextFen);
-          setSelected(null);
+    const c = new Chess(dailyFen);
+    const legal = dailySelected
+      ? c.moves({ square: dailySelected, verbose: true }).map((m) => m.to)
+      : [];
 
-          const nextStep = lichessStep + 1;
-          if (nextStep >= lichessPuzzle.solution.length) {
-            setSolved(true);
-            setNotice("Puzzle solved! Flawless tactical calculation.");
-            setProgress((p) => recordAttempt(p, `lichess:${lichessPuzzle.id}`, true));
-          } else {
-            setLichessStep(nextStep);
-            setNotice("Correct! Opponent replying…");
-            setIsOpponentReplying(true);
-            setTimeout(() => {
-              const oppUci = lichessPuzzle.solution[nextStep];
-              const oppParsed = parseUciMove(oppUci);
-              const replyBoard = new Chess(nextFen);
-              replyBoard.move(oppParsed);
-              setFen(replyBoard.fen());
-              setLichessStep(nextStep + 1);
-              setIsOpponentReplying(false);
-              setNotice("Your turn — find the continuation!");
-            }, 450);
-          }
-        } else {
-          setProgress((p) => recordAttempt(p, `lichess:${lichessPuzzle.id}`, false));
-          setNotice("Not the winning move. Calculate again!");
-          setSelected(null);
-        }
-        return;
+    if (dailySelected && legal.includes(sq)) {
+      let promo: "q" | "r" | "b" | "n" | undefined = undefined;
+      if (
+        c.get(dailySelected)?.type === "p" &&
+        (sq[1] === "1" || sq[1] === "8")
+      ) {
+        promo = "q";
       }
-      setSelected(c.get(sq)?.color === c.turn() ? sq : null);
-      return;
-    }
+      const moveUci = `${dailySelected}${sq}${promo || ""}`;
+      const expectedUci = lichessPuzzle.solution[dailyStep];
 
-    if (selected && legal.includes(sq)) {
-      const correct = isPuzzleMate(fen, selected, sq);
-      setProgress((p) => recordAttempt(p, puzzle.id, correct));
-      if (correct) {
-        c.move({ from: selected, to: sq, promotion: "q" });
-        setFen(c.fen());
-        setSolved(true);
-        setNotice("Checkmate! Flawlessly spotted.");
-        if (rush) setScore((s) => s + 1);
-        if (rush || prefs.puzzleAutoAdvance) {
-          nextTimer.current = setTimeout(
-            () => choose((index + 1) % PUZZLES.length),
-            700,
-          );
+      const isCorrect = moveUci.toLowerCase() === expectedUci.toLowerCase();
+
+      if (isCorrect) {
+        c.move({ from: dailySelected, to: sq, promotion: promo });
+        const nextFen = c.fen();
+        setDailyFen(nextFen);
+        setDailySelected(null);
+
+        const nextStep = dailyStep + 1;
+        if (nextStep >= lichessPuzzle.solution.length) {
+          setDailySolved(true);
+          setDailyNotice("Daily puzzle solved! Outstanding calculation.");
+          setProgress((prev) => ({
+            ...prev,
+            dailySolved: Array.from(
+              new Set([...prev.dailySolved, `daily-${lichessPuzzle.id}`]),
+            ),
+          }));
+        } else {
+          setDailyStep(nextStep);
+          setDailyNotice("Correct! Opponent replying…");
+          setDailyOpponentReplying(true);
+          setTimeout(() => {
+            const oppUci = lichessPuzzle.solution[nextStep];
+            const oppParsed = parseUciMove(oppUci);
+            const replyBoard = new Chess(nextFen);
+            replyBoard.move(oppParsed);
+            setDailyFen(replyBoard.fen());
+            setDailyStep(nextStep + 1);
+            setDailyOpponentReplying(false);
+            setDailyNotice("Your turn — find the continuation!");
+          }, 350);
         }
       } else {
-        setNotice("Legal move, but not mate. Calculate again!");
-        if (rush) setStrikes((s) => s + 1);
+        setDailyNotice("Not the winning move. Calculate again!");
+        setDailySelected(null);
       }
-      setSelected(null);
       return;
     }
-    setSelected(c.get(sq)?.color === c.turn() ? sq : null);
+
+    setDailySelected(c.get(sq)?.color === c.turn() ? sq : null);
   };
 
-  const handleReset = () => {
-    if (isLichessMode && lichessPuzzle) {
-      setFen(lichessPuzzle.setupFen);
-      setLichessStep(0);
-      setSelected(null);
-      setSolved(false);
-      setNotice("");
-    } else {
-      choose(index);
+  // Starter triad move handler
+  const handleStarterSquare = (sq: Square) => {
+    if (starterSolved) return;
+    const puzzle = PUZZLES[starterIndex];
+    const c = new Chess(starterFen);
+    const legal = starterSelected
+      ? c.moves({ square: starterSelected, verbose: true }).map((m) => m.to)
+      : [];
+
+    if (starterSelected && legal.includes(sq)) {
+      const correct = isPuzzleMate(starterFen, starterSelected, sq);
+      if (correct) {
+        c.move({ from: starterSelected, to: sq, promotion: "q" });
+        setStarterFen(c.fen());
+        setStarterSolved(true);
+        setStarterNotice("Checkmate! Flawlessly spotted.");
+        setProgress((prev) => ({
+          ...prev,
+          starterSolved: Array.from(
+            new Set([...prev.starterSolved, puzzle.id]),
+          ),
+        }));
+      } else {
+        setStarterNotice("Legal move, but not mate. Calculate again!");
+      }
+      setStarterSelected(null);
+      return;
     }
+
+    setStarterSelected(c.get(sq)?.color === c.turn() ? sq : null);
   };
 
-  const handleHint = () => {
-    if (isLichessMode && lichessPuzzle) {
-      const currentUci = lichessPuzzle.solution[lichessStep];
-      const fromSq = currentUci.slice(0, 2);
-      const themes = lichessPuzzle.themes.slice(0, 3).join(", ");
-      setNotice(`Hint: Focus on the piece on ${fromSq}. Themes: ${themes || "tactics"}.`);
-    } else {
-      setNotice(puzzle.hint);
-    }
+  const handleChooseStarter = (idx: number) => {
+    setStarterIndex(idx);
+    setStarterFen(PUZZLES[idx].fen);
+    setStarterSelected(null);
+    setStarterSolved(false);
+    setStarterNotice("");
   };
 
-  const secondsRemaining = Math.max(
-    0,
-    Math.min(180, Math.ceil((deadline - now) / 1000)),
-  );
+  // -------------------------------------------------------------------------
+  // VIEW: Active Modes
+  // -------------------------------------------------------------------------
+  if (currentView === "puzzle_practice") {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
+        <PuzzlePracticeSession
+          onExit={() => setCurrentView("hub")}
+          onRecordSolve={handleRecordBankSolve}
+          initialTheme={selectedPattern}
+        />
+      </div>
+    );
+  }
 
-  const isLichessSolved = Boolean(
-    lichessPuzzle && progress.solved.includes(`lichess:${lichessPuzzle.id}`)
-  );
+  if (currentView === "mate_sprint") {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
+        <MateSprintSession
+          onExit={() => setCurrentView("hub")}
+          bestRush={progress.bestRush}
+          onRecordRush={handleRecordRush}
+        />
+      </div>
+    );
+  }
 
-  return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
-      <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
-        
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-6">
+  if (currentView === "speed_duel") {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
+        <SpeedDuelPractice
+          onExit={() => setCurrentView("hub")}
+          onRecordScore={handleRecordMathsScore}
+          bestScore={progress.mathsBestScore}
+        />
+      </div>
+    );
+  }
+
+  if (currentView === "daily_puzzle" && lichessPuzzle) {
+    const dailyChess = new Chess(dailyFen);
+    const legalMoves = dailySelected
+      ? dailyChess.moves({ square: dailySelected, verbose: true }).map((m) => m.to)
+      : [];
+
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8 max-w-[800px] mx-auto space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <span className="matiks-kicker block mb-1">
-              TRAIN YOUR MIND · CALCULATION & PATTERNS
-            </span>
-            <h1 className="matiks-headline text-4xl lg:text-5xl text-[#F4F4F4] m-0">
-              TACTICAL TRAINING
+            <div className="text-xs font-bold tracking-widest text-[#AFF65B] uppercase">
+              DAILY BONUS PUZZLE
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-wide text-[#F4F4F4] font-display">
+              LICHESS DAILY · {lichessPuzzle.id}
             </h1>
-            <p className="text-sm text-[#8A8A8A] mt-2 mb-0 max-w-xl">
-              Sharpen checkmate pattern recognition, solve under timed sprint pressure, and measure your tactical consistency.
-            </p>
           </div>
           <button
-            onClick={onExit}
-            className="btn-raised py-2.5 px-4 text-xs"
+            onClick={() => setCurrentView("hub")}
+            className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-sm text-[#F4F4F4] font-semibold border border-[#3A3A3A] transition cursor-pointer"
           >
-            Back to Home
+            ← Modes
           </button>
         </div>
 
-        {/* 4 Bento Training Hub Cards matching 04-web-training.svg */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Mate Sprint Bento (Yellow) */}
-          <div
-            onClick={() => {
-              choose(0);
-              setScore(0);
-              setStrikes(0);
-              setDeadline(Date.now() + 180000);
-              setRush(true);
-            }}
-            className="bento-card bento-yellow p-6 cursor-pointer flex flex-col justify-between min-h-[190px]"
+        <div className="relative mx-auto max-w-[520px] aspect-square rounded-2xl overflow-hidden shadow-2xl bg-[#141414] border border-[#2D2D2D]">
+          <PositionBoard
+            fen={dailyFen}
+            selected={dailySelected}
+            legal={legalMoves}
+            onSquare={handleDailySquare}
+            flip={lichessPuzzle.solverTurn === "b"}
+          />
+        </div>
+
+        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#2D2D2D] flex items-center justify-between text-sm">
+          <span className="font-semibold text-[#8A8A8A]">
+            {dailyNotice || "Find the best sequence for this position."}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setDailyFen(lichessPuzzle.setupFen);
+                setDailyStep(0);
+                setDailySelected(null);
+                setDailySolved(false);
+                setDailyNotice("");
+              }}
+              className="px-3 py-1.5 rounded-xl bg-[#262626] text-xs font-bold text-[#F4F4F4] border border-[#3A3A3A]"
+            >
+              Reset ↺
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentView === "starter_triad") {
+    const puzzle = PUZZLES[starterIndex];
+    const c = new Chess(starterFen);
+    const legalMoves = starterSelected
+      ? c.moves({ square: starterSelected, verbose: true }).map((m) => m.to)
+      : [];
+
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8 max-w-[800px] mx-auto space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold tracking-widest text-[#F2D500] uppercase">
+              CLASSIC STARTER TRIAD
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-wide text-[#F4F4F4] font-display">
+              {puzzle.name.toUpperCase()}
+            </h1>
+          </div>
+          <button
+            onClick={() => setCurrentView("hub")}
+            className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-sm text-[#F4F4F4] font-semibold border border-[#3A3A3A] transition cursor-pointer"
           >
-            <div>
-              <span className="text-[10px] font-bold tracking-widest text-[#0E0E0E]/70 uppercase block mb-1">
-                SPRINT MODE
-              </span>
-              <h3 className="font-heading text-3xl tracking-wide text-[#0E0E0E] m-0">
-                MATE SPRINT
-              </h3>
-              <p className="text-xs font-body text-[#0E0E0E]/80 mt-2 mb-0">
-                Find checkmate under pressure. 3 minutes, max 3 mistakes.
-              </p>
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#0E0E0E]">
-                Best: {progress.bestRush} solved
-              </span>
-              <span className="py-1 px-3 rounded-full bg-[#0E0E0E] text-[#F2D500] text-[11px] font-bold">
-                {rush ? "Active..." : "Start Sprint →"}
-              </span>
-            </div>
-          </div>
+            ← Modes
+          </button>
+        </div>
 
-          {/* Mind Gate Bento (Lavender) */}
-          <div className="bento-card bento-lavender p-6 flex flex-col justify-between min-h-[190px]">
-            <div>
-              <span className="text-[10px] font-bold tracking-widest text-[#0E0E0E]/70 uppercase block mb-1">
-                COGNITIVE DISCIPLINE
-              </span>
-              <h3 className="font-heading text-3xl tracking-wide text-[#0E0E0E] m-0">
-                MIND GATE
-              </h3>
-              <p className="text-xs font-body text-[#0E0E0E]/80 mt-2 mb-0">
-                Solve before your move. Calculate the full tactical sequence before moving pieces.
-              </p>
+        <div className="flex gap-2">
+          {PUZZLES.map((p, idx) => (
+            <button
+              key={p.id}
+              onClick={() => handleChooseStarter(idx)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                starterIndex === idx
+                  ? "bg-[#F2D500] text-[#0E0E0E] border-[#F2D500]"
+                  : "bg-[#262626] text-[#8A8A8A] border-[#363636]"
+              }`}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative mx-auto max-w-[520px] aspect-square rounded-2xl overflow-hidden shadow-2xl bg-[#141414] border border-[#2D2D2D]">
+          <PositionBoard
+            fen={starterFen}
+            selected={starterSelected}
+            legal={legalMoves}
+            onSquare={handleStarterSquare}
+          />
+        </div>
+
+        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-[#2D2D2D] flex items-center justify-between text-sm">
+          <span className="font-semibold text-[#8A8A8A]">
+            {starterNotice || puzzle.hint}
+          </span>
+          <button
+            onClick={() => handleChooseStarter(starterIndex)}
+            className="px-3 py-1.5 rounded-xl bg-[#262626] text-xs font-bold text-[#F4F4F4] border border-[#3A3A3A]"
+          >
+            Reset ↺
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // VIEW: Training Hub (Matches media_1793097522190_f737b6b4.jpg on desktop & media_1793097512367_f1471d75.jpg on phone)
+  // -------------------------------------------------------------------------
+  const { solved: bankSolvedCount, total: bankTotalCount } =
+    getBankProgressRatio(progress);
+  const accuracyPct = getAccuracyPercent(progress);
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
+      <div className="max-w-[1400px] mx-auto space-y-8">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="text-xs font-bold tracking-widest text-[#AFF65B] uppercase mb-1">
+              CHESS, MATHS &amp; SHARPER MOVES
             </div>
-            <span className="text-[11px] font-semibold text-[#0E0E0E]/80">
-              Instinct & Verification
+            <h1 className="text-4xl lg:text-5xl font-black tracking-wide text-[#F4F4F4] font-display m-0">
+              TRAINING
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="px-3.5 py-1.5 rounded-full bg-[#1F1F1F] text-xs font-semibold text-[#8A8A8A] border border-[#2E2E2E]">
+              Progress stays on this device
+            </span>
+            <button
+              onClick={onExit}
+              className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-xs font-semibold text-[#F4F4F4] border border-[#3A3A3A] transition cursor-pointer"
+            >
+              Exit practice
+            </button>
+          </div>
+        </div>
+
+        {/* Section: CHOOSE YOUR MODE */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-black text-[#F4F4F4] font-display tracking-wider m-0">
+              CHOOSE YOUR MODE
+            </h2>
+            <span className="text-xs font-semibold text-[#8A8A8A]">
+              Tap to practise →
             </span>
           </div>
 
-          {/* Speed Duel Bento (Teal) */}
-          <div className="bento-card bento-teal p-6 flex flex-col justify-between min-h-[190px]">
+          {/* 3 Main Bento Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* 1. Yellow Bento: PUZZLE PRACTICE */}
+            <button
+              onClick={() => {
+                setSelectedPattern("All 150");
+                setCurrentView("puzzle_practice");
+              }}
+              className="w-full text-left p-6 rounded-3xl bg-[#F2D500] text-[#1A1A1A] hover:-translate-y-1 motion-reduce:transform-none motion-reduce:hover:ring-2 motion-reduce:hover:ring-white transition duration-200 shadow-xl flex flex-col justify-between min-h-[140px] md:min-h-[260px] cursor-pointer group border-0 focus:outline-none focus:ring-4 focus:ring-[#F2D500]/50"
+              aria-label="Puzzle Practice: 150 puzzles offline bank"
+            >
+              <div className="flex items-start justify-between w-full">
+                <div>
+                  <div className="text-[11px] font-bold tracking-widest text-[#1A1A1A]/70 uppercase mb-1">
+                    150 PUZZLES · OFFLINE BANK
+                  </div>
+                  <h3 className="text-3xl lg:text-4xl font-black tracking-wide font-display text-[#1A1A1A] m-0">
+                    PUZZLE PRACTICE
+                  </h3>
+                </div>
+                {/* On phone: Knight sits on the right */}
+                <div className="w-14 h-14 md:hidden flex-shrink-0">
+                  <MatiksPiece type="n" color="w" customColor="#FFFFFF" />
+                </div>
+              </div>
+
+              {/* On desktop: Knight graphic centered */}
+              <div className="hidden md:flex items-center justify-center py-4 my-auto">
+                <div className="w-20 h-20 filter drop-shadow-md">
+                  <MatiksPiece type="n" color="w" customColor="#FFFFFF" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between w-full pt-2">
+                <span className="text-xs font-semibold text-[#1A1A1A]/90">
+                  Untimed · Choose a theme
+                </span>
+                <div className="w-9 h-9 rounded-full bg-black/90 flex items-center justify-center text-white text-base font-bold shadow-md group-hover:scale-105 transition">
+                  ↗
+                </div>
+              </div>
+            </button>
+
+            {/* 2. Lavender Bento: MATE SPRINT */}
+            <button
+              onClick={() => setCurrentView("mate_sprint")}
+              className="w-full text-left p-6 rounded-3xl bg-[#A594F0] text-[#1A1A1A] hover:-translate-y-1 motion-reduce:transform-none motion-reduce:hover:ring-2 motion-reduce:hover:ring-white transition duration-200 shadow-xl flex flex-col justify-between min-h-[140px] md:min-h-[260px] cursor-pointer group border-0 focus:outline-none focus:ring-4 focus:ring-[#A594F0]/50"
+              aria-label="Mate Sprint: 3 min, 3 mistakes ends run"
+            >
+              <div className="flex items-start justify-between w-full">
+                <div>
+                  <div className="text-[11px] font-bold tracking-widest text-[#1A1A1A]/70 uppercase mb-1">
+                    CHESS AGAINST THE CLOCK
+                  </div>
+                  <h3 className="text-3xl lg:text-4xl font-black tracking-wide font-display text-[#1A1A1A] m-0">
+                    MATE SPRINT
+                  </h3>
+                </div>
+                {/* On phone: Crown + 3:00 on right */}
+                <div className="flex items-center gap-1 md:hidden">
+                  <div className="w-6 h-6">
+                    <MatiksPiece type="q" color="w" customColor="#FFFFFF" />
+                  </div>
+                  <span className="text-2xl font-black font-display text-[#1A1A1A]">
+                    3:00
+                  </span>
+                </div>
+              </div>
+
+              {/* On desktop: Crown + 3:00 centered */}
+              <div className="hidden md:flex items-center justify-center gap-3 py-4 my-auto">
+                <div className="w-16 h-16 filter drop-shadow-md">
+                  <MatiksPiece type="q" color="w" customColor="#FFFFFF" />
+                </div>
+                <span className="text-5xl font-black font-display text-[#1A1A1A] tracking-wider">
+                  3:00
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between w-full pt-2">
+                <span className="text-xs font-semibold text-[#1A1A1A]/90">
+                  3 min · 3 mistakes ends the run
+                </span>
+                <span className="text-[11px] font-bold text-[#1A1A1A]/80">
+                  Best: {progress.bestRush}
+                </span>
+              </div>
+            </button>
+
+            {/* 3. Teal Bento: SPEED DUEL */}
+            <button
+              onClick={() => setCurrentView("speed_duel")}
+              className="w-full text-left p-6 rounded-3xl bg-[#66D4C2] text-[#1A1A1A] hover:-translate-y-1 motion-reduce:transform-none motion-reduce:hover:ring-2 motion-reduce:hover:ring-white transition duration-200 shadow-xl flex flex-col justify-between min-h-[140px] md:min-h-[260px] cursor-pointer group border-0 focus:outline-none focus:ring-4 focus:ring-[#66D4C2]/50"
+              aria-label="Speed Duel: Quick maths solo practice"
+            >
+              <div className="flex items-start justify-between w-full">
+                <div>
+                  <div className="text-[11px] font-bold tracking-widest text-[#1A1A1A]/70 uppercase mb-1">
+                    QUICK MATHS · SOLO PRACTICE
+                  </div>
+                  <h3 className="text-3xl lg:text-4xl font-black tracking-wide font-display text-[#1A1A1A] m-0">
+                    SPEED DUEL
+                  </h3>
+                </div>
+                {/* On phone: 7 × 8 on right */}
+                <div className="text-3xl font-black font-display text-[#1A1A1A] md:hidden">
+                  7 × 8
+                </div>
+              </div>
+
+              {/* On desktop: 7 × 8 centered */}
+              <div className="hidden md:flex items-center justify-center py-4 my-auto">
+                <span className="text-6xl font-black font-display text-[#1A1A1A] tracking-wider">
+                  7 × 8
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between w-full pt-2">
+                <span className="text-xs font-semibold text-[#1A1A1A]/90">
+                  Timer · Errors · Review misses
+                </span>
+                <div className="w-9 h-9 rounded-full bg-black/90 flex items-center justify-center text-white text-base font-bold shadow-md group-hover:scale-105 transition">
+                  ↗
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Secondary Cards: PICK A PATTERN & YOUR PRACTICE */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Card 1: PICK A PATTERN */}
+          <div className="bg-[#1A1A1A] p-6 rounded-3xl border border-[#2D2D2D] space-y-4">
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-[#0E0E0E]/70 uppercase block mb-1">
-                DUAL COGNITION
-              </span>
-              <h3 className="font-heading text-3xl tracking-wide text-[#0E0E0E] m-0">
-                SPEED DUEL
+              <div className="text-xs font-bold tracking-widest text-[#AFF65B] uppercase mb-1">
+                PICK A PATTERN
+              </div>
+              <h3 className="text-2xl font-black text-[#F4F4F4] font-display tracking-wide m-0">
+                WHAT WILL YOU SPOT TODAY?
               </h3>
-              <p className="text-xs font-body text-[#0E0E0E]/80 mt-2 mb-0">
-                Maths against the clock paired with on-board tactical vision.
-              </p>
             </div>
-            <span className="text-[11px] font-semibold text-[#0E0E0E]/80">
-              High-Tempo Training
-            </span>
+
+            {/* Pattern chips */}
+            <div className="flex flex-wrap gap-2.5 pt-1">
+              {[
+                { label: "All 150", theme: "All 150" },
+                { label: "Mate", theme: "Mate" },
+                { label: "Fork", theme: "Fork" },
+                { label: "Pin", theme: "Pin" },
+                { label: "Endgame", theme: "Endgame" },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => handleLaunchPattern(item.theme)}
+                  className="px-4 py-2.5 rounded-xl bg-[#262626] hover:bg-[#333333] active:bg-[#3D3D3D] text-[#F4F4F4] text-xs font-bold border border-[#363636] transition cursor-pointer"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-[#8A8A8A] pt-1 m-0">
+              Lichess open database · CC0 · Included locally
+            </p>
           </div>
 
-          {/* Your Practice Stats (Charcoal) */}
-          <div className="bento-card bento-charcoal p-6 flex flex-col justify-between min-h-[190px]">
+          {/* Card 2: YOUR PRACTICE */}
+          <div className="bg-[#1A1A1A] p-6 rounded-3xl border border-[#2D2D2D] space-y-4 flex flex-col justify-between">
             <div>
-              <span className="matiks-kicker text-[10px] block mb-1">
-                LOCAL PROGRESS
-              </span>
-              <h3 className="font-heading text-3xl tracking-wide text-[#F4F4F4] m-0">
-                YOUR PRACTICE
-              </h3>
-              <p className="text-xs font-body text-[#8A8A8A] mt-2 mb-0">
-                {progress.solved.length}/{PUZZLES.length} puzzles cleared · {progress.attempts > 0 ? Math.round((progress.correct / progress.attempts) * 100) : 0}% accuracy
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-black text-[#F4F4F4] font-display tracking-wide m-0">
+                  YOUR PRACTICE
+                </h3>
+                <span className="text-xs font-semibold text-[#8A8A8A]">
+                  On this device
+                </span>
+              </div>
+
+              {/* 3 Metric Columns */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <div className="text-3xl font-black text-[#F4F4F4] font-display">
+                    {bankSolvedCount}/{bankTotalCount}
+                  </div>
+                  <div className="text-[11px] font-semibold text-[#8A8A8A] uppercase mt-0.5">
+                    Unique solved
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-[#F4F4F4] font-display">
+                    {accuracyPct !== null ? `${accuracyPct}%` : "—"}
+                  </div>
+                  <div className="text-[11px] font-semibold text-[#8A8A8A] uppercase mt-0.5">
+                    Accuracy
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-[#F4F4F4] font-display">
+                    {progress.mathsBestScore}
+                  </div>
+                  <div className="text-[11px] font-semibold text-[#8A8A8A] uppercase mt-0.5">
+                    Maths best
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="w-full bg-[#262626] h-1.5 rounded-full overflow-hidden">
-              <div
-                className="bg-[#AFF65B] h-full rounded-full"
-                style={{
-                  width: `${(progress.solved.length / PUZZLES.length) * 100}%`,
-                }}
-              />
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5 pt-2">
+              <div className="w-full h-2 rounded-full bg-[#262626] overflow-hidden">
+                <div
+                  className="h-full bg-[#AFF65B] transition-all duration-500 rounded-full"
+                  style={{
+                    width: `${Math.round((bankSolvedCount / bankTotalCount) * 100)}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Puzzle Workspace */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Board Column */}
-          <section className="lg:col-span-7 flex flex-col items-center">
-            
-            {/* Board Header / Status */}
-            <div className="w-full max-w-[640px] flex items-center justify-between mb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-heading text-xl text-[#F4F4F4] block">
-                    {isLichessMode && lichessPuzzle
-                      ? `Daily Puzzle #${lichessPuzzle.id}`
-                      : puzzle.name}
-                  </span>
-                  {isLichessMode && (
-                    <span className="text-[10px] font-mono text-[#AFF65B] px-2 py-0.5 rounded bg-[#AFF65B]/10 border border-[#AFF65B]/20">
-                      Puzzle from Lichess
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-[#8A8A8A]">
-                  {isLichessMode && lichessPuzzle
-                    ? `${lichessPuzzle.solverTurn === "w" ? "White" : "Black"} to move · Rating ${lichessPuzzle.rating}`
-                    : `White to move · ${puzzle.goal}`}
-                </span>
+        {/* Additional Practice Opportunities (Preserved Secondary Features) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+          {/* Daily Puzzle Banner */}
+          <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#2D2D2D] flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-bold tracking-widest text-[#AFF65B] uppercase">
+                DAILY BONUS
               </div>
-              {rush && (
-                <div className="flex items-center gap-2 bg-[#262626] border border-white/10 px-3 py-1 rounded-full">
-                  <span className="text-xs font-mono font-bold text-[#F2D500]">
-                    ⏱ {secondsRemaining}s
-                  </span>
-                  <span className="text-xs text-[#8A8A8A]">·</span>
-                  <span className="text-xs font-bold text-[#AFF65B]">
-                    ★ {score}
-                  </span>
-                  <span className="text-xs text-[#8A8A8A]">·</span>
-                  <span className="text-xs text-[#E5484D]">
-                    {"✕".repeat(strikes) || "0 errors"}
-                  </span>
-                </div>
-              )}
+              <h4 className="text-lg font-bold text-[#F4F4F4] mt-0.5">
+                {lichessPuzzle
+                  ? `Daily Challenge #${lichessPuzzle.id}`
+                  : "Daily Lichess Puzzle"}
+              </h4>
+              <p className="text-xs text-[#8A8A8A] mt-1 m-0">
+                {loadingLichess
+                  ? "Fetching today's challenge..."
+                  : lichessError
+                  ? "Offline — retry whenever connection restores."
+                  : `Rating ${lichessPuzzle?.rating || "—"} · Live daily sync`}
+              </p>
             </div>
-
-            {/* Position Board Component (Matiks Pieces) */}
-            <div className="w-full max-w-[640px]">
-              <PositionBoard
-                fen={fen}
-                selected={selected}
-                legal={legal}
-                onSquare={click}
-                flip={isLichessMode && lichessPuzzle?.solverTurn === "b"}
-              />
-            </div>
-
-            {/* Controls Bar */}
-            <div className="w-full max-w-[640px] flex items-center justify-between gap-3 mt-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleHint}
-                  className="btn-raised py-2.5 px-4 text-xs"
-                >
-                  💡 Hint
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="btn-raised py-2.5 px-4 text-xs"
-                >
-                  ↻ Reset
-                </button>
-              </div>
-
-              {isLichessMode ? (
-                <button
-                  onClick={() => choose(0)}
-                  className="btn-raised py-2.5 px-4 text-xs font-semibold"
-                >
-                  ‹ Return to Local Bank
-                </button>
-              ) : (
-                <button
-                  onClick={() => choose((index + 1) % PUZZLES.length)}
-                  className="btn-lime py-2.5 px-5 text-xs font-semibold"
-                >
-                  Next Puzzle →
-                </button>
-              )}
-            </div>
-
-            {notice && (
-              <div className="w-full max-w-[640px] mt-3 p-3 rounded-xl bg-[#1A1A1A] border border-white/5 text-center text-xs font-semibold text-[#AFF65B]">
-                {notice}
-              </div>
+            {lichessPuzzle ? (
+              <button
+                onClick={() => setCurrentView("daily_puzzle")}
+                className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-xs font-bold text-[#AFF65B] border border-[#3A3A3A] transition cursor-pointer"
+              >
+                Play Daily →
+              </button>
+            ) : (
+              <button
+                onClick={handleRetryDailyFetch}
+                className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-xs font-bold text-[#F4F4F4] border border-[#3A3A3A] transition cursor-pointer"
+              >
+                Retry Fetch ↺
+              </button>
             )}
-          </section>
+          </div>
 
-          {/* Right Sidebar */}
-          <aside className="lg:col-span-5 flex flex-col gap-5">
-            
-            {/* Daily Puzzle from Lichess Bento Card */}
-            <div
-              className={`bento-card p-6 flex flex-col justify-between transition-all ${
-                isLichessMode
-                  ? "bg-[#1E1E1E] border border-[#AFF65B]/40 shadow-[0_0_24px_rgba(175,246,91,0.08)]"
-                  : "bento-charcoal"
-              }`}
+          {/* Starter Compositions Banner */}
+          <div className="bg-[#1A1A1A] p-5 rounded-3xl border border-[#2D2D2D] flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-bold tracking-widest text-[#F2D500] uppercase">
+                FOUNDATIONS
+              </div>
+              <h4 className="text-lg font-bold text-[#F4F4F4] mt-0.5">
+                Classic Starter Triad
+              </h4>
+              <p className="text-xs text-[#8A8A8A] mt-1 m-0">
+                3 hand-crafted mate-in-one checkmate compositions.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentView("starter_triad")}
+              className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-xs font-bold text-[#F2D500] border border-[#3A3A3A] transition cursor-pointer"
             >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="matiks-kicker text-[10px]">
-                    PUZZLE FROM LICHESS
-                  </span>
-                  {isLichessSolved && (
-                    <span className="text-[11px] font-bold text-[#AFF65B] bg-[#AFF65B]/10 px-2 py-0.5 rounded-full border border-[#AFF65B]/30">
-                      ✓ Solved Today
-                    </span>
-                  )}
-                </div>
+              Practice Triad →
+            </button>
+          </div>
+        </div>
 
-                <h3 className="font-heading text-2xl text-[#F4F4F4] m-0 mb-2">
-                  DAILY TACTICAL PUZZLE
-                </h3>
-
-                {loadingLichess && (
-                  <div className="py-4 text-center">
-                    <span className="text-xs text-[#8A8A8A] italic animate-pulse">
-                      Fetching daily puzzle from Lichess…
-                    </span>
-                  </div>
-                )}
-
-                {lichessError && !loadingLichess && (
-                  <div className="p-3 rounded-xl bg-[#262626] border border-white/5 space-y-2 mb-3">
-                    <p className="text-xs text-[#F2D500] m-0 leading-relaxed">
-                      {lichessError}
-                    </p>
-                    <button
-                      onClick={handleRetryLichess}
-                      disabled={loadingLichess}
-                      className="btn-raised py-1.5 px-3 text-[11px] w-full"
-                    >
-                      ↻ Retry Lichess
-                    </button>
-                  </div>
-                )}
-
-                {lichessPuzzle && !loadingLichess && (
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#262626] border border-white/5">
-                      <span className="text-xs text-[#8A8A8A]">Puzzle Rating</span>
-                      <span className="font-mono text-sm font-bold text-[#AFF65B]">
-                        {lichessPuzzle.rating}
-                      </span>
-                    </div>
-
-                    {lichessPuzzle.themes.length > 0 && (
-                      <div>
-                        <span className="text-[10px] text-[#8A8A8A] uppercase tracking-wider block mb-1.5">
-                          Themes
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {lichessPuzzle.themes.slice(0, 4).map((t) => (
-                            <span
-                              key={t}
-                              className="px-2 py-0.5 rounded bg-[#1F1F1F] text-[#D4D4D4] text-[10px] font-mono border border-white/10"
-                            >
-                              #{t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-white/5 flex flex-col gap-2">
-                {lichessPuzzle && (
-                  <button
-                    onClick={playLichess}
-                    className={`w-full py-2.5 text-xs font-bold rounded-lg transition-all ${
-                      isLichessMode
-                        ? "bg-[#AFF65B] text-[#0E0E0E]"
-                        : "btn-lime"
-                    }`}
-                  >
-                    {isLichessMode ? "★ Active on Board" : "Solve Daily Puzzle →"}
-                  </button>
-                )}
-                <span className="text-[10px] text-[#8A8A8A] text-center block">
-                  Free public tactical puzzle via Lichess API
-                </span>
-              </div>
-            </div>
-
-            {/* Sprint Launcher or Solver Info */}
-            <div className="bento-card bento-charcoal p-6">
-              <span className="matiks-kicker text-[10px] block mb-2">
-                {rush ? "ACTIVE SPRINT" : "TRAINING MODE"}
-              </span>
-              <h3 className="font-heading text-2xl text-[#F4F4F4] m-0 mb-2">
-                {rush ? "RUSH AGAINST THE CLOCK" : "SOLVE AT YOUR PACE"}
-              </h3>
-              {rush ? (
-                <div className="space-y-3">
-                  <p className="text-xs text-[#8A8A8A] m-0">
-                    Find any legal checkmate as fast as possible. 3 strikes and the sprint ends.
-                  </p>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#262626]">
-                    <span className="text-xs text-[#8A8A8A]">Current Score:</span>
-                    <span className="font-heading text-xl text-[#AFF65B]">{score} solves</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-xs text-[#8A8A8A] m-0">
-                    Original mate-in-one tactical compositions. Find any legal checkmate, not only one pre-configured path.
-                  </p>
-                  <button
-                    onClick={() => {
-                      choose(0);
-                      setScore(0);
-                      setStrikes(0);
-                      setDeadline(Date.now() + 180000);
-                      setRush(true);
-                    }}
-                    className="btn-lime w-full py-3 text-xs font-semibold"
-                  >
-                    Start 3-Minute Practice Sprint
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Puzzle Bank Browser */}
-            <div className="bento-card bento-charcoal p-6 flex flex-col max-h-[360px]">
-              <span className="matiks-kicker text-[10px] block mb-2">
-                AVAILABLE COMPOSITIONS ({PUZZLES.length})
-              </span>
-              <div className="overflow-y-auto space-y-1.5 pr-1 flex-1">
-                {PUZZLES.map((p, i) => {
-                  const isDone = progress.solved.includes(p.id);
-                  const isCurrent = index === i;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => choose(i)}
-                      className={`w-full text-left p-2.5 rounded-lg flex items-center justify-between text-xs cursor-pointer border transition-colors ${
-                        isCurrent
-                          ? "bg-[#262626] border-[#AFF65B] text-[#AFF65B] font-semibold"
-                          : "bg-[#161616] hover:bg-[#222222] border-white/5 text-[#F4F4F4]"
-                      }`}
-                    >
-                      <span>
-                        {i + 1}. {p.name}
-                      </span>
-                      {isDone && (
-                        <span className="text-[#AFF65B] font-bold">✓</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </aside>
+        {/* Prototype Footer Note */}
+        <div className="text-center text-xs text-[#555555] pt-4">
+          DESIGN PROTOTYPE · Not live · Session numbers are illustrative · Proposed practice defaults
         </div>
       </div>
     </div>
