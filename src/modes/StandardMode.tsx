@@ -79,7 +79,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
           if (t <= 1) {
             setWinner('b');
             setResultReason('DEFEAT · TIME FORFEIT');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, currentBotElo, 'Standard Chess');
             return 0;
           }
           return t - 1;
@@ -90,7 +90,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
             setWinner('w');
             setResultReason('VICTORY · WON ON TIME');
             unlockAchievement('first-win');
-            recordGameResult('win');
+            recordGameResult('win', currentBot.name, currentBotElo, 'Standard Chess');
             return 0;
           }
           return t - 1;
@@ -185,7 +185,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
     clearPremoves();
     setWinner('b');
     setResultReason('DEFEAT · RESIGNED');
-    recordGameResult('loss');
+    recordGameResult('loss', currentBot.name, currentBotElo, 'Standard Chess');
   };
 
   const handleSquareClick = (sq: string) => {
@@ -246,9 +246,9 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
           if (chess.isCheckmate()) {
             setWinner('b');
             setResultReason('DEFEAT · CHECKMATE');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, currentBotElo, 'Standard Chess');
           } else if (chess.isDraw()) {
-            recordGameResult('draw');
+            recordGameResult('draw', currentBot.name, currentBotElo, 'Standard Chess');
           }
         }
       } catch (e) {

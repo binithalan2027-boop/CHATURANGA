@@ -44,7 +44,7 @@ export default function FogMode({ onExit, botElo, timeMinutes = 10 }: GameModePr
           if (t <= 1) {
             setWinner('b');
             setResultReason('DEFEAT · TIME FORFEIT');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, currentBotElo, 'Fog of War');
             return 0;
           }
           return t - 1;
@@ -55,7 +55,7 @@ export default function FogMode({ onExit, botElo, timeMinutes = 10 }: GameModePr
             setWinner('w');
             setResultReason('VICTORY · WON ON TIME');
             unlockAchievement('first-win');
-            recordGameResult('win');
+            recordGameResult('win', currentBot.name, currentBotElo, 'Fog of War');
             return 0;
           }
           return t - 1;
@@ -169,7 +169,7 @@ export default function FogMode({ onExit, botElo, timeMinutes = 10 }: GameModePr
     clearPremoves();
     setWinner('b');
     setResultReason('DEFEAT · RESIGNED');
-    recordGameResult('loss');
+    recordGameResult('loss', currentBot.name, currentBotElo, 'Fog of War');
   };
 
   const handleSquareClick = (sq: string) => {
@@ -230,9 +230,9 @@ export default function FogMode({ onExit, botElo, timeMinutes = 10 }: GameModePr
           if (chess.isCheckmate()) {
             setWinner('b');
             setResultReason('DEFEAT · CHECKMATE');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, currentBotElo, 'Fog of War');
           } else if (chess.isDraw()) {
-            recordGameResult('draw');
+            recordGameResult('draw', currentBot.name, currentBotElo, 'Fog of War');
           }
         }
       } catch (e) {

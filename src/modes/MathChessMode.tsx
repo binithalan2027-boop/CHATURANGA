@@ -197,10 +197,10 @@ export default function MathChessMode({
         setWinner(winningColor);
         if (winningColor === 'w') {
           setResultReason('VICTORY · CHECKMATE');
-          recordGameResult('win');
+          recordGameResult('win', currentBot.name, botElo, 'Chess MM (Mind Before Move)');
         } else {
           setResultReason('DEFEAT · CHECKMATE');
-          recordGameResult('loss');
+          recordGameResult('loss', currentBot.name, botElo, 'Chess MM (Mind Before Move)');
         }
       } else if (chess.isDraw()) {
         const reason = chess.isStalemate()
@@ -212,7 +212,7 @@ export default function MathChessMode({
               : 'DRAW · 50-MOVE RULE';
         setWinner('draw');
         setResultReason(reason);
-        recordGameResult('draw');
+        recordGameResult('draw', currentBot.name, botElo, 'Chess MM (Mind Before Move)');
       }
     }
   }, [chess]);
@@ -245,7 +245,7 @@ export default function MathChessMode({
     clearPremoves();
     setWinner('b');
     setResultReason('DEFEAT · RESIGNED');
-    recordGameResult('loss');
+    recordGameResult('loss', currentBot.name, botElo, 'Chess MM (Mind Before Move)');
   };
 
   // Reset casts count on turn arrival
@@ -281,7 +281,7 @@ export default function MathChessMode({
           if (t <= 1) {
             setWinner('b');
             setResultReason('DEFEAT · TIME FORFEIT');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, botElo, 'Chess MM (Mind Before Move)');
             return 0;
           }
           return t - 1;
@@ -292,7 +292,7 @@ export default function MathChessMode({
             setWinner('w');
             setResultReason('VICTORY · WON ON TIME');
             unlockAchievement('first-win');
-            recordGameResult('win');
+            recordGameResult('win', currentBot.name, botElo, 'Chess MM (Mind Before Move)');
             return 0;
           }
           return t - 1;

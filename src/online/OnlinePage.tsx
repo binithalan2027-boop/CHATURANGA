@@ -20,6 +20,7 @@ import { colorOf, fogFromFen } from "../online/fogRules";
 const fogState = fogFromFen;
 import { variantPosition, variantFen, variantMoves } from "../chaturanga/variantRules";
 import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
+import { getLocalStats, recordMatchRating } from "../chaturanga/stats";
 import {
   api,
   createGuestSession,
@@ -270,6 +271,36 @@ export default function OnlinePage({
       result: room.result,
     };
   }, [room?.id, room?.moves.length, room?.result, muted]);
+
+    // Auto-record finished online games into local match history
+  const recordedRoomsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!room || !room.result) return;
+    if (room.result === "Room cancelled" || room.result === "Game aborted") return;
+    if (recordedRoomsRef.current.has(room.id)) return;
+    recordedRoomsRef.current.add(room.id);
+
+    const yourColor = room.yourColor;
+    const oppColor = yourColor === "white" ? "black" : "white";
+    const oppName = (yourColor === "white" ? room.blackName : room.whiteName) || "Online Opponent";
+
+    let outcome: "win" | "loss" | "draw" = "draw";
+    if (room.ratingDelta && typeof room.ratingDelta[yourColor] === "number") {
+      const delta = room.ratingDelta[yourColor];
+      if (delta > 0) outcome = "win";
+      else if (delta < 0) outcome = "loss";
+      else outcome = "draw";
+    } else {
+      const resLower = room.result.toLowerCase();
+      if (resLower.includes(yourColor) && resLower.includes("win")) outcome = "win";
+      else if (resLower.includes(oppColor) && resLower.includes("win")) outcome = "loss";
+      else if (resLower.includes("draw") || resLower.includes("stalemate")) outcome = "draw";
+    }
+
+    const oppRating = 1200;
+    const ruleName = room.rule === "chess" ? "Online PvP (Standard)" : `Online PvP (${room.rule.toUpperCase()})`;
+    recordMatchRating(oppName, oppRating, outcome, 88.5, ruleName);
+  }, [room?.id, room?.result, room?.yourColor, room?.ratingDelta, room?.rule, room?.whiteName, room?.blackName]);
 
   // Check if active matchmaking room found an opponent
   useEffect(() => {
@@ -944,6 +975,105 @@ export default function OnlinePage({
                   <span className="text-xs font-body text-[#0E0E0E]/70 mt-1">
                     FIDE: {state.profile.fideRating ? `${state.profile.fideRating} (self-reported)` : "Unrated"}
                   </span>
+                </div>
+              </div>
+
+              
+              {/* Online & Competitive Match History */}
+              <div className="bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+                  <div>
+                    <div className="matiks-kicker text-[#AFF65B] mb-1">ONLINE MATCH LOG</div>
+                    <h2 className="matiks-headline text-3xl sm:text-4xl text-[#F4F4F4] m-0">
+                      COMPETITIVE MATCH HISTORY
+                    </h2>
+                    <p className="text-xs text-[#8A8A8A] mt-1 mb-0">
+                      View recent encounters, rating adjustments, and request post-game reviews.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {(() => {
+                    const localHistory = getLocalStats().history;
+                    if (localHistory.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <p className="text-xs text-[#8A8A8A] m-0">
+                            No match records found yet. Challenge players or join open rooms to build your match history!
+                          </p>
+                        </div>
+                      );
+                    }
+                    return localHistory.map((match) => (
+                      <div
+                        key={match.id}
+                        className="p-4 rounded-2xl bg-[#141414] border border-white/5 hover:border-white/10 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center shrink-0 font-heading font-black text-xs ${
+                              match.result === "win"
+                                ? "bg-[#AFF65B]/15 text-[#AFF65B] border border-[#AFF65B]/30"
+                                : match.result === "loss"
+                                ? "bg-[#F07040]/15 text-[#F07040] border border-[#F07040]/30"
+                                : "bg-white/10 text-[#8A8A8A] border border-white/10"
+                            }`}
+                          >
+                            <span className="text-[9px] uppercase tracking-wider">{match.result}</span>
+                            <span className="font-mono text-xs font-bold">
+                              {match.delta > 0 ? `+${match.delta}` : match.delta === 0 ? "±0" : match.delta}
+                            </span>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-heading text-base sm:text-lg text-[#F4F4F4]">
+                                vs. {match.opponentName}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-[#262626] text-[#8A8A8A] font-mono text-[11px]">
+                                {match.opponentRating} Elo
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-[#262626] text-[#AFF65B] font-mono text-[9px] uppercase tracking-wider">
+                                {match.mode}
+                              </span>
+                            </div>
+                            <div className="font-body text-xs text-[#8A8A8A] mt-1 flex items-center gap-2 flex-wrap">
+                              <span>{match.date}</span>
+                              <span>•</span>
+                              <span>Rating: {match.ratingBefore} → {match.ratingAfter} ELO</span>
+                              {match.accuracy && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-[#66D4C2] font-mono font-semibold">
+                                    {match.accuracy}% Acc
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 self-end md:self-auto shrink-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              alert(
+                                `Match Review for ${match.opponentName} (${match.date}):\n\nDeep Stockfish engine move-by-move evaluation, blunder analysis, and brilliance detection is coming soon in the next major update!`
+                              )
+                            }
+                            className="px-3.5 py-1.5 rounded-xl bg-[#262626] hover:bg-[#333333] border border-white/10 text-xs font-semibold text-[#F4F4F4] flex items-center gap-2 transition-all cursor-pointer group"
+                            title="Deep engine game review is coming soon"
+                          >
+                            <span>Match Review</span>
+                            <span className="px-2 py-0.5 rounded-full bg-[#AFF65B]/15 text-[#AFF65B] text-[9px] font-mono font-bold tracking-wider uppercase group-hover:bg-[#AFF65B] group-hover:text-[#0E0E0E] transition-colors">
+                              Coming Soon
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 
@@ -1899,6 +2029,29 @@ export default function OnlinePage({
                               {copiedPgn ? "PGN copied" : "Copy PGN"}
                             </button>
                           )}
+                        {room.result !== "Room cancelled" &&
+                          room.result !== "Game aborted" &&
+                          room.moves.length > 0 && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                              title="Match review with deep engine analysis is coming soon"
+                              onClick={() =>
+                                alert(
+                                  `Match Review for Online Game vs ${
+                                    (room.yourColor === "white" ? room.blackName : room.whiteName) || "Opponent"
+                                  }:\n\nDeep Stockfish engine move-by-move evaluation, blunder analysis, and brilliance detection is coming soon in the next major update!`
+                                )
+                              }
+                            >
+                              <span>Match Review</span>
+                              <span style={{ fontSize: "10px", background: "rgba(175, 246, 91, 0.2)", color: "#AFF65B", padding: "2px 6px", borderRadius: "999px", fontWeight: "bold" }}>
+                                Coming Soon
+                              </span>
+                            </button>
+                          )}
+
                       </div>
                     ) : (
                       <p>

@@ -44,7 +44,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
           if (t <= 1) {
             setWinner('b');
             setResultReason('DEFEAT · TIME FORFEIT');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, currentBotElo, 'Atomic Chess');
             return 0;
           }
           return t - 1;
@@ -55,7 +55,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
             setWinner('w');
             setResultReason('VICTORY · WON ON TIME');
             unlockAchievement('first-win');
-            recordGameResult('win');
+            recordGameResult('win', currentBot.name, currentBotElo, 'Atomic Chess');
             return 0;
           }
           return t - 1;
@@ -136,9 +136,9 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
         setWinner(winColor);
         if (winColor === 'w') {
           unlockAchievement('atomic-win');
-          recordGameResult('win');
+          recordGameResult('win', currentBot.name, currentBotElo, 'Atomic Chess');
         } else {
-          recordGameResult('loss');
+          recordGameResult('loss', currentBot.name, currentBotElo, 'Atomic Chess');
         }
       }
       chess.remove(s as Square);
@@ -190,7 +190,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
     clearPremoves();
     setWinner('b');
     setResultReason('DEFEAT · RESIGNED');
-    recordGameResult('loss');
+    recordGameResult('loss', currentBot.name, currentBotElo, 'Atomic Chess');
   };
 
   const handleSquareClick = (sq: string) => {
@@ -251,9 +251,9 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
           if (chess.isCheckmate()) {
             setWinner('b');
             setResultReason('DEFEAT · CHECKMATE');
-            recordGameResult('loss');
+            recordGameResult('loss', currentBot.name, currentBotElo, 'Atomic Chess');
           } else if (chess.isDraw()) {
-            recordGameResult('draw');
+            recordGameResult('draw', currentBot.name, currentBotElo, 'Atomic Chess');
           }
         }
       } catch (e) {

@@ -28,6 +28,21 @@ export interface LocalStats {
   history: RatingHistoryEntry[];
 }
 
+export const INITIAL_PLAYER_RATING = 1200;
+
+export function getRatingTier(elo: number): {
+  tier: string;
+  badgeColor: string;
+  description: string;
+} {
+  if (elo >= 2400) return { tier: "Grandmaster", badgeColor: "#FFD700", description: "Elite calculation & positional mastery" };
+  if (elo >= 2000) return { tier: "Candidate Master", badgeColor: "#AB97EE", description: "Tournament strength & deep preparation" };
+  if (elo >= 1600) return { tier: "Expert Tactician", badgeColor: "#65D1C1", description: "Sharp tactical vision & combinational sight" };
+  if (elo >= 1200) return { tier: "Club Player", badgeColor: "#AFF65B", description: "Standard competitive starting baseline (1200 Elo)" };
+  if (elo >= 800) return { tier: "Apprentice", badgeColor: "#F2D500", description: "Developing positional grasp & piece safety" };
+  return { tier: "Novice", badgeColor: "#8A8A8A", description: "Learning core fundamentals & opening rules" };
+}
+
 const STATS_STORAGE_KEY = "chaturanga_local_stats_v2";
 
 const DEFAULT_STATS: LocalStats = {
@@ -37,44 +52,44 @@ const DEFAULT_STATS: LocalStats = {
   gamesDrawn: 1,
   mindGateStreaks: 3,
   speedDuelsWon: 5,
-  currentRating: 1015,
-  peakRating: 1050,
+  currentRating: 1200,
+  peakRating: 1216,
   history: [
     {
       id: "game-1",
       date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10),
-      ratingBefore: 980,
-      ratingAfter: 996,
+      ratingBefore: 1184,
+      ratingAfter: 1200,
       delta: 16,
-      opponentName: "Aarav",
-      opponentRating: 1000,
+      opponentName: "Tactical Bot",
+      opponentRating: 1200,
       result: "win",
-      accuracy: 82.4,
+      accuracy: 86.4,
       mode: "Standard Chess",
     },
     {
       id: "game-2",
       date: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10),
-      ratingBefore: 996,
-      ratingAfter: 1000,
-      delta: 4,
-      opponentName: "Priya",
-      opponentRating: 1020,
-      result: "draw",
-      accuracy: 84.1,
-      mode: "Chess MM",
+      ratingBefore: 1200,
+      ratingAfter: 1216,
+      delta: 16,
+      opponentName: "Guest #4912",
+      opponentRating: 1200,
+      result: "win",
+      accuracy: 89.1,
+      mode: "Online PvP (Standard)",
     },
     {
       id: "game-3",
       date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-      ratingBefore: 1000,
-      ratingAfter: 1015,
-      delta: 15,
+      ratingBefore: 1216,
+      ratingAfter: 1200,
+      delta: -16,
       opponentName: "Aarav",
-      opponentRating: 1050,
-      result: "win",
-      accuracy: 89.2,
-      mode: "Chess MM",
+      opponentRating: 1200,
+      result: "loss",
+      accuracy: 82.5,
+      mode: "Chess MM (Mind Before Move)",
     },
   ],
 };
@@ -194,7 +209,12 @@ export function recordMatchRating(
   return { newRating, delta, stats: updated };
 }
 
-export function recordGameResult(outcome: "win" | "loss" | "draw"): LocalStats {
-  const res = recordMatchRating("Aarav", 1050, outcome);
+export function recordGameResult(
+  outcome: "win" | "loss" | "draw",
+  opponentName = "Tactical Bot",
+  opponentRating = 1200,
+  mode = "Standard Chess"
+): LocalStats {
+  const res = recordMatchRating(opponentName, opponentRating, outcome, 88.0, mode);
   return res.stats;
 }

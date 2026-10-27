@@ -13,24 +13,49 @@ export interface BotConfig {
   contempt: number;
   multiPv: number;
   blunderRate: number;
+  uciElo?: number;
 }
 
 export const AI_TIERS = [
-  { maxElo: 500, id: 'thrall', name: 'Novice', avatar: '🌱', desc: 'Learning the moves. Sacrifices pieces without reason.', contempt: -50, multiPv: 4, blunderRate: 0.6 },
-  { maxElo: 1000, id: 'fiend', name: 'Casual', avatar: '☕', desc: 'Erratic and unpredictable. Barely understands strategy.', contempt: -20, multiPv: 3, blunderRate: 0.4 },
-  { maxElo: 1500, id: 'mage', name: 'Club Player', avatar: '♟', desc: 'Aggressive and quick. Strikes fast, seeking early wins.', contempt: 100, multiPv: 3, blunderRate: 0.2 },
-  { maxElo: 2000, id: 'assassin', name: 'Tournament Player', avatar: '🎯', desc: 'Precise. Will punish every tactical blunder.', contempt: 50, multiPv: 2, blunderRate: 0.1 },
-  { maxElo: 2500, id: 'lich', name: 'Expert', avatar: '🏆', desc: 'Commands the board with absolute control.', contempt: 0, multiPv: 1, blunderRate: 0.05 },
-  { maxElo: 3000, id: 'voidweaver', name: 'Master', avatar: '🧠', desc: 'A deep tactical intelligence.', contempt: 0, multiPv: 1, blunderRate: 0.01 },
-  { maxElo: 3500, id: 'eldritch', name: 'Grandmaster', avatar: '👑', desc: 'Flawless execution. Resistance is futile.', contempt: 0, multiPv: 1, blunderRate: 0 }
+  { maxElo: 800, id: 'apprentice', name: 'Apprentice Bot', avatar: '🌱', desc: 'Learning fundamental lines & simple captures. Makes frequent novice oversights.', contempt: -40, multiPv: 4, blunderRate: 0.42 },
+  { maxElo: 1400, id: 'tactical', name: 'Tactical Bot', avatar: '♟', desc: 'Calculates forks, pins, and pawn structure. Solid 2-3 ply tactical awareness.', contempt: 25, multiPv: 3, blunderRate: 0.18 },
+  { maxElo: 2000, id: 'master', name: 'Master Bot', avatar: '🎯', desc: 'Relentless strategic pressure & king attacks. Punishes tactical mistakes decisively.', contempt: 50, multiPv: 2, blunderRate: 0.05 },
+  { maxElo: 2600, id: 'grandmaster', name: 'Grandmaster Bot', avatar: '🏆', desc: 'Deep calculation, positional sacrifices, and endgame precision.', contempt: 0, multiPv: 2, blunderRate: 0.01 },
+  { maxElo: 3500, id: 'stockfish', name: 'Stockfish Singular', avatar: '👑', desc: 'Inhuman calculation with near-zero blunders. Uncapped engine strength.', contempt: 0, multiPv: 1, blunderRate: 0 }
 ];
 
 export function getBotByElo(elo: number): BotConfig {
   const tier = AI_TIERS.find(t => elo <= t.maxElo) || AI_TIERS[AI_TIERS.length - 1];
   
-  const skillLevel = Math.max(0, Math.min(20, Math.floor((elo / 3500) * 20)));
-  const depth = Math.max(1, Math.min(20, Math.floor((elo / 3500) * 20)));
-  const moveTime = Math.max(50, Math.min(2000, Math.floor((elo / 3500) * 2000)));
+  // Accurately map Stockfish skill level & search depth based on calibrated human Elo:
+  let skillLevel: number;
+  let depth: number;
+  let moveTime: number;
+
+  if (elo <= 800) {
+    skillLevel = 0;
+    depth = 2;
+    moveTime = 300;
+  } else if (elo <= 1400) {
+    // 801-1400: Linear scaling 1-6
+    skillLevel = Math.round(1 + ((elo - 800) / 600) * 5);
+    depth = Math.round(3 + ((elo - 800) / 600) * 3);
+    moveTime = 650;
+  } else if (elo <= 2000) {
+    // 1401-2000: Linear scaling 7-13
+    skillLevel = Math.round(7 + ((elo - 1400) / 600) * 6);
+    depth = Math.round(7 + ((elo - 1400) / 600) * 5);
+    moveTime = 1200;
+  } else if (elo <= 2600) {
+    // 2001-2600: Linear scaling 14-18
+    skillLevel = Math.round(14 + ((elo - 2000) / 600) * 4);
+    depth = Math.round(13 + ((elo - 2000) / 600) * 4);
+    moveTime = 1600;
+  } else {
+    skillLevel = 20;
+    depth = 20;
+    moveTime = 2000;
+  }
 
   return {
     id: tier.id,
@@ -42,7 +67,8 @@ export function getBotByElo(elo: number): BotConfig {
     moveTime,
     contempt: tier.contempt,
     multiPv: tier.multiPv,
-    blunderRate: tier.blunderRate
+    blunderRate: tier.blunderRate,
+    uciElo: elo >= 1320 && elo <= 3190 ? elo : undefined,
   };
 }
 
@@ -242,7 +268,13 @@ export function useStockfish() {
       const w = workerRef.current!;
 
       w.postMessage('ucinewgame');
-      // Apply advanced Personality Options
+      // Apply calibrated Stockfish strength & personality options
+      if (bot.uciElo && bot.uciElo >= 1320 && bot.uciElo <= 3190) {
+        w.postMessage('setoption name UCI_LimitStrength value true');
+        w.postMessage(`setoption name UCI_Elo value ${bot.uciElo}`);
+      } else {
+        w.postMessage('setoption name UCI_LimitStrength value false');
+      }
       w.postMessage(`setoption name Skill Level value ${bot.skillLevel}`);
       w.postMessage(`setoption name Contempt value ${bot.contempt}`);
       w.postMessage(`setoption name MultiPV value ${bot.multiPv}`);
