@@ -3,6 +3,12 @@ import { parseAnswer } from "../math";
 import { emptyStore, drillStats, recordAttempt, type DrillStore } from "../drills";
 import { materialEval } from "../study";
 import { ACHIEVEMENTS, getAchievementProgress, isAchievementUnlocked } from "../achievements";
+import {
+  calculateEloDelta,
+  calculatePerformanceRating,
+  calculateAccuracyFromEvals,
+  recordMatchRating,
+} from "../stats";
 
 describe("Four Chaturanga Screens Logic", () => {
   describe("Screen 1: OpponentSearchScreen logic", () => {
@@ -71,6 +77,43 @@ describe("Four Chaturanga Screens Logic", () => {
       expect(maxSwing).toBeCloseTo(4.6, 1);
       // Move number: Math.ceil(4 / 2) = Move 2
       expect(Math.ceil(decisiveIndex / 2)).toBe(2);
+    });
+  });
+
+  describe("Rating Metrics & Progress Tracking", () => {
+    it("calculates Elo delta accurately according to FIDE / Chess.com formula", () => {
+      // Player 1000 vs Opponent 1050 (Underdog wins with K=26)
+      const winDelta = calculateEloDelta(1000, 1050, "win", 26);
+      expect(winDelta).toBe(15); // Exactly +15 as displayed in the spec mockup!
+
+      // Player 1015 vs Opponent 1050 (Loss with K=32)
+      const lossDelta = calculateEloDelta(1015, 1050, "loss", 32);
+      expect(lossDelta).toBeLessThan(0);
+      expect(lossDelta).toBeGreaterThanOrEqual(-20);
+    });
+
+    it("calculates Tournament Performance Rating (TPR)", () => {
+      const winPerf = calculatePerformanceRating(1050, "win");
+      expect(winPerf).toBe(1400); // Opponent rating + 350
+
+      const drawPerf = calculatePerformanceRating(1050, "draw");
+      expect(drawPerf).toBe(1050); // Equal to opponent
+    });
+
+    it("calculates CAPS Accuracy percentage from evaluation stability", () => {
+      // Solid winning game
+      const stableEvals = [0.1, 0.2, 0.4, 0.8, 1.5, 2.3, 3.5, 4.8, 5.0];
+      const acc = calculateAccuracyFromEvals(stableEvals);
+      expect(acc).toBeGreaterThanOrEqual(85.0);
+      expect(acc).toBeLessThanOrEqual(99.0);
+    });
+
+    it("records match rating and persists progression history", () => {
+      const res = recordMatchRating("Aarav", 1050, "win", 89.2, "Chess MM");
+      expect(res.newRating).toBeGreaterThanOrEqual(1000);
+      expect(res.stats.history.length).toBeGreaterThan(0);
+      expect(res.stats.history[0].opponentName).toBe("Aarav");
+      expect(res.stats.history[0].accuracy).toBe(89.2);
     });
   });
 

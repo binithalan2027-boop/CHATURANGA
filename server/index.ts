@@ -320,7 +320,7 @@ const server = createServer(async (req, res) => {
         return;
       }
 
-      const prompt = `You are an expert chess master coach. Explain this chess position or move in 1-2 clear, punchy sentences in plain English for a club player. Focus on the tactical or strategic objective (e.g. piece development, central control, king safety, open files, outpost, or tactical fork/pin).
+      const prompt = data.prompt ? String(data.prompt).slice(0, 2000) : `You are an expert chess master coach. Explain this chess position or move in 1-2 clear, punchy sentences in plain English for a club player. Focus on the tactical or strategic objective (e.g. piece development, central control, king safety, open files, outpost, or tactical fork/pin).
 FEN: ${String(data.fen || "").slice(0, 100)}
 ${data.san ? `Move played: ${String(data.san).slice(0, 10)}` : ""}
 ${data.bestMove ? `Engine suggested move: ${String(data.bestMove).slice(0, 10)}` : ""}
@@ -334,7 +334,7 @@ ${data.evaluation ? `Stockfish score: ${String(data.evaluation).slice(0, 30)}` :
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: 120, temperature: 0.3 },
+              generationConfig: { maxOutputTokens: 300, temperature: 0.3 },
             }),
           }
         );
