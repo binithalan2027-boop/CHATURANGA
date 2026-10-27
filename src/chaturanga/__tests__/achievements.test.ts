@@ -17,8 +17,9 @@ describe('Chaturanga Postage-Stamp Achievements Module', () => {
     clearAchievementsStore();
   });
 
-  it('defines 10 verified achievements matching the design spec', () => {
-    expect(ACHIEVEMENTS).toHaveLength(10);
+  it('defines verified achievements matching the design spec', () => {
+    expect(ACHIEVEMENTS.length).toBeGreaterThanOrEqual(41);
+    expect(ACHIEVEMENTS).toHaveLength(51);
     const ids = ACHIEVEMENTS.map(a => a.id);
     expect(ids).toContain('first-win');
     expect(ids).toContain('chess960-win');
@@ -35,7 +36,7 @@ describe('Chaturanga Postage-Stamp Achievements Module', () => {
 
     const progress = getAchievementProgress();
     expect(progress.unlocked).toBe(0);
-    expect(progress.total).toBe(10);
+    expect(progress.total).toBe(ACHIEVEMENTS.length);
     expect(progress.percentage).toBe(0);
   });
 
@@ -49,7 +50,7 @@ describe('Chaturanga Postage-Stamp Achievements Module', () => {
 
     const progress = getAchievementProgress();
     expect(progress.unlocked).toBe(1);
-    expect(progress.percentage).toBe(10);
+    expect(progress.percentage).toBe(Math.round((1 / ACHIEVEMENTS.length) * 100));
     expect(progress.bySet['Variant Set'].unlocked).toBe(1);
   });
 

@@ -28,6 +28,9 @@ import {
   signOut,
   subscribe,
   token,
+  LIVE_RENDER_SERVER_URL,
+  setForcedBaseUrl,
+  getActiveServerMode,
 } from "./client";
 import type { OnlineState, PlayerProfile, Provider, Rule } from "./types";
 import "./online.css";
@@ -134,7 +137,7 @@ export default function OnlinePage({
     void api<{ mode: string; providers: string[] }>("config")
       .then(setConfig)
       .catch((e) => setError(e.message));
-  }, []);
+  }, [revision]);
   useEffect(() => {
     let disposed = false;
     let off = () => {};
@@ -745,12 +748,22 @@ export default function OnlinePage({
             <p className="text-xs text-[#8A8A8A] max-w-md m-0">
               {notice || "Establishing connection with game server."}
             </p>
-            <div className="flex gap-3 mt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
               <button
                 onClick={() => setRevision((r) => r + 1)}
                 className="btn-lime py-2 px-4 text-xs font-bold cursor-pointer"
               >
                 Retry Connection
+              </button>
+              <button
+                onClick={() => {
+                  setForcedBaseUrl(LIVE_RENDER_SERVER_URL);
+                  setNotice("Connecting to Live Cloud Server…");
+                  setRevision((r) => r + 1);
+                }}
+                className="btn-raised py-2 px-4 text-xs font-semibold cursor-pointer text-[#AFF65B] border border-[#AFF65B]/30"
+              >
+                ☁ Connect to Cloud Server
               </button>
               {onPlayBot && (
                 <button
@@ -783,6 +796,10 @@ export default function OnlinePage({
                   {t === "play" ? "PvP Compete" : t === "friends" ? "Friends Sanctum" : "Player Profile"}
                 </button>
               ))}
+              <span className="text-[11px] font-mono font-semibold text-[#AFF65B] bg-[#262626] px-3 py-1.5 rounded-full border border-white/5 ml-auto flex items-center gap-1.5 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-pulse" />
+                {getActiveServerMode() === "cloud" ? "Cloud 24/7" : "Local 8787"}
+              </span>
               <button
                 onClick={() =>
                   void signOut().then(() => {
@@ -791,7 +808,7 @@ export default function OnlinePage({
                     setRevision((x) => x + 1);
                   })
                 }
-                className="py-2 px-4 rounded-full text-xs font-semibold bg-[#1A1A1A] text-[#8A8A8A] hover:text-[#FF8080] border border-white/5 cursor-pointer ml-auto"
+                className="py-2 px-4 rounded-full text-xs font-semibold bg-[#1A1A1A] text-[#8A8A8A] hover:text-[#FF8080] border border-white/5 cursor-pointer shrink-0"
               >
                 Sign out / New Guest
               </button>

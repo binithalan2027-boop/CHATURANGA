@@ -281,9 +281,16 @@ function AppContent() {
               | "atomic"
               | "math"
               | "matiks"
+              | "cross3"
+              | "cross4"
           }
           mathSubMode={mathSubMode}
-          onExit={() => setScreen("bot_select")}
+          onExit={() =>
+            setScreen(gameMode === "cross3" || gameMode === "cross4" ? "landing" : "bot_select")
+          }
+          onPlayOnline={() => {
+            setScreen("online");
+          }}
         />
       );
     }

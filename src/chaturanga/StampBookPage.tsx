@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ACHIEVEMENTS,
+  ACHIEVEMENT_SETS,
   getAchievementProgress,
   isAchievementUnlocked,
-  Achievement
+  Achievement,
 } from './achievements';
 import StampTile from './StampTile';
 
@@ -14,13 +15,15 @@ interface StampBookPageProps {
 
 export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
-  const progress = getAchievementProgress();
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const progress = useMemo(() => getAchievementProgress(), []);
 
-  const sets = [
-    { id: 'variant', name: 'Variant Set', desc: 'Rules from Fischer 960 to Atomic detonations' },
-    { id: 'chess-mm', name: 'Chess MM Set', desc: 'Mental mathematics, speed duels & spellcraft' },
-    { id: 'training', name: 'Training Set', desc: 'Tactical milestones, openings & mating sprints' },
-  ];
+  const sets = ACHIEVEMENT_SETS;
+
+  const filteredSets = useMemo(() => {
+    if (activeCategory === 'all') return sets;
+    return sets.filter((s) => s.id === activeCategory);
+  }, [activeCategory, sets]);
 
   return (
     <div className="w-full min-h-screen bg-[#0E0E0E] text-[#F4F4F4] pb-24 lg:pb-12">
@@ -51,7 +54,7 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
           </div>
 
           {/* Big fraction readout */}
-          <div className="flex items-center gap-4 bg-[#1A1A1A] border border-white/5 px-6 py-4 rounded-2xl">
+          <div className="flex items-center gap-4 bg-[#1A1A1A] border border-white/5 px-6 py-4 rounded-2xl shadow-lg">
             <div className="flex flex-col text-right">
               <span className="text-[10px] font-body uppercase tracking-wider text-[#8A8A8A]">COLLECTED</span>
               <div className="font-heading text-4xl leading-none">
@@ -71,7 +74,7 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
           <div className="flex items-center justify-between mb-4">
             <span className="matiks-kicker">MILESTONE TRAIL</span>
             <span className="font-body text-xs text-[#8A8A8A] hidden sm:inline">
-              Next milestone at {progress.unlocked < 4 ? '4' : progress.unlocked < 7 ? '7' : '10'} stamps
+              Progress: {progress.unlocked} of {progress.total} stamps collected
             </span>
           </div>
 
@@ -86,9 +89,10 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
 
               {[
                 { milestone: 1, label: 'First Blood' },
-                { milestone: 4, label: 'Variant Scout' },
-                { milestone: 7, label: 'Tactician' },
-                { milestone: 10, label: 'Grand Collector' },
+                { milestone: 10, label: 'Decathlete' },
+                { milestone: 25, label: 'Tactician' },
+                { milestone: 40, label: 'Grandmaster' },
+                { milestone: 51, label: 'Hall of Fame' },
               ].map((node) => {
                 const reached = progress.unlocked >= node.milestone;
                 return (
@@ -112,9 +116,47 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
           </div>
         </div>
 
+        {/* Category Tabs */}
+        <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeCategory === 'all'}
+            onClick={() => setActiveCategory('all')}
+            className={`py-2 px-4 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+              activeCategory === 'all'
+                ? 'bg-[#AFF65B] text-[#0E0E0E] font-bold'
+                : 'bg-[#1A1A1A] text-[#8A8A8A] hover:text-[#F4F4F4] border border-white/5'
+            }`}
+          >
+            All Stamps ({progress.unlocked}/{progress.total})
+          </button>
+          {sets.map((s) => {
+            const setAch = ACHIEVEMENTS.filter((a) => a.set === s.id);
+            const setUnlocked = setAch.filter((a) => isAchievementUnlocked(a.id)).length;
+            const isSelected = activeCategory === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setActiveCategory(s.id)}
+                className={`py-2 px-4 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#AFF65B] text-[#0E0E0E] font-bold'
+                    : 'bg-[#1A1A1A] text-[#8A8A8A] hover:text-[#F4F4F4] border border-white/5'
+                }`}
+              >
+                {s.name.replace(' Set', '')} ({setUnlocked}/{setAch.length})
+              </button>
+            );
+          })}
+        </div>
+
         {/* Sets Section */}
         <div className="flex flex-col gap-10">
-          {sets.map((s) => {
+          {filteredSets.map((s) => {
             const setAchievements = ACHIEVEMENTS.filter((a) => a.set === s.id);
             const setUnlocked = setAchievements.filter((a) => isAchievementUnlocked(a.id)).length;
             const setTotal = setAchievements.length;
@@ -158,15 +200,15 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
               READY TO EARN YOUR NEXT STAMP?
             </h3>
             <p className="font-body text-sm text-[#8A8A8A] mt-1">
-              Jump into a bot match, experiment with Fog of War, or test your speed in Chess MM.
+              Jump into 3 &amp; 4-player cross battle, experiment with Fog of War, or test your speed in Chess MM.
             </p>
           </div>
           {onPlay && (
             <button
               onClick={onPlay}
-              className="btn-lime px-8 py-3.5 text-sm uppercase font-semibold tracking-wider shrink-0"
+              className="btn-lime px-8 py-3.5 text-sm uppercase font-semibold tracking-wider shrink-0 cursor-pointer shadow-lg active:scale-95"
             >
-              Play Match
+              Play Match →
             </button>
           )}
         </div>
@@ -176,7 +218,7 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
       {selectedAchievement && (
         <div
           role="dialog"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
           onClick={() => setSelectedAchievement(null)}
         >
           <div
@@ -184,19 +226,14 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="matiks-kicker mb-2">{selectedAchievement.setName}</div>
-            <h3 className="font-heading text-2xl text-[#F4F4F4] mb-4">
+            <h3 className="font-heading text-2xl text-[#F4F4F4] mb-3">
               {selectedAchievement.title}
             </h3>
 
-            <div className="p-3 bg-[#262626] rounded-xl border border-white/10 my-2">
-              <img
-                src={
-                  isAchievementUnlocked(selectedAchievement.id)
-                    ? selectedAchievement.unlockedStampSvg
-                    : selectedAchievement.lockedStampSvg
-                }
-                alt={selectedAchievement.title}
-                className="w-36 h-48 object-contain"
+            <div className="my-2">
+              <StampTile
+                achievement={selectedAchievement}
+                size="lg"
               />
             </div>
 
@@ -214,12 +251,25 @@ export default function StampBookPage({ onPlay, onBack }: StampBookPageProps) {
               )}
             </div>
 
-            <button
-              onClick={() => setSelectedAchievement(null)}
-              className="btn-raised w-full py-2.5 text-xs uppercase tracking-wider font-semibold"
-            >
-              Close
-            </button>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setSelectedAchievement(null)}
+                className="btn-raised flex-1 py-2.5 text-xs uppercase tracking-wider font-semibold cursor-pointer"
+              >
+                Close
+              </button>
+              {onPlay && (
+                <button
+                  onClick={() => {
+                    setSelectedAchievement(null);
+                    onPlay();
+                  }}
+                  className="btn-lime flex-1 py-2.5 text-xs uppercase tracking-wider font-semibold cursor-pointer"
+                >
+                  Play To Earn →
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

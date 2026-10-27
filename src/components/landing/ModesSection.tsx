@@ -40,6 +40,24 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
       illustration: '/illustrations/pi.svg',
       desc: 'Solve rapid math equations to make moves and unleash Freeze & Jump spells.',
     },
+    {
+      id: 'cross3',
+      name: '3-PLAYER CROSS',
+      tagline: 'North runway · King capture elimination',
+      color: 'bento-yellow',
+      bgHex: '#F2D500',
+      illustration: '/illustrations/king.svg',
+      desc: 'Three armies clash on a 14x14 cross-grid with an open North runway. Capture kings to eliminate rivals.',
+    },
+    {
+      id: 'cross4',
+      name: '4-PLAYER CROSS',
+      tagline: 'Four-way free-for-all tactical war',
+      color: 'bento-coral',
+      bgHex: '#F07040',
+      illustration: '/illustrations/shield.svg',
+      desc: 'Four monarchs enter the cross arena from South, West, North, and East. Last army standing takes the crown.',
+    },
   ];
 
   return (
@@ -48,40 +66,40 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
       <div className="flex flex-col items-start mb-8">
         <div className="matiks-kicker mb-1">FEATURED COMBAT MODES</div>
         <h2 className="matiks-headline text-4xl sm:text-5xl text-[#F4F4F4]">
-          FIVE WAYS TO PLAY
+          SEVEN WAYS TO PLAY
         </h2>
         <p className="font-body text-sm text-[#8A8A8A] mt-1 max-w-xl">
-          From pure tactical calculation to explosive atomic blasts and mental arithmetic duels.
+          From pure tactical calculation and mental math to explosive atomic blasts and 3 &amp; 4-player cross-board battles.
         </p>
       </div>
 
-      {/* 4 Bento Mode Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* 6 Bento Mode Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {modes.map((mode) => (
           <div
             key={mode.id}
             onClick={() => onPlayMode?.(mode.id)}
-            className={`bento-card ${mode.color} p-6 sm:p-8 flex flex-col justify-between min-h-[220px] cursor-pointer shadow-xl relative overflow-hidden`}
+            className={`bento-card ${mode.color} p-6 sm:p-7 flex flex-col justify-between min-h-[230px] cursor-pointer shadow-xl relative overflow-hidden transition-transform hover:-translate-y-1`}
             style={{ backgroundColor: mode.bgHex }}
           >
             <div>
               <div className="flex items-start justify-between">
                 <div>
                   <h3
-                    className="matiks-headline text-3xl sm:text-4xl leading-none"
+                    className="matiks-headline text-2xl sm:text-3xl leading-none"
                     style={{ color: mode.id === 'math' ? '#F4F4F4' : '#0E0E0E' }}
                   >
                     {mode.name}
                   </h3>
                   <div
-                    className="font-body text-xs font-semibold mt-1"
+                    className="font-body text-[11px] font-semibold mt-1"
                     style={{ color: mode.id === 'math' ? '#AFF65B' : '#0E0E0E' }}
                   >
                     {mode.tagline}
                   </div>
                 </div>
 
-                <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+                <div className="w-14 h-14 shrink-0 flex items-center justify-center">
                   <img
                     src={mode.illustration}
                     alt={mode.name}
@@ -126,7 +144,7 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
             </p>
             <div className="flex items-center gap-4 mt-6">
               <span className="text-xs font-mono text-[#AFF65B] bg-[#262626] px-3 py-1.5 rounded-full border border-white/5">
-                10 COLLECTIBLE STAMPS
+                49 COLLECTIBLE STAMPS
               </span>
               <span className="text-xs font-mono text-[#F4F4F4]/70 bg-[#262626] px-3 py-1.5 rounded-full border border-white/5">
                 SAVED DEVICE-LOCALLY
