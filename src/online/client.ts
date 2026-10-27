@@ -8,6 +8,10 @@ export function getBaseUrl(): string {
     return import.meta.env.VITE_GAME_SERVER_URL;
   }
   if (typeof window !== "undefined") {
+    // If running on local dev machine, connect to local backend server
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://127.0.0.1:8787";
+    }
     // If running directly on a deployed domain (like onrender.com)
     if (window.location.origin.includes("onrender.com")) {
       return window.location.origin;

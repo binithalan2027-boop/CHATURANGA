@@ -98,10 +98,10 @@ export default function LearnPage({ onBack, onPlay }: LearnPageProps) {
         {/* Navigation Bar */}
         <div className="flex justify-between items-center mb-8 relative z-10">
           <button 
-            className="font-label-sm uppercase tracking-widest text-secondary hover:text-primary transition-colors flex items-center gap-2" 
+            className="font-body text-xs font-semibold uppercase tracking-widest text-[#8A8A8A] hover:text-[#AFF65B] transition-colors flex items-center gap-2 cursor-pointer bg-transparent border-0" 
             onClick={onBack}
           >
-            <span>←</span> Flee to Sanctuary
+            ← Return to Hub
           </button>
           <button 
             className="font-label-sm uppercase tracking-widest bg-primary text-bone-ivory px-6 py-3 rounded-lg hover:bg-primary/80 transition-colors shadow-[0_0_15px_theme(colors.primary)]" 

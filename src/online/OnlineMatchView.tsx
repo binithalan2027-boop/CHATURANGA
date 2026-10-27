@@ -5,23 +5,15 @@ import type { CustomView, CustomKind } from "./customTypes";
 import { formatClock, liveClock } from "./liveClock";
 import { lastMoveSquares, ruleLabel, timeControlLabel } from "./roomList";
 import { POWERS, type Power } from "../chaturanga/engine";
-import { validCell, crossMoves } from "./crossRules";
+import { crossGame, crossMoves, type Seat, type CrossState } from "./crossRules";
 import VariantBoard from "../chaturanga/VariantBoard";
 import FogBoard from "../chaturanga/FogBoard";
 import MatiksPiece from "../components/MatiksPiece";
+import MatiksCrossBoard, { SEAT_THEMES } from "./MatiksCrossBoard";
 import InGameChat from "./InGameChat";
 import { api } from "./client";
 import { variantPosition, variantMoves } from "../chaturanga/variantRules";
 import { parseUci } from "chessops/util";
-
-const glyph: Record<string, string> = {
-  p: "♟",
-  n: "♞",
-  b: "♝",
-  r: "♜",
-  q: "♛",
-  k: "♚",
-};
 
 const customNames: Record<CustomKind, string> = {
   mind: "Mind Before Move",
@@ -132,10 +124,18 @@ export default function OnlineMatchView({
     }
   }, [customChess, customFrom]);
 
+  // Cross mode state (supports both active and lobby setup preview)
+  const isCross = customRoom?.kind === "cross3" || customRoom?.kind === "cross4";
+  const crossState: CrossState | null =
+    customRoom?.cross ??
+    (isCross
+      ? crossGame(customRoom?.kind === "cross3" ? 3 : 4, 300000, Date.now())
+      : null);
+
   const crossLegalMoves = useMemo(() => {
-    if (!customRoom?.cross || typeof customFrom !== "number") return [];
-    return crossMoves(customRoom.cross, customFrom);
-  }, [customRoom?.cross, customFrom]);
+    if (!crossState || typeof customFrom !== "number") return [];
+    return crossMoves(crossState, customFrom);
+  }, [crossState, customFrom]);
 
   const customAct = (data: Record<string, unknown>) =>
     void run(async () => {
@@ -421,7 +421,8 @@ export default function OnlineMatchView({
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left/Center Column: Chess Arena */}
         <section className="lg:col-span-8 flex flex-col items-center">
-          {/* Opponent Card Bar */}
+          {/* Opponent Card Bar (for 2-player games only) */}
+          {!isCross && (
           <div className="w-full max-w-[720px] lg:max-w-[760px] mb-2 px-4 py-2.5 bg-[#181818] border border-white/10 rounded-2xl flex items-center justify-between shadow-md">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-500 flex items-center justify-center font-bold text-xs text-white shadow-inner">
@@ -455,6 +456,7 @@ export default function OnlineMatchView({
                   : "--:--"}
             </div>
           </div>
+          )}
 
           {/* Math Mode Active Challenge Banner (For Mind Before Move / Mantra Duel) */}
           {math && (
@@ -558,7 +560,7 @@ export default function OnlineMatchView({
           )}
 
           {/* THE CHESS BOARD CONTAINER */}
-          <div className="w-full max-w-[720px] lg:max-w-[760px] aspect-square bg-[#1A1A1A] p-2 sm:p-3 rounded-2xl border-2 border-white/10 shadow-2xl relative">
+          <div className={`w-full max-w-[720px] lg:max-w-[760px] ${customRoom?.cross ? "" : "aspect-square"} bg-[#1A1A1A] p-2 sm:p-3 rounded-2xl border-2 border-white/10 shadow-2xl relative`}>
             {/* Custom Math Mode Board (Mind Before Move / Mantra Duel) */}
             {math && customChess && (
               <div
@@ -635,39 +637,40 @@ export default function OnlineMatchView({
               </div>
             )}
 
-            {/* Custom Cross Board (Three/Four Player) */}
-            {customRoom?.cross && (
-              <div className="w-full h-full flex flex-col items-center justify-center overflow-auto p-2">
-                <div
-                  className="grid grid-cols-14 gap-0.5 bg-[#252525] p-1 rounded-xl"
-                  style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}
-                >
-                  {Array.from({ length: 196 }, (_, i) => {
-                    const r = Math.floor(i / 14);
-                    const c = i % 14;
-                    const p = customRoom.cross!.board[i];
-                    const isValid = validCell(r, c);
-                    const isSelected = customFrom === i;
-                    const isLegal = crossLegalMoves.includes(i);
-
-                    if (!isValid) return <span key={i} className="w-5 h-5 bg-transparent" />;
-
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleCustomSquareClick(i)}
-                        className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs font-bold rounded-sm cursor-pointer ${
-                          (r + c) % 2 ? "bg-[#333]" : "bg-[#555]"
-                        } ${isSelected ? "ring-2 ring-[#AFF65B]" : ""} ${
-                          isLegal ? "bg-[#AFF65B]/50" : ""
-                        }`}
-                      >
-                        {p ? glyph[p.kind] : isLegal ? "·" : ""}
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* Custom Cross Board (Three/Four Player) - Matiks Courtyard Redesign */}
+            {isCross && crossState && (
+              <div className="w-full flex flex-col items-center justify-center p-1 sm:p-2">
+                {customRoom?.status === "waiting" && (
+                  <div className="w-full max-w-[500px] mb-3 p-3 bg-[#1E2616] border border-[#AFF65B]/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[#AFF65B]">
+                          WAITING FOR PLAYERS ({customRoom.players.length}/{customRoom.capacity})
+                        </div>
+                        <div className="text-xs text-white/90">
+                          Share room code <code className="font-mono text-[#AFF65B] font-bold">{customRoom.id}</code> to invite opponents
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={copyInvite}
+                      className="btn-lime py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer shadow active:scale-95 shrink-0"
+                    >
+                      {copiedLink ? "✓ Copied!" : "📋 Copy Invite Link"}
+                    </button>
+                  </div>
+                )}
+                <MatiksCrossBoard
+                  cross={crossState}
+                  yourSeat={customRoom?.yourSeat || "south"}
+                  selectedSquare={typeof customFrom === "number" ? customFrom : null}
+                  legalDests={crossLegalMoves}
+                  onSquareClick={handleCustomSquareClick}
+                  players={customRoom?.players || []}
+                  isThreePlayer={customRoom?.kind === "cross3"}
+                />
               </div>
             )}
 
@@ -701,8 +704,9 @@ export default function OnlineMatchView({
             )}
           </div>
 
-          {/* Player Card Bar */}
-          <div className="w-full max-w-[720px] lg:max-w-[760px] mt-2 px-4 py-2.5 bg-[#181818] border border-white/10 rounded-2xl flex items-center justify-between shadow-md">
+          {/* Player Card Bar (for 2-player duels only; cross board has dedicated seat cards) */}
+          {!isCross && (
+            <div className="w-full max-w-[720px] lg:max-w-[760px] mt-2 px-4 py-2.5 bg-[#181818] border border-white/10 rounded-2xl flex items-center justify-between shadow-md">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#AFF65B] to-emerald-400 flex items-center justify-center font-bold text-xs text-black shadow-inner">
                 {yourName.slice(0, 1).toUpperCase()}
@@ -735,10 +739,44 @@ export default function OnlineMatchView({
                   : "--:--"}
             </div>
           </div>
+          )}
         </section>
 
         {/* Right Column: In-Game Live Chat & Moves Panel */}
-        <aside className="lg:col-span-4 flex flex-col h-[580px] bg-[#161616] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+        <aside className="lg:col-span-4 flex flex-col gap-3">
+          {/* Yellow Mode-Summary Tile for Cross Board */}
+          {isCross && (
+            <div className="p-4 bg-[#F2D500] text-[#0E0E0E] rounded-3xl shadow-xl flex items-center justify-between">
+              <div>
+                <span className="matiks-kicker text-[#0E0E0E]/70 text-[10px]">
+                  {customRoom?.status === "waiting" ? "LOBBY WAITING ROOM" : "COURTYARD ARENA"}
+                </span>
+                <h3 className="matiks-headline text-3xl m-0 leading-none text-[#0E0E0E]">
+                  {customRoom?.kind === "cross3" ? "THREE-PLAYER CHESS" : "FOUR-PLAYER CHESS"}
+                </h3>
+              </div>
+              <div className="font-mono text-xs font-bold px-3 py-1.5 bg-[#0E0E0E] text-[#AFF65B] rounded-xl shadow">
+                {customRoom?.players.length}/{customRoom?.capacity} SEATS
+              </div>
+            </div>
+          )}
+
+          {/* Large Lime Turn Pill */}
+          {isCross && crossState && (
+            <div className={`p-3.5 rounded-2xl font-heading text-lg tracking-wider uppercase text-center shadow-lg transition-all ${
+              isYourTurn
+                ? "bg-[#AFF65B] text-[#0E0E0E] shadow-[0_0_20px_rgba(175,246,91,0.4)] font-black"
+                : "bg-[#181818] text-[#888] border border-white/5"
+            }`}>
+              {customRoom?.status === "waiting"
+                ? "WAITING FOR OPPONENTS TO JOIN"
+                : isYourTurn
+                ? "YOUR MOVE"
+                : `${crossState.turn.toUpperCase()} TO MOVE`}
+            </div>
+          )}
+
+          <div className="flex flex-col h-[520px] bg-[#161616] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
           {/* Tabs Selector */}
           <div className="flex border-b border-white/10 bg-[#1D1D1D]">
             <button
@@ -789,25 +827,106 @@ export default function OnlineMatchView({
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
                   Match Details
                 </h4>
-                <div className="p-3 bg-[#1F1F1F] rounded-xl border border-white/5 space-y-1.5 text-xs text-[#CCC]">
-                  <div className="flex justify-between">
-                    <span className="text-[#777]">Mode</span>
+                <div className="p-3 bg-[#1F1F1F] rounded-xl border border-white/5 space-y-2 text-xs text-[#CCC]">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#888]">Mode</span>
                     <span className="font-semibold text-white">{title}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#777]">Turn</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#888]">Turn</span>
                     <span className="font-semibold text-[#AFF65B]">
-                      {isYourTurn ? "Your turn to move" : `${opponentName}'s turn`}
+                      {isYourTurn ? "Your turn to move" : `${customRoom?.cross ? customRoom.cross.turn.toUpperCase() + "'s turn" : opponentName + "'s turn"}`}
                     </span>
                   </div>
                   {standardRoom && (
-                    <div className="flex justify-between">
-                      <span className="text-[#777]">Total Moves</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#888]">Total Moves</span>
                       <span className="font-mono text-white">{standardRoom.moves.length}</span>
                     </div>
                   )}
+                  {isCross && crossState && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#888]">Lobby Seats</span>
+                        <span className="font-mono text-[#AFF65B]">
+                          {customRoom.players.length}/{customRoom.capacity} Seats Filled
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#888]">Turn Order</span>
+                        <span className="text-white text-[11px] font-medium">
+                          {customRoom.kind === "cross3" ? "Clockwise: South → West → East" : "Clockwise: South → West → North → East"}
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-white/5 text-[11px] text-[#888] leading-relaxed">
+                        ⚔️ <strong>House Rules:</strong> King capture eliminates seat army. Auto-queen on far arm. Last army standing wins.
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
+
+              {/* Your Move Card for Cross Board */}
+              {customRoom?.cross && isYourTurn && !isFinished && (
+                <div className="p-3.5 bg-[#1E2616] border border-[#AFF65B]/40 rounded-2xl shadow-lg">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
+                    <strong className="text-xs font-bold text-[#AFF65B] uppercase tracking-wider">
+                      Your Turn to Move ({customRoom.yourSeat.toUpperCase()})
+                    </strong>
+                  </div>
+                  <p className="text-xs text-[#E0E0E0] m-0">
+                    {typeof customFrom === "number" && customRoom.cross.board[customFrom]
+                      ? `Selected ${customRoom.cross.board[customFrom].kind.toUpperCase()} with ${crossLegalMoves.length} legal moves.`
+                      : `Select any of your ${customRoom.yourSeat} pieces to view legal moves.`}
+                  </p>
+                </div>
+              )}
+
+              {/* Cross Moves Notation with Seat Swatches */}
+              {customRoom?.cross && customRoom.cross.moves.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
+                    Played Moves ({customRoom.cross.moves.length})
+                  </h4>
+                  <div className="space-y-1.5 max-h-[240px] overflow-y-auto p-2.5 bg-[#121212] rounded-xl border border-white/5 text-xs font-mono">
+                    {customRoom.cross.moves.map((m, idx) => {
+                      const isElim = m.includes("eliminated");
+                      const seatMatch = m.match(/^(south|west|north|east)/);
+                      const seat = (seatMatch ? seatMatch[1] : "") as Seat;
+                      const seatTheme = seat ? SEAT_THEMES[seat] : null;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${
+                            isElim
+                              ? "bg-[#E5484D]/15 text-[#FF8080] border border-[#E5484D]/30 font-bold"
+                              : "bg-[#181818] text-[#E0E0E0] border border-white/5"
+                          }`}
+                        >
+                          <span className="text-[#666] text-[10px] w-5 shrink-0">
+                            {idx + 1}.
+                          </span>
+                          {seatTheme && (
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: seatTheme.color }}
+                            />
+                          )}
+                          <span
+                            className="font-bold text-[11px] uppercase tracking-wider shrink-0"
+                            style={{ color: seatTheme ? seatTheme.color : undefined }}
+                          >
+                            {seat}
+                          </span>
+                          <span className="truncate">{m.replace(/^(south|west|north|east)\s*/, "")}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Moves Notation */}
               {standardRoom && standardRoom.moves.length > 0 && (
@@ -847,6 +966,7 @@ export default function OnlineMatchView({
               )}
             </div>
           )}
+        </div>
         </aside>
       </main>
 

@@ -1,4 +1,3 @@
-import { usePreferences } from "./preferences";
 
 export type NavTab = 'home' | 'play' | 'bots' | 'study' | 'training' | 'learn' | 'tournaments' | 'stamps' | 'profile' | 'drills' | 'online';
 
@@ -36,7 +35,6 @@ export default function ProductNav({
   onLogin,
   onLogout,
 }: ProductNavProps) {
-  const { open } = usePreferences();
 
   const navItems = [
     { id: 'home', label: 'Home', icon: '/icons/home.svg', action: onHome },
@@ -55,30 +53,6 @@ export default function ProductNav({
       {/* Top Header Bar */}
       <header className="sticky top-0 z-40 w-full h-16 bg-[#1A1A1A] border-b border-white/5 px-4 lg:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            onClick={onHome}
-            className="flex items-baseline gap-2 bg-transparent border-none cursor-pointer p-0 text-left"
-          >
-            <span className="font-heading text-2xl lg:text-3xl tracking-wider text-[#F4F4F4]">
-              CHATURANGA
-            </span>
-            <span className="hidden sm:inline-block font-body text-[10px] font-semibold tracking-[2px] text-[#AFF65B] uppercase">
-              CHESS. REIMAGINED.
-            </span>
-          </button>
-        </div>
-
-        {/* User profile / session pill & Lime Action */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={open}
-            title="Open board settings"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-body text-[#8A8A8A] hover:text-[#F4F4F4] bg-[#262626] border border-white/5 py-1.5 px-3 rounded-full cursor-pointer transition-colors"
-          >
-            <img src="/icons/gear.svg" alt="" className="w-3.5 h-3.5 opacity-70" />
-            <span>Settings</span>
-          </button>
-
           {user ? (
             <div className="flex items-center gap-2 bg-[#262626] border border-white/5 py-1.5 px-3 rounded-full">
               <span className="w-2 h-2 rounded-full bg-[#AFF65B]" />

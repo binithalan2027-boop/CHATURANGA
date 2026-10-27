@@ -2,21 +2,25 @@ import React from "react";
 
 export interface MatiksPieceProps {
   type: string; // 'p' | 'n' | 'b' | 'r' | 'q' | 'k' (or 'P', 'N', etc.)
-  color: string; // 'w' | 'b' (or 'white', 'black')
+  color?: string; // 'w' | 'b' (or 'white', 'black')
   className?: string;
   style?: React.CSSProperties;
+  customColor?: string;
+  detailColor?: string;
 }
 
 export default function MatiksPiece({
   type,
-  color,
+  color = "w",
   className = "",
   style,
+  customColor,
+  detailColor,
 }: MatiksPieceProps) {
   const t = type.toLowerCase();
   const isWhite = color === "w" || color === "white";
-  const mainColor = isWhite ? "#FAFAFA" : "#1B1B1B";
-  const accentColor = isWhite ? "#1B1B1B" : "#FAFAFA";
+  const mainColor = customColor ?? (isWhite ? "#FAFAFA" : "#1B1B1B");
+  const accentColor = detailColor ?? (isWhite ? "#1B1B1B" : "#FAFAFA");
 
   return (
     <svg

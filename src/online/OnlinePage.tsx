@@ -31,7 +31,25 @@ import {
 } from "./client";
 import type { OnlineState, PlayerProfile, Provider, Rule } from "./types";
 import "./online.css";
-import CustomRoomPanel from "./CustomRoomPanel";
+// Unified Custom & Variant Modes
+const UNIFIED_MODES: Array<{ id: string; name: string; summary: string; category: "custom" | "variant" }> = [
+  // Custom & Multi-Player
+  { id: "mind", name: "Chess MM (Mind Before Move)", summary: "Solve mental math challenges to unlock chess moves and cast spell drops.", category: "custom" },
+  { id: "mantra", name: "Mantra Duel", summary: "Fast-paced tactical chess duel with magical powers & spell cards every 90 seconds.", category: "custom" },
+  { id: "cross3", name: "3-Player Cross-Board", summary: "Three-player battle on an expanded cross board with king-capture rules. North arm open runway.", category: "custom" },
+  { id: "cross4", name: "4-Player Cross-Board", summary: "Four-player free-for-all battlefield. Capture kings, eliminate rivals, last army standing wins.", category: "custom" },
+  // Classic & Rule Variants
+  { id: "chess", name: "Standard Chess", summary: "Checkmate the opposing king under classic FIDE rules.", category: "variant" },
+  { id: "fog", name: "Fog of War", summary: "See only what you can reach. Enemy pieces stay hidden until capturable - take the king to win.", category: "variant" },
+  { id: "chess960", name: "Chess960", summary: "Fischer Random setup with shuffled back rank every game.", category: "variant" },
+  { id: "atomic", name: "Atomic Chess", summary: "Captures cause violent 3x3 explosions destroying adjacent pieces.", category: "variant" },
+  { id: "crazyhouse", name: "Crazyhouse", summary: "Captured pieces join your pocket. Drop them on legal squares.", category: "variant" },
+  { id: "kingofthehill", name: "King of the Hill", summary: "Win by reaching d4, e4, d5 or e5 with your king, or by checkmate.", category: "variant" },
+  { id: "3check", name: "Three-Check Chess", summary: "Win by giving three checks, or checkmate.", category: "variant" },
+  { id: "antichess", name: "Antichess", summary: "Captures are compulsory. Shed your pieces; kings are not royal.", category: "variant" },
+  { id: "horde", name: "Horde Chess", summary: "White has a pawn horde; Black has a standard army.", category: "variant" },
+  { id: "racingkings", name: "Racing Kings", summary: "Race kings to the eighth rank without giving check.", category: "variant" },
+];
 import ReportPanel from "./ReportPanel";
 import OnlineMatchView from "./OnlineMatchView";
 import OpponentSearchScreen from "./OpponentSearchScreen";
@@ -83,9 +101,6 @@ export default function OnlinePage({
     [muted, setMuted] = useState(
       () => localStorage.getItem("chaturanga-muted") === "1",
     ),
-    [hintsOff, setHintsOff] = useState(
-      () => localStorage.getItem("chaturanga-hints-dismissed") === "1",
-    ),
     [reviewPly, setReviewPly] = useState<number | null>(null),
     [premove, setPremove] = useState<string | null>(null),
     [confirmResign, setConfirmResign] = useState(false),
@@ -96,6 +111,9 @@ export default function OnlinePage({
     [matchmaking, setMatchmaking] = useState(false),
     [isMatchFound, setIsMatchFound] = useState(false),
     [matchViewRoom, setMatchViewRoom] = useState<string | null>(null),
+    [selectedCustomRoomId, setSelectedCustomRoomId] = useState<string | null>(null),
+    [inCustomMatchScreen, setInCustomMatchScreen] = useState(false),
+    [unifiedMode, setUnifiedMode] = useState<string>("chess"),
     [, setTickTs] = useState(0);
   // Local clock baseline: re-anchored whenever the server sends a new
   // board version, then decremented locally so clocks tick smoothly.
@@ -608,9 +626,36 @@ export default function OnlinePage({
     );
   }
 
+  const activeCustomRoom = state?.customRooms?.find((r) => r.id === selectedCustomRoomId);
+  if (inCustomMatchScreen && activeCustomRoom && state) {
+    return (
+      <OnlineMatchView
+        customRoom={activeCustomRoom}
+        currentUserId={state.profile.id}
+        run={run}
+        busy={busy}
+        onExit={() => {
+          setInCustomMatchScreen(false);
+          setSelectedCustomRoomId(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8">
       <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
+        {/* Hub Back Navigation Row */}
+        <div className="flex items-center justify-between pb-4 border-b border-white/5">
+          <button
+            onClick={onExit}
+            className="flex items-center gap-2 text-[#8A8A8A] hover:text-[#AFF65B] font-body text-xs font-semibold uppercase tracking-widest bg-transparent border-none cursor-pointer transition-colors"
+          >
+            ← Return to Hub
+          </button>
+          <div className="hidden sm:block matiks-kicker">ONLINE MULTIPLAYER ARENA</div>
+        </div>
+
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-6">
           <div>
@@ -761,187 +806,305 @@ export default function OnlinePage({
               </p>
             )}
           {tab === "profile" && profile && (
-            <section className="online-card">
-              <div className="flex items-center justify-between mb-4">
-                <h2>{user?.name || state.profile.displayName}</h2>
-                {user ? (
-                  <span className="px-2.5 py-1 rounded-full bg-[#AFF65B]/20 text-[#AFF65B] text-xs font-mono">
-                    Signed in: {user.email}
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-full bg-[#262626] text-[#8A8A8A] text-xs font-mono">
-                      Guest Player
+            <div className="space-y-6">
+              {/* Hero Profile Banner matching ProfilePage.tsx */}
+              <div className="relative rounded-3xl bg-[#F07040] text-[#0E0E0E] p-6 sm:p-10 overflow-hidden shadow-2xl bg-diagonal-stripes">
+                <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
+                  {/* Avatar Circle with Knight illustration */}
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#F4F4F4] border-4 border-[#0E0E0E] flex items-center justify-center p-3 shadow-xl shrink-0">
+                    <img
+                      src="/illustrations/knight.svg"
+                      alt="Avatar"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  {/* Profile Info */}
+                  <div className="flex flex-col text-center sm:text-left">
+                    <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
+                      <h1 className="matiks-headline text-4xl sm:text-6xl text-[#0E0E0E] leading-none m-0">
+                        {user?.name || state.profile.displayName}
+                      </h1>
+                      {user ? (
+                        <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-[#AFF65B] text-xs font-mono font-bold">
+                          Signed in: {user.email}
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-full bg-[#0E0E0E]/80 text-white text-xs font-mono">
+                            Guest Player
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void login("google")}
+                            className="btn-lime py-1 px-3 text-xs font-bold cursor-pointer"
+                          >
+                            Sign in with Google
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <span className="font-body text-sm font-semibold text-[#0E0E0E]/80 mt-1">
+                      @{profile.username} • Provisional Rating: {state.profile.rating ?? 1200} Elo
                     </span>
+                    <span className="font-body text-xs text-[#0E0E0E]/60 mt-0.5">
+                      Online competitive account • Server authoritative
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Bento Stat Tiles matching ProfilePage.tsx */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                {/* Tile 1: Rating (Yellow) */}
+                <div className="bento-card bento-yellow p-6 sm:p-8 flex flex-col justify-between min-h-[150px] rounded-3xl shadow-xl">
+                  <span className="matiks-kicker text-[#0E0E0E]/80 tracking-[2px]">CHATURANGA RATING</span>
+                  <div className="font-heading text-5xl sm:text-6xl leading-none text-[#0E0E0E] mt-3">
+                    {state.profile.rating ?? 1200}
+                  </div>
+                  <span className="text-xs font-body text-[#0E0E0E]/70 mt-1">
+                    Provisional private-match Elo
+                  </span>
+                </div>
+
+                {/* Tile 2: Games (Lavender) */}
+                <div className="bento-card bento-lavender p-6 sm:p-8 flex flex-col justify-between min-h-[150px] rounded-3xl shadow-xl">
+                  <span className="matiks-kicker text-[#0E0E0E]/80 tracking-[2px]">GAMES PLAYED</span>
+                  <div className="font-heading text-5xl sm:text-6xl leading-none text-[#0E0E0E] mt-3">
+                    {state.profile.games}
+                  </div>
+                  <span className="text-xs font-body text-[#0E0E0E]/70 mt-1">
+                    {state.profile.wins}W · {state.profile.draws}D · {state.profile.losses}L
+                  </span>
+                </div>
+
+                {/* Tile 3: Win Rate (Teal) */}
+                <div className="bento-card bento-teal p-6 sm:p-8 flex flex-col justify-between min-h-[150px] rounded-3xl shadow-xl">
+                  <span className="matiks-kicker text-[#0E0E0E]/80 tracking-[2px]">ONLINE WIN RATE</span>
+                  <div className="font-heading text-5xl sm:text-6xl leading-none text-[#0E0E0E] mt-3">
+                    {state.profile.games > 0 ? Math.round((state.profile.wins / state.profile.games) * 100) : 0}%
+                  </div>
+                  <span className="text-xs font-body text-[#0E0E0E]/70 mt-1">
+                    FIDE: {state.profile.fideRating ? `${state.profile.fideRating} (self-reported)` : "Unrated"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Profile Settings Form Card */}
+              <div className="bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div>
+                  <div className="matiks-kicker mb-1">PLAYER IDENTITY</div>
+                  <h2 className="matiks-headline text-3xl sm:text-4xl text-[#F4F4F4] m-0">
+                    PROFILE SETTINGS & DISCOVERY
+                  </h2>
+                  <p className="text-xs text-[#8A8A8A] mt-1 mb-0 max-w-xl">
+                    Configure your display name, username, and discovery preferences for online match invites.
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void run(() => api("profile", profile));
+                  }}
+                  className="space-y-5"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                        Username
+                      </label>
+                      <input
+                        required
+                        aria-label="Username"
+                        minLength={3}
+                        maxLength={24}
+                        value={profile.username}
+                        onChange={(e) =>
+                          setProfile({ ...profile, username: e.target.value })
+                        }
+                        className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                      />
+                      <small className="text-[10px] text-[#777] mt-1 block">
+                        Exact username search only. No email search.
+                      </small>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                        Display name
+                      </label>
+                      <input
+                        required
+                        maxLength={40}
+                        value={profile.displayName}
+                        onChange={(e) =>
+                          setProfile({ ...profile, displayName: e.target.value })
+                        }
+                        className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                      About you (optional)
+                    </label>
+                    <textarea
+                      maxLength={160}
+                      rows={3}
+                      value={profile.bio}
+                      onChange={(e) =>
+                        setProfile({ ...profile, bio: e.target.value })
+                      }
+                      className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                        Country code (optional)
+                      </label>
+                      <input
+                        maxLength={2}
+                        placeholder="IN"
+                        value={profile.country}
+                        onChange={(e) =>
+                          setProfile({ ...profile, country: e.target.value })
+                        }
+                        className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none uppercase"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                        Timezone
+                      </label>
+                      <input
+                        value={profile.timezone}
+                        onChange={(e) =>
+                          setProfile({ ...profile, timezone: e.target.value })
+                        }
+                        className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                        FIDE rating (optional)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={4000}
+                        placeholder="e.g. 1500"
+                        value={profile.fideRating ?? ""}
+                        onChange={(e) =>
+                          setProfile({
+                            ...profile,
+                            fideRating: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          })
+                        }
+                        className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-[#222222] border border-white/5 rounded-2xl space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={profile.discoverable}
+                        onChange={(e) =>
+                          setProfile({ ...profile, discoverable: e.target.checked })
+                        }
+                        className="w-4 h-4 rounded accent-[#AFF65B] cursor-pointer"
+                      />
+                      <span className="text-xs text-[#E0E0E0] font-medium select-none">
+                        Allow players who know my exact username to find me and send match challenges.
+                      </span>
+                    </label>
+
+                    {state.mode !== "local" && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          required
+                          checked={profile.adultConfirmed}
+                          onChange={(e) =>
+                            setProfile({ ...profile, adultConfirmed: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded accent-[#AFF65B] cursor-pointer"
+                        />
+                        <span className="text-xs text-[#E0E0E0] font-medium select-none">
+                          I am 18 or older (public beta safeguard pending audience review).
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  <button
+                    disabled={busy}
+                    type="submit"
+                    className="py-3.5 px-8 bg-[#AFF65B] hover:bg-white text-black font-extrabold text-sm rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <span>✓ Save Profile</span>
+                  </button>
+                </form>
+
+                <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <p className="text-[11px] text-[#777] m-0 max-w-lg leading-relaxed">
+                    Account ID, display name, and match history are stored in the server database. Sign-in credentials remain with your OAuth provider.
+                  </p>
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => void login("google")}
-                      className="btn-lime py-1 px-3 text-xs font-bold cursor-pointer"
+                      type="button"
+                      onClick={() => void download()}
+                      className="px-3.5 py-2 rounded-xl bg-[#252525] hover:bg-[#333] text-white text-xs font-semibold border border-white/10 cursor-pointer"
                     >
-                      Sign in with Google
+                      Export Game Data
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            "Delete your player profile and friendships? Game history is anonymized and your game sign-in identity is removed. This cannot be undone.",
+                          )
+                        )
+                          void run(async () => {
+                            const r = await api<{ authIdentity?: string }>(
+                              "delete",
+                              {},
+                            );
+                            await signOut();
+                            setState(null);
+                            setProfile(null);
+                            if (r.authIdentity === "manual-step-required")
+                              setNotice(
+                                "Profile deleted. The operator still needs to remove your sign-in identity by hand.",
+                              );
+                            else if (r.authIdentity === "failed")
+                              setNotice(
+                                "Profile deleted. Sign-in identity removal failed; the operator will retry.",
+                              );
+                            setRevision((x) => x + 1);
+                          });
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-[#252525] hover:bg-red-950/60 text-[#FF8080] text-xs font-semibold border border-red-500/20 cursor-pointer"
+                    >
+                      Delete Profile
                     </button>
                   </div>
-                )}
+                </div>
               </div>
-              <p>
-                Chaturanga rating: {state.profile.rating ?? 1200} (provisional
-                private-match Elo, standard chess only). {state.profile.games}{" "}
-                {state.profile.games === 1 ? "game" : "games"} ·{" "}
-                {state.profile.wins} wins · {state.profile.draws} draws ·{" "}
-                {state.profile.losses} losses
-              </p>
-              {state.entitlement && (
-                <p role="status">
-                  {state.entitlement.unlocked
-                    ? "Online play unlocked. Thank you."
-                    : `Free online games left: ${state.entitlement.remaining}. Unlocks are not on sale yet - the owner has not chosen a payment model.`}
-                </p>
-              )}
-              <p>
-                FIDE:{" "}
-                {state.profile.fideRating
-                  ? `${state.profile.fideRating} (self-reported, not verified)`
-                  : "Not supplied / unrated"}
-                . App ratings are not FIDE ratings.
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void run(() => api("profile", profile));
-                }}
-                className="online-form"
-              >
-                <label>
-                  Username
-                  <input
-                    required
-                    aria-label="Username"
-                    minLength={3}
-                    maxLength={24}
-                    value={profile.username}
-                    onChange={(e) =>
-                      setProfile({ ...profile, username: e.target.value })
-                    }
-                  />
-                  <small>Exact username search only. No email search.</small>
-                </label>
-                <label>
-                  Display name
-                  <input
-                    required
-                    maxLength={40}
-                    value={profile.displayName}
-                    onChange={(e) =>
-                      setProfile({ ...profile, displayName: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  About you (optional)
-                  <textarea
-                    maxLength={160}
-                    value={profile.bio}
-                    onChange={(e) =>
-                      setProfile({ ...profile, bio: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Country code (optional)
-                  <input
-                    maxLength={2}
-                    placeholder="IN"
-                    value={profile.country}
-                    onChange={(e) =>
-                      setProfile({ ...profile, country: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Timezone
-                  <input
-                    value={profile.timezone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, timezone: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  FIDE rating (optional, self-reported)
-                  <input
-                    type="number"
-                    min={1}
-                    max={4000}
-                    value={profile.fideRating ?? ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        fideRating: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      })
-                    }
-                  />
-                </label>
-                <label className="online-check">
-                  <input
-                    type="checkbox"
-                    checked={profile.discoverable}
-                    onChange={(e) =>
-                      setProfile({ ...profile, discoverable: e.target.checked })
-                    }
-                  />
-                  Allow people who know my exact username to find me and send a
-                  friend request.
-                </label>
-                {state.mode !== "local" && <label className="online-check"><input type="checkbox" required checked={profile.adultConfirmed} onChange={e=>setProfile({...profile,adultConfirmed:e.target.checked})}/>I am 18 or older (public beta safeguard pending audience review).</label>}
-                {state.mode === "local" && <p>Local test profile. No age gate; use invented test data, not children's information.</p>}
-                <button disabled={busy}>Save profile</button>
-              </form>
-              <hr />
-              <p>
-                Stored: player ID, username, display name, optional
-                bio/country/FIDE, timezone, discovery choice, profile readiness (and age confirmation only if applicable), game results, friendships and blocks. Your email
-                and OAuth credentials are not stored in this game database. Your
-                sign-in provider keeps its own identity record.
-              </p>
-              <div className="online-actions">
-                <button onClick={() => void download()}>
-                  Export my game data
-                </button>
-                <button
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Delete your player profile and friendships? Game history is anonymized and your game sign-in identity is removed. This cannot be undone.",
-                      )
-                    )
-                      void run(async () => {
-                        const r = await api<{ authIdentity?: string }>(
-                          "delete",
-                          {},
-                        );
-                        await signOut();
-                        setState(null);
-                        setProfile(null);
-                        if (r.authIdentity === "manual-step-required")
-                          setNotice(
-                            "Profile deleted. The operator still needs to remove your sign-in identity by hand.",
-                          );
-                        else if (r.authIdentity === "failed")
-                          setNotice(
-                            "Profile deleted. Sign-in identity removal failed; the operator will retry.",
-                          );
-                        setRevision((x) => x + 1);
-                      });
-                  }}
-                >
-                  Delete player profile
-                </button>
-              </div>
-            </section>
+            </div>
           )}
           {tab === "friends" && (
-            <div className="online-grid">
+            <div className={room && (pos || isFog) ? "online-grid" : "w-full"}>
               <section className="online-card">
                 <div className="section-kicker">INSTANT MATCH</div>
                 <h2>Play via Private Room Code</h2>
@@ -1123,146 +1286,346 @@ export default function OnlinePage({
               </div>
             </div>
           )}
-          {tab === "play" && <CustomRoomPanel rooms={state.customRooms ?? []} run={run} />}
           {tab === "play" && (
-            <div className="online-grid">
-              <section className="online-card">
-                <h2>Create or join a game</h2>
-                <div className="online-form">
-                  <label>
-                    Variant
-                    <select
-                      aria-label="Variant"
-                      value={rule}
-                      onChange={(e) => setRule(e.target.value as Rule)}
-                    >
-                      <option value="fog">
-                        Fog of War (house rules: capture the king)
-                      </option>
-                      {RULE_VARIANTS.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p className="fine-print online-variant-summary" aria-live="polite">
-                    {rule === "fog"
-                      ? "Enemy pieces stay hidden until you can capture them - take the king to win."
-                      : (RULE_VARIANTS.find((v) => v.id === rule)?.summary ??
-                        "")}
-                  </p>
-                  <label>
-                    Time per side
-                    <select
-                      aria-label="Time per side"
-                      value={`${minutes}|${increment}`}
-                      onChange={(e) => {
-                        const [m, i] = e.target.value.split("|").map(Number);
-                        setMinutes(m);
-                        setIncrement(i);
-                      }}
-                    >
-                      {[
-                        [3, 0],
-                        [3, 2],
-                        [5, 0],
-                        [5, 3],
-                        [10, 0],
-                        [10, 5],
-                        [15, 10],
-                      ].map(([m, i]) => (
-                        <option key={`${m}|${i}`} value={`${m}|${i}`}>
-                          {m} minutes{i > 0 ? ` + ${i}s per move` : ", no increment"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    disabled={busy || (state.mode !== "local" && !state.profile.adultConfirmed && !state.profile.profileReady)}
-                    onClick={() => challenge()}
-                  >
-                    {busy ? "Creating room…" : "Create private room"}
-                  </button>
-                  {room && room.status === "waiting" && room.white === state.profile.id && (
-                    <div className="p-3 my-2 rounded-xl bg-[#1E2616] border border-[#AFF65B]/40 text-xs">
-                      <div className="flex items-center justify-between font-bold text-[#AFF65B] mb-1">
-                        <span>🟢 PRIVATE ROOM CREATED</span>
-                        <span className="font-mono text-white text-xs bg-black/60 px-2 py-0.5 rounded border border-[#AFF65B]/20">
-                          {room.id}
-                        </span>
+            <div className="space-y-6 mb-6">
+              {/* Unified 2-Card Row: Create Private Room & Join Room */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* CARD 1: CREATE A PRIVATE ROOM */}
+                <div className="bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between space-y-5">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="matiks-kicker text-[#AFF65B] tracking-widest text-[11px]">
+                        PRIVATE MATCH
                       </div>
-                      <p className="text-[11px] text-[#A3A3A3] m-0 mb-2">
-                        Waiting for opponent. Share the invite link or code with your friend:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => copyInviteLink(room.id)}
-                          className="px-2.5 py-1 bg-[#AFF65B] text-black font-bold text-[11px] rounded cursor-pointer hover:bg-white"
-                        >
-                          {copiedLink ? "✓ Link Copied!" : "📋 Copy Invite Link"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => copyRoomCode(room.id)}
-                          className="px-2.5 py-1 bg-[#2A2A2A] text-white text-[11px] rounded border border-white/10 cursor-pointer hover:bg-[#333]"
-                        >
-                          {copied ? "✓ Code Copied" : "Copy Code"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const el = document.getElementById("online-game-section");
-                            el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      <span className="font-mono text-[10px] text-white/50 uppercase">
+                        Instant Link / Code
+                      </span>
+                    </div>
+
+                    <h2 className="matiks-headline text-3xl sm:text-4xl text-[#F4F4F4] m-0">
+                      CREATE A PRIVATE ROOM
+                    </h2>
+
+                    <div className="space-y-4">
+                      {/* Mode / Variant Selector with actual names */}
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                          Game Mode / Variant
+                        </label>
+                        <select
+                          aria-label="Game Mode"
+                          value={unifiedMode}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setUnifiedMode(val);
+                            if (val !== "mind" && val !== "mantra" && val !== "cross3" && val !== "cross4") {
+                              setRule(val as Rule);
+                            }
                           }}
-                          className="px-2.5 py-1 bg-transparent text-[#AFF65B] text-[11px] border border-[#AFF65B]/30 rounded cursor-pointer hover:bg-[#AFF65B]/10"
+                          className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
                         >
-                          View Board ↓
-                        </button>
+                          <optgroup label="Multiplayer & Special Cross-Board">
+                            <option value="cross3">3-Player Cross-Board</option>
+                            <option value="cross4">4-Player Cross-Board</option>
+                            <option value="mind">Chess MM (Mind Before Move)</option>
+                            <option value="mantra">Mantra Duel</option>
+                          </optgroup>
+                          <optgroup label="Standard Chess & Variants">
+                            <option value="chess">Standard Chess</option>
+                            <option value="fog">Fog of War</option>
+                            <option value="chess960">Chess960</option>
+                            <option value="atomic">Atomic Chess</option>
+                            <option value="crazyhouse">Crazyhouse</option>
+                            <option value="kingofthehill">King of the Hill</option>
+                            <option value="3check">Three-Check Chess</option>
+                            <option value="antichess">Antichess</option>
+                            <option value="horde">Horde Chess</option>
+                            <option value="racingkings">Racing Kings</option>
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      {/* Dynamic Mode Summary Pill */}
+                      <div className="p-3 bg-[#222222] border border-white/5 rounded-xl text-xs text-[#CCC] leading-relaxed">
+                        {UNIFIED_MODES.find((m) => m.id === unifiedMode)?.summary ??
+                          "Select a mode to view details."}
+                      </div>
+
+                      {/* Time per player */}
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                          Clock Time
+                        </label>
+                        <select
+                          aria-label="Time per side"
+                          value={`${minutes}|${increment}`}
+                          onChange={(e) => {
+                            const [m, i] = e.target.value.split("|").map(Number);
+                            setMinutes(m);
+                            setIncrement(i);
+                          }}
+                          className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                        >
+                          {[
+                            [3, 0],
+                            [3, 2],
+                            [5, 0],
+                            [5, 3],
+                            [10, 0],
+                            [10, 5],
+                            [15, 10],
+                          ].map(([m, i]) => (
+                            <option key={`${m}|${i}`} value={`${m}|${i}`}>
+                              {m} minutes{i > 0 ? ` + ${i}s increment` : ", no increment"}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
-                  )}
-                  <label>
-                    Room code
-                    <input
-                      value={code}
-                      maxLength={18}
-                      autoCapitalize="characters"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      placeholder="e.g. 8ITRU8"
-                      className="uppercase font-mono"
-                      onChange={(e) =>
-                        setCode(e.target.value.trim().toLowerCase())
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && code && !busy) {
-                          e.preventDefault();
+                  </div>
+
+                  <div>
+                    <button
+                      disabled={busy || (state.mode !== "local" && !state.profile.adultConfirmed && !state.profile.profileReady)}
+                      onClick={() => {
+                        const modeObj = UNIFIED_MODES.find((m) => m.id === unifiedMode);
+                        if (modeObj?.category === "custom") {
                           void run(async () => {
-                            await api("join", { room: code });
-                            setSelectedRoom(code);
+                            const r = await api<{ room: string }>("custom-create", {
+                              kind: unifiedMode,
+                              minutes,
+                            });
+                            setSelectedCustomRoomId(r.room);
+                            setInCustomMatchScreen(true);
+                          });
+                        } else {
+                          void challenge();
+                        }
+                      }}
+                      className="w-full py-3.5 px-6 bg-[#AFF65B] hover:bg-white text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <span>➕</span>
+                      <span>{busy ? "Creating Room…" : "Create Private Room"}</span>
+                    </button>
+
+                    {/* Created Standard Room Inline Banner */}
+                    {room && room.status === "waiting" && room.white === state.profile.id && (
+                      <div className="p-3 mt-3 rounded-xl bg-[#1E2616] border border-[#AFF65B]/40 text-xs">
+                        <div className="flex items-center justify-between font-bold text-[#AFF65B] mb-1">
+                          <span>🟢 PRIVATE ROOM CREATED</span>
+                          <span className="font-mono text-white text-xs bg-black/60 px-2 py-0.5 rounded border border-[#AFF65B]/20">
+                            {room.id}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#A3A3A3] m-0 mb-2">
+                          Share this invite link or room code with your friend:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => copyInviteLink(room.id)}
+                            className="px-2.5 py-1 bg-[#AFF65B] text-black font-bold text-[11px] rounded cursor-pointer hover:bg-white"
+                          >
+                            {copiedLink ? "✓ Link Copied!" : "📋 Copy Invite Link"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyRoomCode(room.id)}
+                            className="px-2.5 py-1 bg-[#2A2A2A] text-white text-[11px] rounded border border-white/10 cursor-pointer hover:bg-[#333]"
+                          >
+                            {copied ? "✓ Code Copied" : "Copy Code"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMatchViewRoom(room.id)}
+                            className="px-2.5 py-1 bg-transparent text-[#AFF65B] text-[11px] border border-[#AFF65B]/30 rounded cursor-pointer hover:bg-[#AFF65B]/10"
+                          >
+                            Enter Arena ⚔️
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* CARD 2: JOIN WITH ROOM CODE */}
+                <div className="bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between space-y-5">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="matiks-kicker text-[#AFF65B] tracking-widest text-[11px]">
+                        ENTER CODE
+                      </div>
+                      <span className="font-mono text-[10px] text-white/50 uppercase">
+                        Standard & Custom
+                      </span>
+                    </div>
+
+                    <h2 className="matiks-headline text-3xl sm:text-4xl text-[#F4F4F4] m-0">
+                      JOIN WITH ROOM CODE
+                    </h2>
+
+                    <p className="text-xs text-[#8A8A8A] m-0 leading-relaxed">
+                      Enter the 6-character room code shared by your friend to jump straight into the match.
+                    </p>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                        Room Code
+                      </label>
+                      <input
+                        value={code}
+                        maxLength={18}
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        placeholder="e.g. 8ITRU8"
+                        className="w-full bg-[#242424] text-white text-sm font-mono font-bold tracking-widest uppercase px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                        onChange={(e) => setCode(e.target.value.trim().toLowerCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && code && !busy) {
+                            e.preventDefault();
+                            const trimmed = code.trim().toLowerCase();
+                            const isCustom = state.customRooms?.some(
+                              (r) => r.id.toLowerCase() === trimmed
+                            );
+                            if (isCustom) {
+                              void run(async () => {
+                                await api("custom-join", { room: trimmed });
+                                setSelectedCustomRoomId(trimmed);
+                                setInCustomMatchScreen(true);
+                              });
+                            } else {
+                              void run(async () => {
+                                try {
+                                  await api("join", { room: trimmed });
+                                  setSelectedRoom(trimmed);
+                                  setMatchViewRoom(trimmed);
+                                } catch (err) {
+                                  try {
+                                    await api("custom-join", { room: trimmed });
+                                    setSelectedCustomRoomId(trimmed);
+                                    setInCustomMatchScreen(true);
+                                  } catch {
+                                    throw err;
+                                  }
+                                }
+                              });
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <button
+                      disabled={busy || !code}
+                      onClick={() => {
+                        const trimmed = code.trim().toLowerCase();
+                        const isCustom = state.customRooms?.some(
+                          (r) => r.id.toLowerCase() === trimmed
+                        );
+                        if (isCustom) {
+                          void run(async () => {
+                            await api("custom-join", { room: trimmed });
+                            setSelectedCustomRoomId(trimmed);
+                            setInCustomMatchScreen(true);
+                          });
+                        } else {
+                          void run(async () => {
+                            try {
+                              await api("join", { room: trimmed });
+                              setSelectedRoom(trimmed);
+                              setMatchViewRoom(trimmed);
+                            } catch (err) {
+                              try {
+                                await api("custom-join", { room: trimmed });
+                                setSelectedCustomRoomId(trimmed);
+                                setInCustomMatchScreen(true);
+                              } catch {
+                                throw err;
+                              }
+                            }
                           });
                         }
                       }}
-                    />
-                  </label>
-                  <button
-                    disabled={busy || !code}
-                    onClick={() =>
-                      void run(async () => {
-                        await api("join", { room: code });
-                        setSelectedRoom(code);
-                      })
-                    }
-                  >
-                    Join room
-                  </button>
+                      className="w-full py-3.5 px-6 bg-[#AFF65B] hover:bg-white text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <span>🚀</span>
+                      <span>Join Game</span>
+                    </button>
+                    <p className="text-[11px] text-[#666] mt-2 mb-0 text-center">
+                      Room codes grant the player seat. Works for 2-player, 3-player & 4-player rooms.
+                    </p>
+                  </div>
                 </div>
-                <p>
-                  Room codes grant the second seat. Share privately. Friend
-                  challenges are restricted to the invited friend.
-                </p>
+              </div>
+
+              {/* Active Custom Arenas Section (if any custom rooms exist) */}
+              {state.customRooms && state.customRooms.length > 0 && (
+                <div className="bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="matiks-kicker text-[#AFF65B] tracking-widest text-[11px]">
+                        OPEN ARENAS
+                      </div>
+                      <h3 className="matiks-headline text-2xl sm:text-3xl text-[#F4F4F4] m-0">
+                        ACTIVE CUSTOM ROOMS
+                      </h3>
+                    </div>
+                    <span className="font-mono text-xs text-[#8A8A8A]">
+                      {state.customRooms.length} Active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {state.customRooms.map((r) => {
+                      const modeInfo = UNIFIED_MODES.find((m) => m.id === r.kind);
+                      return (
+                        <div
+                          key={r.id}
+                          className="p-4 bg-[#222222] border border-white/5 rounded-2xl flex flex-col justify-between space-y-3 hover:border-[#AFF65B]/30 transition-all shadow-md"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-bold text-sm text-white">
+                                {modeInfo?.name ?? r.kind.toUpperCase()}
+                              </div>
+                              <div className="text-[11px] text-[#888] mt-0.5">
+                                Host: {r.players[0]?.name ?? "Open Room"} · {r.status.toUpperCase()}
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full bg-black/60 text-[#AFF65B] text-[10px] font-mono font-bold border border-[#AFF65B]/20 shrink-0">
+                              {r.players.length}/{r.capacity} Seats
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                            <code className="text-xs font-mono text-[#AAA]">
+                              {r.id}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCustomRoomId(r.id);
+                                setInCustomMatchScreen(true);
+                              }}
+                              className="px-3 py-1 bg-[#AFF65B] hover:bg-white text-black font-bold text-xs rounded-lg transition-all cursor-pointer shadow active:scale-95"
+                            >
+                              Play Match Now ⚔️
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {tab === "play" && (
+            <div className="online-grid">
+              <section className="online-card">
                 <h2>Your games</h2>
                 <div className="online-chips" role="group" aria-label="Filter games">
                   {(
@@ -1328,8 +1691,8 @@ export default function OnlinePage({
                   </p>
                 )}
               </section>
-              <section id="online-game-section" className="online-card online-game">
-                {room && (pos || isFog) ? (
+              {room && (pos || isFog) && (
+                <section id="online-game-section" className="online-card online-game">
                   <>
                     <h2>
                       {room.whiteName} vs{" "}
@@ -1930,54 +2293,8 @@ export default function OnlinePage({
                       are not official FIDE games.
                     </small>
                   </>
-                ) : (
-                  <>
-                    <h2>Your next game starts here</h2>
-                    <p>
-                      Create a private room or open a game from the list.
-                      Standard chess, seven established variants and Fog of
-                      War (house rules) use the server rule engine.
-                      Maths/spells and three/four-player house rules are above.
-                    </p>
-                    {!hintsOff && (
-                      <div className="online-hints" role="note">
-                        <h3>Getting started</h3>
-                        <ul>
-                          <li>
-                            Create a room and share its code - your friend
-                            joins from the lobby.
-                          </li>
-                          <li>
-                            Move three ways: click or tap the board, type the
-                            move (e2e4 or Nf3), or use the keyboard - Tab to
-                            the board, arrows, Enter.
-                          </li>
-                          <li>
-                            Casual rooms allow takebacks and draw offers;
-                            either player can decline.
-                          </li>
-                          <li>
-                            Finished a game? Copy its PGN from the result
-                            panel, and step back through it with the arrow
-                            keys.
-                          </li>
-                        </ul>
-                        <button
-                          onClick={() => {
-                            setHintsOff(true);
-                            localStorage.setItem(
-                              "chaturanga-hints-dismissed",
-                              "1",
-                            );
-                          }}
-                        >
-                          Got it
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </section>
+                </section>
+              )}
             </div>
           )}
         </>
