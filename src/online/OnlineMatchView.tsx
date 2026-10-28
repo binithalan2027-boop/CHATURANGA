@@ -4,16 +4,17 @@ import type { RoomView } from "./types";
 import type { CustomView, CustomKind } from "./customTypes";
 import { formatClock, liveClock } from "./liveClock";
 import { lastMoveSquares, ruleLabel, timeControlLabel } from "./roomList";
-import { POWERS, type Power } from "../chaturanga/engine";
-import { crossGame, crossMoves, type Seat, type CrossState } from "./crossRules";
+import { type Power } from "../chaturanga/engine";
+import { crossGame, crossMoves, type CrossState } from "./crossRules";
 import VariantBoard from "../chaturanga/VariantBoard";
 import FogBoard from "../chaturanga/FogBoard";
 import MatiksPiece from "../components/MatiksPiece";
-import MatiksCrossBoard, { SEAT_THEMES } from "./MatiksCrossBoard";
+import MatiksCrossBoard from "./MatiksCrossBoard";
 import InGameChat from "./InGameChat";
 import { api } from "./client";
 import { variantPosition, variantMoves } from "../chaturanga/variantRules";
 import { parseUci } from "chessops/util";
+import { materialFromFen } from "./material";
 
 const customNames: Record<CustomKind, string> = {
   mind: "Mind Before Move",
@@ -35,6 +36,19 @@ interface OnlineMatchViewProps {
   busy?: boolean;
 }
 
+function CapturedRow({ pieces, color }: { pieces: string[]; color: string }) {
+  if (pieces.length === 0) return null;
+  return (
+    <span className="inline-flex items-center gap-1 flex-wrap" aria-label={`${pieces.length} captured`}>
+      {pieces.map((p, i) => (
+        <span key={i} className="inline-block w-3.5 h-3.5 opacity-85">
+          <MatiksPiece type={p} color={color} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function OnlineMatchView({
   standardRoom,
   customRoom,
@@ -50,7 +64,7 @@ export default function OnlineMatchView({
   const [confirmResign, setConfirmResign] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [muted, setMuted] = useState(
-    () => localStorage.getItem("chaturanga-muted") === "1"
+    () => (typeof localStorage !== "undefined" && localStorage.getItem("chaturanga-muted") === "1")
   );
   const [unreadChat, setUnreadChat] = useState(0);
   const prevChatCount = useRef(0);
@@ -124,7 +138,7 @@ export default function OnlineMatchView({
     }
   }, [customChess, customFrom]);
 
-  // Cross mode state (supports both active and lobby setup preview)
+  // Cross mode state
   const isCross = customRoom?.kind === "cross3" || customRoom?.kind === "cross4";
   const crossState: CrossState | null =
     customRoom?.cross ??
@@ -257,210 +271,206 @@ export default function OnlineMatchView({
       : "You";
 
   const title = standardRoom
-    ? `${ruleLabel(standardRoom.rule)} · ${timeControlLabel(standardRoom.initialMs, standardRoom.incrementMs)}`
+    ? `${ruleLabel(standardRoom.rule)}`
     : customRoom
-      ? `${customNames[customRoom.kind]} · ${customRoom.players.length}/${customRoom.capacity} Active`
+      ? `${customNames[customRoom.kind]}`
       : "Online Match";
+
+  const timeControl = standardRoom
+    ? timeControlLabel(standardRoom.initialMs, standardRoom.incrementMs)
+    : "5 min";
 
   const isFinished = standardRoom?.status === "finished" || customRoom?.status === "finished";
   const resultText = standardRoom?.result ?? customRoom?.result;
 
+  // Material & captured pieces for standard chess
+  const material = useMemo(
+    () => (standardRoom?.fen ? materialFromFen(standardRoom.fen) : null),
+    [standardRoom?.fen]
+  );
+  const capturedByOpponent = yourColor === "white" ? (material?.capturedByBlack ?? []) : (material?.capturedByWhite ?? []);
+  const capturedByYou = yourColor === "white" ? (material?.capturedByWhite ?? []) : (material?.capturedByBlack ?? []);
+  const materialLead = yourColor === "white" ? (material?.lead ?? 0) : -(material?.lead ?? 0);
+
   return (
-    <div className="min-h-screen bg-[#0E0E0E] text-[#F4F4F4] flex flex-col font-sans select-none">
-      {/* Top Header Bar */}
-      <header className="px-4 py-3 bg-[#161616] border-b border-white/10 flex items-center justify-between flex-wrap gap-2 shadow-lg">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onExit}
-            className="px-3 py-1.5 bg-[#242424] hover:bg-[#333] text-white text-xs font-semibold rounded-xl border border-white/10 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
-          >
-            ← Back to Lobby
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-pulse" />
-              <h1 className="m-0 text-sm font-bold tracking-wider uppercase text-white">
+    <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8 select-none">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Main Chess Board Column (Matching CourtyardMatch 8-col grid) */}
+        <section className="lg:col-span-8 flex flex-col items-center">
+          {/* Header & Status matching CourtyardMatch */}
+          <div className="w-full max-w-[640px] flex items-center justify-between mb-3">
+            <div>
+              <span className="font-body text-[11px] font-semibold tracking-[2px] text-[#AFF65B] uppercase block">
+                ONLINE MULTIPLAYER · RATED MATCH
+              </span>
+              <h1 className="font-heading text-2xl lg:text-3xl tracking-wide text-[#F4F4F4] m-0 uppercase">
                 {title}
               </h1>
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#888]">
-              <span>Room:</span>
-              <code className="text-[#AFF65B] font-mono font-bold tracking-widest bg-black/50 px-1.5 py-0.2 rounded border border-[#AFF65B]/20">
-                {roomCode}
-              </code>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#8A8A8A] bg-[#1A1A1A] border border-white/5 py-1 px-3 rounded-full flex items-center gap-1.5 font-mono">
+                <span>⏱️</span>
+                <span>{timeControl}</span>
+              </span>
               <button
                 type="button"
-                onClick={copyCode}
-                className="text-[#AAA] hover:text-white underline cursor-pointer bg-transparent border-0 p-0 text-[11px]"
+                onClick={onExit}
+                className="text-xs text-[#8A8A8A] hover:text-white bg-[#1A1A1A] border border-white/10 py-1 px-3 rounded-full transition-colors cursor-pointer"
               >
-                {copiedCode ? "✓ Copied" : "Copy Code"}
-              </button>
-              <span>·</span>
-              <button
-                type="button"
-                onClick={copyInvite}
-                className="text-[#AFF65B] hover:text-white underline cursor-pointer bg-transparent border-0 p-0 text-[11px] font-medium"
-              >
-                {copiedLink ? "✓ Invite Copied!" : "Copy Invite Link"}
+                ← Lobby
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setFlipped((f) => !f)}
-            title="Flip board orientation"
-            className="px-2.5 py-1.5 bg-[#222] hover:bg-[#333] text-[#DDD] text-xs rounded-xl border border-white/10 cursor-pointer"
-          >
-            🔄 Flip
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const next = !muted;
-              setMuted(next);
-              localStorage.setItem("chaturanga-muted", next ? "1" : "0");
-            }}
-            title={muted ? "Unmute sounds" : "Mute sounds"}
-            className="px-2.5 py-1.5 bg-[#222] hover:bg-[#333] text-[#DDD] text-xs rounded-xl border border-white/10 cursor-pointer"
-          >
-            {muted ? "🔇" : "🔊"}
-          </button>
-
-          {!isFinished && (
-            <>
-              {isCustom ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => customAct({ action: "draw" })}
-                    className="px-3 py-1.5 bg-[#262626] hover:bg-[#333] text-white text-xs font-semibold rounded-xl border border-white/10 cursor-pointer"
-                  >
-                    Draw Offer
-                  </button>
-                  {!confirmResign ? (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmResign(true)}
-                      className="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-xs font-semibold rounded-xl border border-red-500/30 cursor-pointer"
-                    >
-                      Resign
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => customAct({ action: "resign" })}
-                        className="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl cursor-pointer"
-                      >
-                        Confirm Resign
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmResign(false)}
-                        className="px-2 py-1.5 bg-[#222] text-[#AAA] text-xs rounded-xl cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
+          {/* Waiting Room Banner (when status === "waiting") */}
+          {standardRoom?.status === "waiting" && (
+            <div className="w-full max-w-[640px] mb-3 p-4 bg-[#1E2616] border border-[#AFF65B]/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#AFF65B]">
+                    WAITING FOR OPPONENT TO JOIN
+                  </div>
+                  <div className="text-xs text-[#AAA] mt-0.5">
+                    Share the invite link or code. Clocks start on first move.
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={copyInvite}
+                  className="btn-lime px-3 py-1.5 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  {copiedLink ? "✓ Invite Copied!" : "📋 Copy Invite Link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyCode}
+                  className="px-3 py-1.5 bg-[#262626] text-white text-xs rounded-xl border border-white/10 hover:bg-[#333] cursor-pointer"
+                >
+                  {copiedCode ? "✓ Code Copied" : "Copy Code"}
+                </button>
+                {standardRoom.white === currentUserId && (
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => gameAction?.("offerDraw")}
-                    className="px-3 py-1.5 bg-[#262626] hover:bg-[#333] text-white text-xs font-semibold rounded-xl border border-white/10 cursor-pointer disabled:opacity-40"
+                    onClick={() => gameAction?.("cancel")}
+                    className="px-3 py-1.5 bg-transparent text-[#FF8080] text-xs border border-[#E5484D]/30 hover:bg-[#E5484D]/10 rounded-xl cursor-pointer"
                   >
-                    Draw
+                    Cancel
                   </button>
-                  {!confirmResign ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => setConfirmResign(true)}
-                      className="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-xs font-semibold rounded-xl border border-red-500/30 cursor-pointer disabled:opacity-40"
-                    >
-                      Resign
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          gameAction?.("resign");
-                          setConfirmResign(false);
-                        }}
-                        className="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl cursor-pointer"
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmResign(false)}
-                        className="px-2 py-1.5 bg-[#222] text-[#AAA] text-xs rounded-xl cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* Main Playing Field */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left/Center Column: Chess Arena */}
-        <section className="lg:col-span-8 flex flex-col items-center">
-          {/* Opponent Card Bar (for 2-player games only) */}
-          {!isCross && (
-          <div className="w-full max-w-[720px] lg:max-w-[760px] mb-2 px-4 py-2.5 bg-[#181818] border border-white/10 rounded-2xl flex items-center justify-between shadow-md">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-500 flex items-center justify-center font-bold text-xs text-white shadow-inner">
-                {opponentName.slice(0, 1).toUpperCase()}
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Match Concluded Banner */}
+          {isFinished && resultText && (
+            <div className="w-full max-w-[640px] mb-3 p-4 bg-[#181818] border border-white/10 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-sm text-white">{opponentName}</span>
-                  {!isYourTurn && !isFinished && (
-                    <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-ping" />
-                  )}
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#AFF65B]">
+                  MATCH CONCLUDED
                 </div>
-                <span className="text-[10px] text-[#888] uppercase tracking-wider">
-                  {yourColor === "white" ? "Black Army" : "White Army"}
-                </span>
+                <div className="font-heading text-xl text-white mt-0.5">
+                  {resultText}
+                </div>
+                {standardRoom?.ratingDelta && (
+                  <div className="text-xs font-mono text-[#AFF65B] mt-0.5">
+                    Rating Change: {standardRoom.ratingDelta[yourColor] > 0 ? `+${standardRoom.ratingDelta[yourColor]}` : standardRoom.ratingDelta[yourColor]}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {standardRoom?.black && standardRoom.result !== "Room cancelled" && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const out = await api<{ room?: string }>("game", {
+                          room: standardRoom.id,
+                          version: standardRoom.version,
+                          action: "rematch",
+                        });
+                        if (out?.room) onExit();
+                      })
+                    }
+                    className="btn-lime px-3 py-1.5 text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Rematch
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    alert(
+                      `Match Review for Online Game vs ${opponentName}:\n\nDeep Stockfish engine move-by-move evaluation, blunder analysis, and brilliance detection is coming soon in the next major update!`
+                    )
+                  }
+                  className="px-3 py-1.5 bg-[#262626] hover:bg-[#333] border border-white/10 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Match Review</span>
+                  <span className="px-1.5 py-0.5 bg-[#AFF65B]/20 text-[#AFF65B] text-[9px] font-bold rounded-full">
+                    Coming Soon
+                  </span>
+                </button>
               </div>
             </div>
-
-            {/* Opponent Digital Clock */}
-            <div
-              className={`px-3 py-1 rounded-xl font-mono font-bold text-base border transition-all ${
-                !isYourTurn && !isFinished
-                  ? "bg-[#252525] border-[#AFF65B]/60 text-[#AFF65B] shadow-[0_0_12px_rgba(175,246,91,0.2)]"
-                  : "bg-[#141414] border-white/10 text-[#888]"
-              }`}
-            >
-              {standardRoom && standardLive
-                ? formatClock(yourColor === "white" ? standardLive.blackMs : standardLive.whiteMs)
-                : math
-                  ? `${Math.ceil((yourColor === "white" ? math.clocks.b : math.clocks.w) / 1000)}s`
-                  : "--:--"}
-            </div>
-          </div>
           )}
 
-          {/* Math Mode Active Challenge Banner (For Mind Before Move / Mantra Duel) */}
+          {/* Opponent (Top) Bar matching CourtyardMatch */}
+          {!isCross && (
+            <div className={`w-full max-w-[640px] flex items-center justify-between px-4 py-2.5 rounded-t-xl transition-colors ${
+              !isYourTurn && !isFinished ? "bg-[#1F1F1F] border-b border-[#AFF65B]/40" : "bg-[#161616]"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#262626] border border-white/10 flex items-center justify-center font-heading text-sm text-white">
+                  {opponentName.slice(0, 1).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-heading text-base tracking-wide text-[#F4F4F4]">{opponentName}</span>
+                    <span className="text-xs text-[#8A8A8A] font-body">(1200)</span>
+                    {!isYourTurn && !isFinished && (
+                      <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-pulse" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-[#8A8A8A]">
+                    <span>{!isYourTurn && !isFinished ? "To move" : "Waiting"}</span>
+                    {capturedByOpponent.length > 0 && (
+                      <>
+                        <span>·</span>
+                        <CapturedRow pieces={capturedByOpponent} color={yourColor === "white" ? "w" : "b"} />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`font-mono text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                  !isYourTurn && !isFinished
+                    ? "bg-[#262626] border-[#AFF65B]/40 text-[#AFF65B] shadow-sm"
+                    : "bg-[#262626] border-white/5 text-[#F4F4F4]"
+                }`}>
+                  {standardRoom && standardLive
+                    ? formatClock(yourColor === "white" ? standardLive.blackMs : standardLive.whiteMs)
+                    : math
+                      ? `${Math.ceil((yourColor === "white" ? math.clocks.b : math.clocks.w) / 1000)}s`
+                      : "--:--"}
+                </span>
+                {materialLead < 0 && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-[#F4F4F4]">
+                    +{ -materialLead }
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Math Mode Active Challenge Banner */}
           {math && (
-            <div className="w-full max-w-[720px] lg:max-w-[760px] mb-3">
+            <div className="w-full max-w-[640px] mb-3">
               {math.question ? (
                 <form
                   onSubmit={(e) => {
@@ -515,484 +525,356 @@ export default function OnlineMatchView({
                   {math.notice && <span className="text-[#AFF65B] font-semibold">{math.notice}</span>}
                 </div>
               )}
-
-              {/* Power inventory */}
-              {math.inventory && customRoom?.yourSeat && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  <span className="text-[10px] text-[#777] uppercase font-bold mr-1">Your Powers:</span>
-                  {(math.inventory[customRoom.yourSeat as "w" | "b"] || []).length === 0 ? (
-                    <span className="text-[11px] text-[#555] italic">Solve duels to unlock spells</span>
-                  ) : (
-                    math.inventory[customRoom.yourSeat as "w" | "b"].map((p, i) => (
-                      <button
-                        key={`${p}-${i}`}
-                        type="button"
-                        aria-pressed={selectedPower === p}
-                        onClick={() => {
-                          if (["add", "cut", "double", "rewind"].includes(p)) {
-                            customCommand({ type: "cast", power: p });
-                          } else {
-                            setSelectedPower(selectedPower === p ? null : p);
-                          }
-                        }}
-                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                          selectedPower === p
-                            ? "bg-[#AFF65B] text-black border-[#AFF65B]"
-                            : "bg-[#252525] text-white border-white/10 hover:border-[#AFF65B]/50"
-                        }`}
-                      >
-                        ✨ {POWERS[p]?.name ?? p}
-                      </button>
-                    ))
-                  )}
-                  {math.submove === 1 && (
-                    <button
-                      type="button"
-                      onClick={() => customCommand({ type: "endTurn" })}
-                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#AFF65B] text-black cursor-pointer"
-                    >
-                      End Bonus Move
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
-          {/* THE CHESS BOARD CONTAINER */}
-          <div className={`w-full max-w-[720px] lg:max-w-[760px] ${customRoom?.cross ? "" : "aspect-square"} bg-[#1A1A1A] p-2 sm:p-3 rounded-2xl border-2 border-white/10 shadow-2xl relative`}>
-            {/* Custom Math Mode Board (Mind Before Move / Mantra Duel) */}
-            {math && customChess && (
-              <div
-                className="w-full h-full grid grid-cols-8 grid-rows-8 rounded-xl overflow-hidden border border-white/10"
-                role="group"
-                aria-label="Mind Before Move Chess Board"
-              >
-                {RANKS.map((rank, rIdx) =>
-                  FILES.map((file, fIdx) => {
-                    const actualRank = flipped ? RANKS[7 - rIdx] : rank;
-                    const actualFile = flipped ? FILES[7 - fIdx] : file;
-                    const sq = `${actualFile}${actualRank}` as Square;
-                    const piece = customChess.get(sq);
-                    const isDark = (FILES.indexOf(actualFile) + Number(actualRank)) % 2 === 0;
-                    const isSelected = customFrom === sq;
-                    const isLegal = customLegalMoves.has(sq);
-                    const isWhitePiece = piece?.color === "w";
-
-                    return (
-                      <button
-                        key={sq}
-                        type="button"
-                        aria-label={`${sq}, ${piece ? `${piece.color} ${piece.type}` : "empty"}`}
-                        onClick={() => handleCustomSquareClick(sq)}
-                        className={`relative flex items-center justify-center p-0 border-0 outline-none cursor-pointer transition-colors ${
-                          isDark ? "bg-[#33302B]" : "bg-[#B0A79A]"
-                        } ${isSelected ? "ring-4 ring-[#AFF65B] z-10" : ""}`}
-                      >
-                        {/* File & Rank Coordinate Labels */}
-                        {actualFile === "a" && (
-                          <span
-                            className={`absolute top-0.5 left-1 text-[9px] font-bold select-none ${
-                              isDark ? "text-[#B0A79A]/50" : "text-[#33302B]/50"
-                            }`}
-                          >
-                            {actualRank}
-                          </span>
-                        )}
-                        {actualRank === "1" && (
-                          <span
-                            className={`absolute bottom-0.5 right-1 text-[9px] font-bold select-none ${
-                              isDark ? "text-[#B0A79A]/50" : "text-[#33302B]/50"
-                            }`}
-                          >
-                            {actualFile}
-                          </span>
-                        )}
-
-                        {/* Chess Piece Vector Icon */}
-                        {piece && (
-                          <div
-                            className={`w-[85%] h-[85%] flex items-center justify-center transform transition-transform active:scale-95 ${
-                              isSelected ? "scale-110 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" : ""
-                            }`}
-                          >
-                            <MatiksPiece type={piece.type} color={isWhitePiece ? "w" : "b"} />
-                          </div>
-                        )}
-
-                        {/* Legal Move Destination Dots */}
-                        {isLegal && (
-                          <span
-                            className={`absolute rounded-full ${
-                              piece
-                                ? "w-full h-full border-4 border-[#AFF65B]/80 rounded-none bg-[#AFF65B]/20"
-                                : "w-3 h-3 bg-[#AFF65B] shadow-md animate-pulse"
-                            }`}
-                          />
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-
-            {/* Custom Cross Board (Three/Four Player) - Matiks Courtyard Redesign */}
-            {isCross && crossState && (
-              <div className="w-full flex flex-col items-center justify-center p-1 sm:p-2">
-                {customRoom?.status === "waiting" && (
-                  <div className="w-full max-w-[500px] mb-3 p-3 bg-[#1E2616] border border-[#AFF65B]/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-[#AFF65B]">
-                          WAITING FOR PLAYERS ({customRoom.players.length}/{customRoom.capacity})
-                        </div>
-                        <div className="text-xs text-white/90">
-                          Share room code <code className="font-mono text-[#AFF65B] font-bold">{customRoom.id}</code> to invite opponents
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={copyInvite}
-                      className="btn-lime py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer shadow active:scale-95 shrink-0"
-                    >
-                      {copiedLink ? "✓ Copied!" : "📋 Copy Invite Link"}
-                    </button>
-                  </div>
-                )}
-                <MatiksCrossBoard
-                  cross={crossState}
-                  yourSeat={customRoom?.yourSeat || "south"}
-                  selectedSquare={typeof customFrom === "number" ? customFrom : null}
-                  legalDests={crossLegalMoves}
-                  onSquareClick={handleCustomSquareClick}
-                  players={customRoom?.players || []}
-                  isThreePlayer={customRoom?.kind === "cross3"}
-                />
-              </div>
-            )}
-
-            {/* Standard Mode Board (Chess & Variants) */}
-            {standardRoom && standardPos && (
-              <div className="w-full h-full">
-                <VariantBoard
-                  pos={standardPos}
-                  selected={selectedSq}
-                  dests={standardDests}
-                  onSquare={handleStandardSquareClick}
-                  flip={yourColor === "black" !== flipped}
-                  lastMove={standardLastMove}
-                />
-              </div>
-            )}
-
-            {/* Fog of War Board */}
-            {standardRoom && standardRoom.rule === "fog" && (
-              <div className="w-full h-full">
-                <FogBoard
-                  fen={standardRoom.fen}
-                  fogSquares={standardRoom.fogSquares ?? []}
-                  flip={yourColor === "black" !== flipped}
-                  selected={selectedSq}
-                  dests={standardDests}
-                  onSquare={handleStandardSquareClick}
-                  lastMove={standardLastMove}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Player Card Bar (for 2-player duels only; cross board has dedicated seat cards) */}
-          {!isCross && (
-            <div className="w-full max-w-[720px] lg:max-w-[760px] mt-2 px-4 py-2.5 bg-[#181818] border border-white/10 rounded-2xl flex items-center justify-between shadow-md">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#AFF65B] to-emerald-400 flex items-center justify-center font-bold text-xs text-black shadow-inner">
-                {yourName.slice(0, 1).toUpperCase()}
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-sm text-white">{yourName} (You)</span>
-                  {isYourTurn && !isFinished && (
-                    <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-ping" />
-                  )}
-                </div>
-                <span className="text-[10px] text-[#888] uppercase tracking-wider">
-                  {yourColor === "white" ? "White Army" : "Black Army"}
-                </span>
-              </div>
-            </div>
-
-            {/* Player Digital Clock */}
-            <div
-              className={`px-3 py-1 rounded-xl font-mono font-bold text-base border transition-all ${
-                isYourTurn && !isFinished
-                  ? "bg-[#252525] border-[#AFF65B]/60 text-[#AFF65B] shadow-[0_0_12px_rgba(175,246,91,0.2)]"
-                  : "bg-[#141414] border-white/10 text-[#888]"
-              }`}
-            >
-              {standardRoom && standardLive
-                ? formatClock(yourColor === "white" ? standardLive.whiteMs : standardLive.blackMs)
-                : math
-                  ? `${Math.ceil((yourColor === "white" ? math.clocks.w : math.clocks.b) / 1000)}s`
-                  : "--:--"}
-            </div>
-          </div>
-          )}
-        </section>
-
-        {/* Right Column: In-Game Live Chat & Moves Panel */}
-        <aside className="lg:col-span-4 flex flex-col gap-3">
-          {/* Yellow Mode-Summary Tile for Cross Board */}
-          {isCross && (
-            <div className="p-4 bg-[#F2D500] text-[#0E0E0E] rounded-3xl shadow-xl flex items-center justify-between">
-              <div>
-                <span className="matiks-kicker text-[#0E0E0E]/70 text-[10px]">
-                  {customRoom?.status === "waiting" ? "LOBBY WAITING ROOM" : "COURTYARD ARENA"}
-                </span>
-                <h3 className="matiks-headline text-3xl m-0 leading-none text-[#0E0E0E]">
-                  {customRoom?.kind === "cross3" ? "THREE-PLAYER CHESS" : "FOUR-PLAYER CHESS"}
-                </h3>
-              </div>
-              <div className="font-mono text-xs font-bold px-3 py-1.5 bg-[#0E0E0E] text-[#AFF65B] rounded-xl shadow">
-                {customRoom?.players.length}/{customRoom?.capacity} SEATS
-              </div>
-            </div>
-          )}
-
-          {/* Large Lime Turn Pill */}
-          {isCross && crossState && (
-            <div className={`p-3.5 rounded-2xl font-heading text-lg tracking-wider uppercase text-center shadow-lg transition-all ${
-              isYourTurn
-                ? "bg-[#AFF65B] text-[#0E0E0E] shadow-[0_0_20px_rgba(175,246,91,0.4)] font-black"
-                : "bg-[#181818] text-[#888] border border-white/5"
-            }`}>
-              {customRoom?.status === "waiting"
-                ? "WAITING FOR OPPONENTS TO JOIN"
-                : isYourTurn
-                ? "YOUR MOVE"
-                : `${crossState.turn.toUpperCase()} TO MOVE`}
-            </div>
-          )}
-
-          <div className="flex flex-col h-[520px] bg-[#161616] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-          {/* Tabs Selector */}
-          <div className="flex border-b border-white/10 bg-[#1D1D1D]">
-            <button
-              type="button"
-              onClick={() => handleTabChange("chat")}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border-0 border-b-2 ${
-                activeTab === "chat"
-                  ? "border-[#AFF65B] text-white bg-[#222]"
-                  : "border-transparent text-[#777] hover:text-[#AAA] bg-transparent"
-              }`}
-            >
-              <span>💬 Live Chat</span>
-              {unreadChat > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-[#AFF65B] text-black font-bold text-[10px]">
-                  {unreadChat}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTabChange("moves")}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer border-0 border-b-2 ${
-                activeTab === "moves"
-                  ? "border-[#AFF65B] text-white bg-[#222]"
-                  : "border-transparent text-[#777] hover:text-[#AAA] bg-transparent"
-              }`}
-            >
-              <span>📜 Move History</span>
-            </button>
-          </div>
-
-          {/* Tab Content 1: Live Chat */}
-          {activeTab === "chat" && (
-            <div className="flex-1 p-2 flex flex-col overflow-hidden">
-              <InGameChat
-                roomCode={roomCode}
-                messages={chatMessages}
-                currentUserId={currentUserId}
-                isCustom={isCustom}
+          {/* CHESS BOARD WRAPPER matching CourtyardMatch measurements */}
+          <div className="w-full max-w-[640px] aspect-square flex items-center justify-center">
+            {/* Standard & Variant Rules with high-res Matiks pieces */}
+            {standardRoom && standardRoom.rule !== "fog" && standardPos && (
+              <VariantBoard
+                pos={standardPos}
+                selected={selectedSq}
+                dests={standardDests}
+                onSquare={handleStandardSquareClick}
+                flip={yourColor === "black" !== flipped}
+                lastMove={standardLastMove}
               />
-            </div>
-          )}
+            )}
 
-          {/* Tab Content 2: Move History & Match Info */}
-          {activeTab === "moves" && (
-            <div className="flex-1 p-4 overflow-y-auto space-y-4">
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
-                  Match Details
-                </h4>
-                <div className="p-3 bg-[#1F1F1F] rounded-xl border border-white/5 space-y-2 text-xs text-[#CCC]">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#888]">Mode</span>
-                    <span className="font-semibold text-white">{title}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#888]">Turn</span>
-                    <span className="font-semibold text-[#AFF65B]">
-                      {isYourTurn ? "Your turn to move" : `${customRoom?.cross ? customRoom.cross.turn.toUpperCase() + "'s turn" : opponentName + "'s turn"}`}
-                    </span>
-                  </div>
-                  {standardRoom && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#888]">Total Moves</span>
-                      <span className="font-mono text-white">{standardRoom.moves.length}</span>
-                    </div>
-                  )}
-                  {isCross && crossState && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[#888]">Lobby Seats</span>
-                        <span className="font-mono text-[#AFF65B]">
-                          {customRoom.players.length}/{customRoom.capacity} Seats Filled
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[#888]">Turn Order</span>
-                        <span className="text-white text-[11px] font-medium">
-                          {customRoom.kind === "cross3" ? "Clockwise: South → West → East" : "Clockwise: South → West → North → East"}
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t border-white/5 text-[11px] text-[#888] leading-relaxed">
-                        ⚔️ <strong>House Rules:</strong> King capture eliminates seat army. Auto-queen on far arm. Last army standing wins.
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+            {/* Fog of War with vector piece fogging */}
+            {standardRoom && standardRoom.rule === "fog" && (
+              <FogBoard
+                fen={standardRoom.fen}
+                fogSquares={standardRoom.fogSquares ?? []}
+                flip={yourColor === "black" !== flipped}
+                selected={selectedSq}
+                dests={standardDests}
+                onSquare={handleStandardSquareClick}
+                lastMove={standardLastMove}
+              />
+            )}
 
-              {/* Your Move Card for Cross Board */}
-              {customRoom?.cross && isYourTurn && !isFinished && (
-                <div className="p-3.5 bg-[#1E2616] border border-[#AFF65B]/40 rounded-2xl shadow-lg">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
-                    <strong className="text-xs font-bold text-[#AFF65B] uppercase tracking-wider">
-                      Your Turn to Move ({customRoom.yourSeat.toUpperCase()})
-                    </strong>
-                  </div>
-                  <p className="text-xs text-[#E0E0E0] m-0">
-                    {typeof customFrom === "number" && customRoom.cross.board[customFrom]
-                      ? `Selected ${customRoom.cross.board[customFrom].kind.toUpperCase()} with ${crossLegalMoves.length} legal moves.`
-                      : `Select any of your ${customRoom.yourSeat} pieces to view legal moves.`}
-                  </p>
-                </div>
-              )}
-
-              {/* Cross Moves Notation with Seat Swatches */}
-              {customRoom?.cross && customRoom.cross.moves.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
-                    Played Moves ({customRoom.cross.moves.length})
-                  </h4>
-                  <div className="space-y-1.5 max-h-[240px] overflow-y-auto p-2.5 bg-[#121212] rounded-xl border border-white/5 text-xs font-mono">
-                    {customRoom.cross.moves.map((m, idx) => {
-                      const isElim = m.includes("eliminated");
-                      const seatMatch = m.match(/^(south|west|north|east)/);
-                      const seat = (seatMatch ? seatMatch[1] : "") as Seat;
-                      const seatTheme = seat ? SEAT_THEMES[seat] : null;
+            {/* Mind Before Move Math Board */}
+            {math && customChess && (
+              <div className="matiks-board-wrap w-full max-w-[640px] aspect-square">
+                <div
+                  className="matiks-board court-board relative"
+                  role="group"
+                  aria-label="Mind Before Move Chess Board"
+                >
+                  {RANKS.map((rank, rIdx) =>
+                    FILES.map((file, fIdx) => {
+                      const actualRank = flipped ? RANKS[7 - rIdx] : rank;
+                      const actualFile = flipped ? FILES[7 - fIdx] : file;
+                      const sq = `${actualFile}${actualRank}` as Square;
+                      const piece = customChess.get(sq);
+                      const isDark = (FILES.indexOf(actualFile) + Number(actualRank)) % 2 === 0;
+                      const isSelected = customFrom === sq;
+                      const isLegal = customLegalMoves.has(sq);
+                      const isCapture = Boolean(piece && isLegal);
 
                       return (
-                        <div
-                          key={idx}
-                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${
-                            isElim
-                              ? "bg-[#E5484D]/15 text-[#FF8080] border border-[#E5484D]/30 font-bold"
-                              : "bg-[#181818] text-[#E0E0E0] border border-white/5"
+                        <button
+                          key={sq}
+                          type="button"
+                          aria-label={`${sq}, ${piece ? `${piece.color} ${piece.type}` : "empty"}`}
+                          onClick={() => handleCustomSquareClick(sq)}
+                          className={`matiks-square square ${isDark ? "dark" : "light"} ${
+                            isSelected ? "selected" : ""
                           }`}
                         >
-                          <span className="text-[#666] text-[10px] w-5 shrink-0">
-                            {idx + 1}.
-                          </span>
-                          {seatTheme && (
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: seatTheme.color }}
-                            />
+                          {actualFile === "a" && (
+                            <small className="rank coord-rank" aria-hidden="true">
+                              {actualRank}
+                            </small>
                           )}
-                          <span
-                            className="font-bold text-[11px] uppercase tracking-wider shrink-0"
-                            style={{ color: seatTheme ? seatTheme.color : undefined }}
-                          >
-                            {seat}
-                          </span>
-                          <span className="truncate">{m.replace(/^(south|west|north|east)\s*/, "")}</span>
-                        </div>
+                          {actualRank === "1" && (
+                            <small className="file coord-file" aria-hidden="true">
+                              {actualFile}
+                            </small>
+                          )}
+                          {piece && (
+                            <div className="piece-wrapper" aria-hidden="true">
+                              <MatiksPiece type={piece.type} color={piece.color === "w" ? "w" : "b"} />
+                            </div>
+                          )}
+                          {isLegal && (
+                            isCapture ? (
+                              <span className="matiks-capture-ring" aria-hidden="true" />
+                            ) : (
+                              <i className="matiks-move-dot move-dot" aria-hidden="true" />
+                            )
+                          )}
+                        </button>
                       );
-                    })}
-                  </div>
+                    })
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Moves Notation */}
-              {standardRoom && standardRoom.moves.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
-                    Played Moves
-                  </h4>
-                  <div className="grid grid-cols-2 gap-1 max-h-[220px] overflow-y-auto p-2 bg-[#121212] rounded-xl border border-white/5 text-xs font-mono">
-                    {standardRoom.moves.map((m, idx) => (
-                      <div
-                        key={idx}
-                        className={`px-2 py-1 rounded ${
-                          idx % 2 === 0 ? "text-white" : "text-[#AAA]"
-                        }`}
-                      >
-                        {Math.floor(idx / 2) + 1}. {m}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* Cross Board for Three & Four Player */}
+            {isCross && crossState && (
+              <MatiksCrossBoard
+                cross={crossState}
+                yourSeat={customRoom?.yourSeat ?? "south"}
+                selectedSquare={typeof customFrom === "number" ? customFrom : null}
+                legalDests={crossLegalMoves}
+                onSquareClick={(sq) => handleCustomSquareClick(sq)}
+                players={customRoom?.players ?? []}
+                isThreePlayer={customRoom?.kind === "cross3"}
+              />
+            )}
+          </div>
 
-              {/* Custom mode events */}
-              {math?.events && math.events.length > 0 && (
+          {/* Player (Bottom) Bar matching CourtyardMatch */}
+          {!isCross && (
+            <div className={`w-full max-w-[640px] flex items-center justify-between px-4 py-2.5 rounded-b-xl transition-colors ${
+              isYourTurn && !isFinished ? "bg-[#1F1F1F] border-t border-[#AFF65B]/40" : "bg-[#161616]"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#AFF65B] to-emerald-400 flex items-center justify-center font-bold text-xs text-black shadow-inner">
+                  {yourName.slice(0, 1).toUpperCase()}
+                </div>
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
-                    Game Events
-                  </h4>
-                  <div className="space-y-1 text-xs text-[#AAA] p-2 bg-[#121212] rounded-xl border border-white/5 max-h-[200px] overflow-y-auto">
-                    {math.events.map((e, idx) => (
-                      <div key={idx} className="p-1 border-b border-white/5">
-                        {e}
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <span className="font-heading text-base tracking-wide text-[#F4F4F4]">{yourName} (You)</span>
+                    <span className="text-xs text-[#8A8A8A] font-body">(1200)</span>
+                    {isYourTurn && !isFinished && (
+                      <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-pulse" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-[#8A8A8A]">
+                    <span>{isYourTurn && !isFinished ? "Your turn" : "Waiting for opponent"}</span>
+                    {capturedByYou.length > 0 && (
+                      <>
+                        <span>·</span>
+                        <CapturedRow pieces={capturedByYou} color={yourColor === "white" ? "b" : "w"} />
+                      </>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`font-mono text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                  isYourTurn && !isFinished
+                    ? "bg-[#262626] border-[#AFF65B]/40 text-[#AFF65B] shadow-sm"
+                    : "bg-[#262626] border-white/5 text-[#F4F4F4]"
+                }`}>
+                  {standardRoom && standardLive
+                    ? formatClock(yourColor === "white" ? standardLive.whiteMs : standardLive.blackMs)
+                    : math
+                      ? `${Math.ceil((yourColor === "white" ? math.clocks.w : math.clocks.b) / 1000)}s`
+                      : "--:--"}
+                </span>
+                {materialLead > 0 && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-[#F4F4F4]">
+                    +{materialLead}
+                  </span>
+                )}
+              </div>
             </div>
           )}
-        </div>
-        </aside>
-      </main>
 
-      {/* Game Over Dialog */}
-      {isFinished && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="max-w-md w-full bg-[#1C1C1C] border border-[#AFF65B]/40 rounded-3xl p-6 text-center shadow-2xl space-y-4">
-            <span className="text-4xl block animate-bounce">🏆</span>
-            <h2 className="text-2xl font-black text-white m-0 tracking-wide uppercase">
-              Match Finished
-            </h2>
-            <p className="text-sm font-semibold text-[#AFF65B] m-0 bg-[#AFF65B]/10 py-2 px-3 rounded-xl border border-[#AFF65B]/20">
-              {resultText || "Game Over"}
-            </p>
-            <div className="flex flex-col gap-2 pt-2">
+          {/* Under-board Toolbar matching CourtyardMatch */}
+          <div className="w-full max-w-[640px] flex items-center justify-between mt-3 gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={onExit}
-                className="w-full py-3 bg-[#AFF65B] hover:bg-white text-black font-bold text-sm rounded-xl transition-all cursor-pointer shadow-lg active:scale-95"
+                onClick={() => setFlipped((f) => !f)}
+                className="btn-raised text-xs py-1.5 px-3 font-semibold cursor-pointer"
               >
-                Return to Online Lobby
+                🔄 Flip Board
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !muted;
+                  setMuted(next);
+                  localStorage.setItem("chaturanga-muted", next ? "1" : "0");
+                }}
+                className="btn-raised text-xs py-1.5 px-3 font-semibold cursor-pointer"
+              >
+                {muted ? "🔇 Sound Off" : "🔊 Sound On"}
               </button>
             </div>
+
+            <div className="flex items-center gap-2">
+              {!isFinished && (
+                <>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      if (isCustom) customAct({ action: "draw" });
+                      else gameAction?.("offerDraw");
+                    }}
+                    className="btn-raised text-xs py-1.5 px-3 font-semibold cursor-pointer"
+                  >
+                    Draw Offer
+                  </button>
+                  {!confirmResign ? (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setConfirmResign(true)}
+                      className="px-3.5 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-xs font-semibold rounded-full border border-red-500/30 cursor-pointer"
+                    >
+                      Resign
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          if (isCustom) customAct({ action: "resign" });
+                          else gameAction?.("resign");
+                          setConfirmResign(false);
+                        }}
+                        className="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-full cursor-pointer"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmResign(false)}
+                        className="px-2 py-1.5 bg-[#222] text-[#AAA] text-xs rounded-full cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        </section>
+
+        {/* Right Column: Match Info Card + Live Chat & Move List Tabs */}
+        <aside className="lg:col-span-4 flex flex-col gap-4">
+          {/* Bento Match Summary Card */}
+          <div className="bg-[#161616] border border-white/10 rounded-3xl p-5 shadow-xl space-y-3">
+            <div>
+              <span className="matiks-kicker text-[#AFF65B] text-[10px]">
+                MATCH INFORMATION
+              </span>
+              <h3 className="matiks-headline text-2xl m-0 text-white leading-tight uppercase">
+                {title}
+              </h3>
+            </div>
+
+            <div className="space-y-2 text-xs text-[#AAA] pt-2 border-t border-white/5">
+              <div className="flex justify-between items-center">
+                <span>Room Code:</span>
+                <button
+                  type="button"
+                  onClick={copyCode}
+                  className="px-2 py-0.5 bg-[#222] text-[#AFF65B] font-mono font-bold rounded border border-white/10 hover:border-[#AFF65B]/40 cursor-pointer"
+                >
+                  {copiedCode ? "✓ Copied" : roomCode}
+                </button>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Time Format:</span>
+                <span className="font-mono text-white">{timeControl}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Rating Status:</span>
+                <span className="text-[#AFF65B] font-semibold">Rated (1200 Baseline)</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={copyInvite}
+              className="btn-lime w-full py-2 text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+            >
+              {copiedLink ? "✓ Invite Copied!" : "📋 Copy Room Invite Link"}
+            </button>
+          </div>
+
+          {/* Live Chat & Move History Card */}
+          <div className="flex flex-col h-[520px] bg-[#161616] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+            {/* Tabs Selector */}
+            <div className="flex border-b border-white/10 bg-[#1D1D1D]">
+              <button
+                type="button"
+                onClick={() => handleTabChange("chat")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border-0 border-b-2 ${
+                  activeTab === "chat"
+                    ? "border-[#AFF65B] text-white bg-[#222]"
+                    : "border-transparent text-[#777] hover:text-[#AAA] bg-transparent"
+                }`}
+              >
+                <span>💬 Live Chat</span>
+                {unreadChat > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-[#AFF65B] text-black font-bold text-[10px]">
+                    {unreadChat}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTabChange("moves")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer border-0 border-b-2 ${
+                  activeTab === "moves"
+                    ? "border-[#AFF65B] text-white bg-[#222]"
+                    : "border-transparent text-[#777] hover:text-[#AAA] bg-transparent"
+                }`}
+              >
+                <span>📜 Move History</span>
+              </button>
+            </div>
+
+            {/* Tab 1: Live Chat */}
+            {activeTab === "chat" && (
+              <div className="flex-1 p-2 flex flex-col overflow-hidden">
+                <InGameChat
+                  roomCode={roomCode}
+                  messages={chatMessages}
+                  currentUserId={currentUserId}
+                  isCustom={isCustom}
+                />
+              </div>
+            )}
+
+            {/* Tab 2: Move History */}
+            {activeTab === "moves" && (
+              <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">
+                    Played Notation ({standardRoom?.moves.length ?? 0} Plies)
+                  </h4>
+                  {standardRoom && standardRoom.moves.length > 0 ? (
+                    <div className="space-y-1 max-h-[380px] overflow-y-auto p-2.5 bg-[#121212] rounded-xl border border-white/5 text-xs font-mono">
+                      {Array.from({ length: Math.ceil(standardRoom.moves.length / 2) }).map((_, moveIdx) => {
+                        const whiteMove = standardRoom.moves[moveIdx * 2];
+                        const blackMove = standardRoom.moves[moveIdx * 2 + 1];
+                        return (
+                          <div
+                            key={moveIdx}
+                            className="grid grid-cols-6 py-1 px-2 rounded hover:bg-white/5 transition-colors"
+                          >
+                            <span className="text-[#666] col-span-1">{moveIdx + 1}.</span>
+                            <span className="text-white font-semibold col-span-2">{whiteMove}</span>
+                            <span className="text-[#AAA] col-span-3">{blackMove ?? ""}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs text-[#666]">
+                      No moves played yet. First move starts the game clock!
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

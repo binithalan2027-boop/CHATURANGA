@@ -666,15 +666,23 @@ export default function OnlinePage({
     });
   };
 
-  if (matchViewRoom && room && state) {
+  const activeRoomId = matchViewRoom || selectedRoom;
+  const currentActiveRoom = activeRoomId && state?.rooms
+    ? state.rooms.find((r) => r.id === activeRoomId) || room
+    : room;
+
+  if (activeRoomId && currentActiveRoom && state) {
     return (
       <OnlineMatchView
-        standardRoom={room}
+        standardRoom={currentActiveRoom}
         currentUserId={state.profile.id}
         run={run}
         gameAction={gameAction}
         busy={busy}
-        onExit={() => setMatchViewRoom(null)}
+        onExit={() => {
+          setMatchViewRoom(null);
+          setSelectedRoom("");
+        }}
       />
     );
   }

@@ -5,30 +5,24 @@ import { navIndex } from "./boardNav";
 import { usePreferences } from "./preferences";
 import { diffGlides, type Glide, type GlidePiece } from "./pieceGlide";
 import PieceGlideLayer, { GLIDE_MS, motionOK } from "./PieceGlideLayer";
+import MatiksPiece from "../components/MatiksPiece";
+
 /** Display-grid position of a square, honouring the board flip. */
 function drawXY(sq: number, flip: boolean) {
   const row = Math.floor(sq / 8),
     col = sq % 8;
   return flip ? { x: 7 - col, y: row } : { x: col, y: 7 - row };
 }
-const glyphs = {
-  white: {
-    pawn: "♙",
-    knight: "♘",
-    bishop: "♗",
-    rook: "♖",
-    queen: "♕",
-    king: "♔",
-  },
-  black: {
-    pawn: "♟",
-    knight: "♞",
-    bishop: "♝",
-    rook: "♜",
-    queen: "♛",
-    king: "♚",
-  },
+
+const ROLE_TO_TYPE: Record<string, string> = {
+  pawn: "p",
+  knight: "n",
+  bishop: "b",
+  rook: "r",
+  queen: "q",
+  king: "k",
 };
+
 export default function VariantBoard({
   pos,
   selected,
@@ -91,138 +85,153 @@ export default function VariantBoard({
     return () => clearTimeout(t);
   }, [glides]);
   const hiding = new Set(glides.map((g) => g.to));
+
   return (
-    <div className="court-board" role="group" aria-label="Variant chess board">
-      {Array.from({ length: 64 }, (_, i) => {
-        const sq = flip
-            ? Math.floor(i / 8) * 8 + 7 - (i % 8)
-            : (7 - Math.floor(i / 8)) * 8 + (i % 8),
-          p = pos.board.get(sq),
-          name = makeSquare(sq);
-        return (
-          <button
-            key={sq}
-            className={`square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${lastMove.includes(sq) ? "last-move" : ""} ${checkSq === sq ? "in-check" : ""} ${premove.includes(sq) ? "premove" : ""}`}
-            aria-label={`${name}, ${p ? p.color + " " + p.role : "empty"}${checkSq === sq ? ", in check" : ""}`}
-            onClick={() => {
-              clearDrawings();
-              onSquare(sq);
-            }}
-            onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => {
-              if (e.button === 2) dragStart.current = sq;
-            }}
-            onPointerUp={(e) => {
-              if (e.button !== 2 || dragStart.current === null) return;
-              const from = dragStart.current;
-              dragStart.current = null;
-              if (from === sq) {
-                setMarks((m) =>
-                  m.includes(sq) ? m.filter((x) => x !== sq) : [...m, sq],
-                );
-              } else {
-                setArrows((a) => {
-                  const dup = a.findIndex(
-                    ([f, t]) => f === from && t === sq,
+    <div className="matiks-board-wrap w-full max-w-[640px] aspect-square">
+      <div className="matiks-board court-board relative" role="group" aria-label="Variant chess board">
+        {Array.from({ length: 64 }, (_, i) => {
+          const sq = flip
+              ? Math.floor(i / 8) * 8 + 7 - (i % 8)
+              : (7 - Math.floor(i / 8)) * 8 + (i % 8),
+            p = pos.board.get(sq),
+            name = makeSquare(sq);
+          const isCapture = Boolean(p);
+          const pieceType = p ? (ROLE_TO_TYPE[p.role] || p.role.slice(0, 1).toLowerCase()) : null;
+
+          return (
+            <button
+              key={sq}
+              className={`matiks-square square ${(Math.floor(i / 8) + (i % 8)) % 2 ? "dark" : "light"} ${selected === sq ? "selected" : ""} ${lastMove.includes(sq) ? "last-move last" : ""} ${checkSq === sq ? "in-check check" : ""} ${premove.includes(sq) ? "premove" : ""}`}
+              aria-label={`${name}, ${p ? p.color + " " + p.role : "empty"}${checkSq === sq ? ", in check" : ""}`}
+              onClick={() => {
+                clearDrawings();
+                onSquare(sq);
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              onPointerDown={(e) => {
+                if (e.button === 2) dragStart.current = sq;
+              }}
+              onPointerUp={(e) => {
+                if (e.button !== 2 || dragStart.current === null) return;
+                const from = dragStart.current;
+                dragStart.current = null;
+                if (from === sq) {
+                  setMarks((m) =>
+                    m.includes(sq) ? m.filter((x) => x !== sq) : [...m, sq],
                   );
-                  if (dup >= 0) return a.filter((_, i) => i !== dup);
-                  return [...a, [from, sq]];
-                });
-              }
-            }}
-            onKeyDown={(e) => {
-              const next = navIndex(i, e.key);
-              if (next === null) return;
-              e.preventDefault();
-              const b =
-                e.currentTarget.parentElement!.querySelectorAll("button");
-              b[next].focus();
-            }}
-          >
-            {prefs.coordinates && i % 8 === 0 && (
-              <small className="rank" aria-hidden="true">
-                {flip ? Math.floor(i / 8) + 1 : 8 - Math.floor(i / 8)}
-              </small>
-            )}
-            {prefs.coordinates && i >= 56 && (
-              <small className="file" aria-hidden="true">
-                {name[0]}
-              </small>
-            )}
-            {p && !hiding.has(sq) && (
-              <span
-                className={`piece ${p.color === "white" ? "w" : "b"}`}
-                aria-hidden="true"
-              >
-                {glyphs[prefs.pieces === "solid" ? "black" : p.color][p.role]}
-              </span>
-            )}
-            {prefs.legalDots && dests.includes(sq) && (
-              <i className="move-dot" />
-            )}
-          </button>
-        );
-      })}
-      {(marks.length > 0 || arrows.length > 0) && (
-        <svg
-          className="draw-layer"
-          viewBox="0 0 8 8"
-          aria-hidden="true"
-        >
-          {marks.map((sq) => {
-            const { x, y } = drawXY(sq, flip);
-            return (
-              <rect
-                key={sq}
-                className="draw-mark"
-                x={x}
-                y={y}
-                width={1}
-                height={1}
-              />
-            );
-          })}
-          {arrows.map(([from, to]) => {
-            const a = drawXY(from, flip),
-              b = drawXY(to, flip);
-            const ax = a.x + 0.5,
-              ay = a.y + 0.5,
-              bx = b.x + 0.5,
-              by = b.y + 0.5;
-            const dx = bx - ax,
-              dy = by - ay,
-              len = Math.hypot(dx, dy);
-            if (len < 0.2) return null;
-            const ux = dx / len,
-              uy = dy / len,
-              px = -uy,
-              py = ux;
-            const tipX = bx - ux * 0.08,
-              tipY = by - uy * 0.08,
-              baseX = tipX - ux * 0.42,
-              baseY = tipY - uy * 0.42;
-            return (
-              <g key={`${from}-${to}`} className="draw-arrow">
-                <line x1={ax} y1={ay} x2={baseX} y2={baseY} />
-                <polygon
-                  points={`${tipX},${tipY} ${baseX + px * 0.3},${baseY + py * 0.3} ${baseX - px * 0.3},${baseY - py * 0.3}`}
-                />
-              </g>
-            );
-          })}
-        </svg>
-      )}
-      <PieceGlideLayer
-        glides={glides}
-        batch={batch}
-        flip={flip}
-        render={(piece) => ({
-          text: glyphs[prefs.pieces === "solid" ? "black" : piece.color][
-            piece.role as keyof (typeof glyphs)["white"]
-          ],
-          cls: `piece ${piece.color === "white" ? "w" : "b"}`,
+                } else {
+                  setArrows((a) => {
+                    const dup = a.findIndex(
+                      ([f, t]) => f === from && t === sq,
+                    );
+                    if (dup >= 0) return a.filter((_, i) => i !== dup);
+                    return [...a, [from, sq]];
+                  });
+                }
+              }}
+              onKeyDown={(e) => {
+                const next = navIndex(i, e.key);
+                if (next === null) return;
+                e.preventDefault();
+                const b =
+                  e.currentTarget.parentElement!.querySelectorAll("button");
+                b[next].focus();
+              }}
+            >
+              {prefs.coordinates && i % 8 === 0 && (
+                <small className="rank coord-rank" aria-hidden="true">
+                  {flip ? Math.floor(i / 8) + 1 : 8 - Math.floor(i / 8)}
+                </small>
+              )}
+              {prefs.coordinates && i >= 56 && (
+                <small className="file coord-file" aria-hidden="true">
+                  {name[0]}
+                </small>
+              )}
+              {p && pieceType && !hiding.has(sq) && (
+                <div className="piece-wrapper" aria-hidden="true">
+                  <MatiksPiece
+                    type={pieceType}
+                    color={p.color === "white" ? "w" : "b"}
+                  />
+                </div>
+              )}
+              {prefs.legalDots && dests.includes(sq) && (
+                isCapture ? (
+                  <span className="matiks-capture-ring" aria-hidden="true" />
+                ) : (
+                  <i className="matiks-move-dot move-dot" aria-hidden="true" />
+                )
+              )}
+            </button>
+          );
         })}
-      />
+        {(marks.length > 0 || arrows.length > 0) && (
+          <svg
+            className="draw-layer pointer-events-none absolute inset-0 w-full h-full z-20"
+            viewBox="0 0 8 8"
+            aria-hidden="true"
+          >
+            {marks.map((sq) => {
+              const { x, y } = drawXY(sq, flip);
+              return (
+                <rect
+                  key={sq}
+                  className="draw-mark fill-[#AFF65B]/30"
+                  x={x}
+                  y={y}
+                  width={1}
+                  height={1}
+                />
+              );
+            })}
+            {arrows.map(([from, to]) => {
+              const a = drawXY(from, flip),
+                b = drawXY(to, flip);
+              const ax = a.x + 0.5,
+                ay = a.y + 0.5,
+                bx = b.x + 0.5,
+                by = b.y + 0.5;
+              const dx = bx - ax,
+                dy = by - ay,
+                len = Math.hypot(dx, dy);
+              if (len < 0.2) return null;
+              const ux = dx / len,
+                uy = dy / len,
+                px = -uy,
+                py = ux;
+              const tipX = bx - ux * 0.08,
+                tipY = by - uy * 0.08,
+                baseX = tipX - ux * 0.42,
+                baseY = tipY - uy * 0.42;
+              return (
+                <g key={`${from}-${to}`} className="draw-arrow stroke-[#AFF65B] fill-[#AFF65B]">
+                  <line x1={ax} y1={ay} x2={baseX} y2={baseY} strokeWidth="0.18" />
+                  <polygon
+                    points={`${tipX},${tipY} ${baseX + px * 0.3},${baseY + py * 0.3} ${baseX - px * 0.3},${baseY - py * 0.3}`}
+                  />
+                </g>
+              );
+            })}
+          </svg>
+        )}
+        <PieceGlideLayer
+          glides={glides}
+          batch={batch}
+          flip={flip}
+          render={(piece) => ({
+            text: (
+              <div className="piece-wrapper" aria-hidden="true">
+                <MatiksPiece
+                  type={ROLE_TO_TYPE[piece.role] || piece.role.slice(0, 1).toLowerCase()}
+                  color={piece.color === "white" ? "w" : "b"}
+                />
+              </div>
+            ),
+            cls: `piece ${piece.color === "white" ? "w" : "b"}`,
+          })}
+        />
+      </div>
     </div>
   );
 }
