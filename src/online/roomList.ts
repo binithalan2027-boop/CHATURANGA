@@ -133,13 +133,13 @@ export function filterRooms(
 /** Friendly variant name for the lobby (the raw rule key is jargon). */
 export function ruleLabel(rule: string): string {
   const names: Record<string, string> = {
-    chess: "Standard chess",
+    chess: "Standard Chess",
     crazyhouse: "Crazyhouse",
     kingofthehill: "King of the Hill",
-    "3check": "3-Check",
+    "3check": "Three-Check Chess",
     antichess: "Antichess",
-    atomic: "Atomic",
-    horde: "Horde",
+    atomic: "Atomic Chess",
+    horde: "Horde Chess",
     racingkings: "Racing Kings",
     fog: "Fog of War",
   };

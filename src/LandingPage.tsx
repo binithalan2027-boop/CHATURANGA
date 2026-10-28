@@ -22,6 +22,7 @@ export interface LandingPageProps {
   onOpenProgress?: () => void;
   onOpenFriendsSanctum?: () => void;
   onCreatePrivateRoom?: () => void;
+  onOpenOnline?: () => void;
   matchStatus?: 'idle' | 'searching' | 'found';
   onSearchMatch?: () => void;
   onCancelMatch?: () => void;
@@ -40,6 +41,7 @@ export default function LandingPage(props: LandingPageProps) {
         onOpenProfile={props.onOpenProfile}
         onOpenStamps={props.onOpenStamps}
         onOpenProgress={props.onOpenProgress}
+        onOpenOnline={props.onOpenOnline}
       />
 
       <main className="w-full pt-16 flex-1">

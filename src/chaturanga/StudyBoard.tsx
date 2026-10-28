@@ -269,13 +269,13 @@ export default function StudyBoard({ onExit }: { onExit: () => void }) {
               onClick={() => setFlip(!flip)}
               className="btn-raised py-2.5 px-4 text-xs"
             >
-              ↻ Flip Board
+              🔄 Flip Board
             </button>
             <button
               onClick={onExit}
               className="btn-raised py-2.5 px-4 text-xs"
             >
-              Back to Home
+              ← Return to Hub
             </button>
           </div>
         </div>

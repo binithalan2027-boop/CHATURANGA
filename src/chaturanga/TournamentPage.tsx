@@ -81,7 +81,7 @@ export default function TournamentPage({
             </p>
           </div>
           <button onClick={onExit} className="btn-raised py-2.5 px-4 text-xs">
-            Back to Home
+            ← Return to Hub
           </button>
         </div>
 

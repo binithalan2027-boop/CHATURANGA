@@ -210,7 +210,7 @@ export default function CrossBoardMode({
                   onClick={onExit}
                   className="px-6 py-2.5 bg-[#262626] hover:bg-[#333] text-white text-xs font-semibold uppercase tracking-wider rounded-xl border border-white/10 cursor-pointer w-full sm:w-auto active:scale-95"
                 >
-                  Back to Hub
+                  ← Return to Hub
                 </button>
               </div>
             </div>

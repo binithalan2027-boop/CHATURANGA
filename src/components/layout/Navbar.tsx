@@ -3,6 +3,7 @@ interface NavbarProps {
   onPlay: () => void;
   onLogin: () => void;
   onLogout: () => void;
+  onOpenOnline?: () => void;
   onOpenLearn?: () => void;
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
@@ -15,6 +16,7 @@ export default function Navbar({
   onPlay,
   onLogin,
   onLogout,
+  onOpenOnline,
   onOpenLearn,
   onOpenAbout,
   onOpenProfile,
@@ -49,6 +51,14 @@ export default function Navbar({
           >
             Play
           </button>
+          {onOpenOnline && (
+            <button
+              onClick={onOpenOnline}
+              className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#AFF65B] px-3 py-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors"
+            >
+              Online
+            </button>
+          )}
           <a
             href="#modes-section"
             className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#F4F4F4] px-3 py-2 rounded-lg no-underline transition-colors"

@@ -29,7 +29,7 @@ export default function DrillsPage({ onExit }: { onExit: () => void }) {
           </span>
         </div>
         <div className="court-header-actions">
-          <button onClick={onExit}>Back home</button>
+          <button onClick={onExit} className="btn-raised">← Return to Hub</button>
         </div>
       </header>
       <main className="court-match">

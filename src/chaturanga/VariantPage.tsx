@@ -119,8 +119,8 @@ export default function VariantPage({ onExit }: { onExit: () => void }) {
           </span>
         </div>
         <div className="court-header-actions">
-          <button onClick={open}>Settings</button>
-          <button onClick={onExit}>Back home</button>
+          <button onClick={open} className="btn-raised">Settings</button>
+          <button onClick={onExit} className="btn-raised">← Return to Hub</button>
         </div>
       </header>
       <main className="court-match">

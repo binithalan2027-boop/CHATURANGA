@@ -17,10 +17,10 @@ import { parseUci } from "chessops/util";
 import { materialFromFen } from "./material";
 
 const customNames: Record<CustomKind, string> = {
-  mind: "Mind Before Move",
-  mantra: "Mantra Duel + spells",
-  cross3: "Three-player cross-board",
-  cross4: "Four-player cross-board",
+  mind: "Chess MM (Mind Before Move)",
+  mantra: "Mantra Duel",
+  cross3: "3-Player Cross-Board",
+  cross4: "4-Player Cross-Board",
 };
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -239,8 +239,18 @@ export default function OnlineMatchView({
     if (standardDests.includes(sq)) {
       const fromName = FILES[selectedSq % 8] + (Math.floor(selectedSq / 8) + 1);
       const toName = FILES[sq % 8] + (Math.floor(sq / 8) + 1);
-      const uci = `${fromName}${toName}`;
-      gameAction?.("move", uci);
+      const baseUci = `${fromName}${toName}`;
+      let finalUci = baseUci;
+      if (standardPos) {
+        const moves = variantMoves(standardPos);
+        const matching = moves.filter((m) => m.startsWith(baseUci));
+        if (matching.length > 1) {
+          finalUci = matching.find((m) => m.endsWith("q")) || matching[0];
+        } else if (matching.length === 1) {
+          finalUci = matching[0];
+        }
+      }
+      gameAction?.("move", finalUci);
       setSelectedSq(null);
     } else if (standardPos && standardPos.board.get(sq)?.color === standardPos.turn) {
       setSelectedSq(sq);
@@ -293,16 +303,23 @@ export default function OnlineMatchView({
   const materialLead = yourColor === "white" ? (material?.lead ?? 0) : -(material?.lead ?? 0);
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8 select-none">
+    <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] font-body p-4 lg:p-8 select-none online-game">
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Main Chess Board Column (Matching CourtyardMatch 8-col grid) */}
         <section className="lg:col-span-8 flex flex-col items-center">
           {/* Header & Status matching CourtyardMatch */}
           <div className="w-full max-w-[640px] flex items-center justify-between mb-3">
             <div>
-              <span className="font-body text-[11px] font-semibold tracking-[2px] text-[#AFF65B] uppercase block">
-                ONLINE MULTIPLAYER · RATED MATCH
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-body text-[11px] font-semibold tracking-[2px] text-[#AFF65B] uppercase block">
+                  ONLINE MULTIPLAYER · RATED MATCH
+                </span>
+                {standardRoom && (
+                  <span className="text-[11px] text-[#8A8A8A] font-mono">
+                    · {standardRoom.turn} to move
+                  </span>
+                )}
+              </div>
               <h1 className="font-heading text-2xl lg:text-3xl tracking-wide text-[#F4F4F4] m-0 uppercase">
                 {title}
               </h1>
@@ -315,9 +332,9 @@ export default function OnlineMatchView({
               <button
                 type="button"
                 onClick={onExit}
-                className="text-xs text-[#8A8A8A] hover:text-white bg-[#1A1A1A] border border-white/10 py-1 px-3 rounded-full transition-colors cursor-pointer"
+                className="btn-raised text-xs py-1 px-3.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                ← Lobby
+                ← Return to Lobby
               </button>
             </div>
           </div>

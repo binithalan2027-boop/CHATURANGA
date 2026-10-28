@@ -259,7 +259,7 @@ export default function MateSprintSession({
               onClick={onExit}
               className="flex-1 py-3.5 rounded-2xl bg-[#262626] hover:bg-[#333333] text-[#F4F4F4] font-bold text-sm tracking-wider uppercase border border-[#3A3A3A] transition cursor-pointer"
             >
-              Back to Training
+              ← Return to Training
             </button>
           </div>
         </div>

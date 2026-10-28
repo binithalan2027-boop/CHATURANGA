@@ -439,9 +439,9 @@ export default function TrainingPage({ onExit }: { onExit: () => void }) {
             </span>
             <button
               onClick={onExit}
-              className="px-4 py-2 rounded-xl bg-[#262626] hover:bg-[#333333] text-xs font-semibold text-[#F4F4F4] border border-[#3A3A3A] transition cursor-pointer"
+              className="btn-raised py-2 px-4 text-xs font-semibold rounded-full cursor-pointer"
             >
-              Exit practice
+              ← Return to Hub
             </button>
           </div>
         </div>

@@ -302,6 +302,13 @@ export default function CourtyardMatch({
                   {status}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={onExit}
+                className="btn-raised text-xs py-1 px-3 rounded-full cursor-pointer transition-colors"
+              >
+                ← Return to Modes
+              </button>
             </div>
           </div>
 

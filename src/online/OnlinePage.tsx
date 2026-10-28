@@ -1,24 +1,6 @@
-import { usePreferences } from "../chaturanga/preferences";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { liveClock, formatClock } from "./liveClock";
-import { moveRows } from "./moveList";
-import { buildPgn } from "./pgn";
-import { roomLabel, sortRooms, filterRooms, lastMoveSquares, timeAgo, ruleLabel, timeControlLabel } from "./roomList";
+import { roomLabel, sortRooms, filterRooms, timeAgo, ruleLabel, timeControlLabel } from "./roomList";
 import type { LobbyFilter } from "./roomList";
-import { premoveUci } from "./premove";
-import { matchMoveInput } from "./keyboardMove";
-import { makeSan } from "chessops/san";
-import { replayTo } from "./replay";
-import { nextReviewPly } from "./reviewNav";
-import { playSound, soundForSan } from "./sounds";
-import { openingForMoves } from "./opening";
-import { materialFromFen } from "./material";
-import { makeSquare, parseUci } from "chessops/util";
-import VariantBoard from "../chaturanga/VariantBoard";
-import FogBoard from "../chaturanga/FogBoard";
-import { colorOf, fogFromFen } from "../online/fogRules";
-const fogState = fogFromFen;
-import { variantPosition, variantFen, variantMoves } from "../chaturanga/variantRules";
 import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
 import { getLocalStats, recordMatchRating } from "../chaturanga/stats";
 import { formatPlayerId } from "../services/playerId";
@@ -47,7 +29,6 @@ const UNIFIED_MODES: Array<{ id: string; name: string; summary: string; category
   // Classic & Rule Variants
   { id: "chess", name: "Standard Chess", summary: "Checkmate the opposing king under classic FIDE rules.", category: "variant" },
   { id: "fog", name: "Fog of War", summary: "See only what you can reach. Enemy pieces stay hidden until capturable - take the king to win.", category: "variant" },
-  { id: "chess960", name: "Chess960", summary: "Fischer Random setup with shuffled back rank every game.", category: "variant" },
   { id: "atomic", name: "Atomic Chess", summary: "Captures cause violent 3x3 explosions destroying adjacent pieces.", category: "variant" },
   { id: "crazyhouse", name: "Crazyhouse", summary: "Captured pieces join your pocket. Drop them on legal squares.", category: "variant" },
   { id: "kingofthehill", name: "King of the Hill", summary: "Win by reaching d4, e4, d5 or e5 with your king, or by checkmate.", category: "variant" },
@@ -74,8 +55,7 @@ export default function OnlinePage({
   initialTab?: "play" | "friends" | "profile";
   autoCreateRoom?: boolean;
 }) {
-  const { prefs } = usePreferences();
-  const [premoveQueue, setPremoveQueue] = useState<string[]>([]);  const [state, setState] = useState<OnlineState | null>(null),
+  const [state, setState] = useState<OnlineState | null>(null),
     [config, setConfig] = useState<{
       mode: string;
       providers: string[];
@@ -99,44 +79,19 @@ export default function OnlinePage({
       rating?: number;
     } | null>(null);
   const [profile, setProfile] = useState<PlayerProfile | null>(null),
-    [selected, setSelected] = useState<number | null>(null),
-    [promotion, setPromotion] = useState<string[]>([]),
-    [drop, setDrop] = useState(""),
-    [flipped, setFlipped] = useState(false),
     [copied, setCopied] = useState(false),
     [copiedLink, setCopiedLink] = useState(false),
-    [copiedPgn, setCopiedPgn] = useState(false),
-    [muted, setMuted] = useState(
-      () => localStorage.getItem("chaturanga-muted") === "1",
-    ),
-    [reviewPly, setReviewPly] = useState<number | null>(null),
-    [premove, setPremove] = useState<string | null>(null),
-    [confirmResign, setConfirmResign] = useState(false),
-    [confirmAbort, setConfirmAbort] = useState(false),
     [lobbyFilter, setLobbyFilter] = useState<LobbyFilter>("all"),
-    [moveInput, setMoveInput] = useState(""),
-    [moveInputError, setMoveInputError] = useState(""),
     [matchmaking, setMatchmaking] = useState(false),
     [isMatchFound, setIsMatchFound] = useState(false),
     [matchViewRoom, setMatchViewRoom] = useState<string | null>(null),
     [selectedCustomRoomId, setSelectedCustomRoomId] = useState<string | null>(null),
     [inCustomMatchScreen, setInCustomMatchScreen] = useState(false),
-    [unifiedMode, setUnifiedMode] = useState<string>("chess"),
-    [, setTickTs] = useState(0);
-  // Local clock baseline: re-anchored whenever the server sends a new
-  // board version, then decremented locally so clocks tick smoothly.
-  const clockBase = useRef({ room: "", serverTime: -1, at: Date.now() });
+    [unifiedMode, setUnifiedMode] = useState<string>("chess");
+
   useEffect(() => {
-    setFlipped(false);
     setCopied(false);
     setCopiedLink(false);
-    setCopiedPgn(false);
-    setTickTs(0);
-    setReviewPly(null);
-    setPremove(null);
-    setPremoveQueue([]);
-    setConfirmResign(false);
-    setConfirmAbort(false);
   }, [selectedRoom]);
   useEffect(() => {
     void api<{ mode: string; providers: string[] }>("config")
@@ -228,52 +183,6 @@ export default function OnlinePage({
     }
   };
   const room = state?.rooms.find((r) => r.id === selectedRoom);
-  if (room && (clockBase.current.room !== room.id || clockBase.current.serverTime !== room.serverTime))
-    clockBase.current = { room: room.id, serverTime: room.serverTime, at: Date.now() };
-  useEffect(() => {
-    if (room?.status !== "active") return;
-    const t = setInterval(() => setTickTs((x) => x + 1), 200);
-    return () => clearInterval(t);
-  }, [room?.status]);
-  // Arrow-key review: step through the move list without the mouse.
-  // Fog of War is excluded (masked move list); typing in a field, or
-  // holding a modifier, leaves the key to the browser.
-  useEffect(() => {
-    if (!room || room.rule === "fog") return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable))
-        return;
-      // Board squares own their arrow keys (focus movement); review
-      // navigation applies everywhere else.
-      if (t?.closest(".court-board")) return;
-      const next = nextReviewPly(reviewPly, room.moves.length, e.key);
-      if (next === undefined) return;
-      e.preventDefault();
-      setReviewPly(next);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [room?.id, room?.rule, room?.moves.length, reviewPly]);
-  // Move sounds: play a cue when a move lands or the game ends. The
-  // baseline is set silently when a room first loads, so opening a
-  // game mid-way never replays its history.
-  const soundBase = useRef({ room: "", moves: 0, result: null as string | null });
-  useEffect(() => {
-    if (!room) return;
-    const prev = soundBase.current;
-    const firstLoad = prev.room !== room.id;
-    const landed = !firstLoad && room.moves.length > prev.moves;
-    const ended = !firstLoad && !prev.result && !!room.result;
-    if ((landed || ended) && !muted)
-      playSound(soundForSan(room.moves[room.moves.length - 1], ended));
-    soundBase.current = {
-      room: room.id,
-      moves: room.moves.length,
-      result: room.result,
-    };
-  }, [room?.id, room?.moves.length, room?.result, muted]);
 
     // Auto-record finished online games into local match history
   const recordedRoomsRef = useRef<Set<string>>(new Set());
@@ -342,223 +251,16 @@ export default function OnlinePage({
       setIsMatchFound(false);
     }
   };
-  const live = room
-    ? liveClock(room, Date.now() - clockBase.current.at)
-    : null;
-  const boardFlip = (room?.yourColor === "black") !== flipped;
-  const isFog = room?.rule === "fog";
-  const pos = useMemo(() => room && room.rule !== "fog" ? variantPosition(room.rule, room.fen) : null, [room?.id, room?.rule, room?.fen]),
-    legal = isFog ? (room?.fogMoves ?? []) : pos ? variantMoves(pos) : [];
   const sortedRooms = useMemo(
     () => (state ? sortRooms(state.rooms, state.profile.id) : []),
     [state],
   );
-  // Screen-reader announcements: the latest move or the result, in a
-  // visually hidden live region. Fog moves that are masked stay
-  // masked here too - hidden information never reaches the announce
-  // channel either.
-  const announcement = useMemo(() => {
-    if (!room) return "";
-    if (room.result) return `Game over: ${room.result}.`;
-    const n = room.moves.length;
-    if (n === 0) return "";
-    const san = room.moves[n - 1];
-    const mover = n % 2 === 1 ? room.whiteName : (room.blackName ?? "Black");
-    if (san === "?") return `${mover} moved.`;
-    return `${mover} played ${san}.`;
-  }, [room?.id, room?.result, room?.moves, room?.whiteName, room?.blackName]);
-  // Move list follows the game: it auto-scrolls to the newest move while
-  // live, and scrolls the reviewed move into view while stepping through
-  // history. While reviewing, live moves never yank the scroll away.
-  const movesRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = movesRef.current;
-    if (!el) return;
-    if (reviewPly) {
-      el.querySelector(".reviewing")?.scrollIntoView({ block: "nearest" });
-      return;
-    }
-    el.scrollTop = el.scrollHeight;
-  }, [room?.id, room?.moves.length, reviewPly]);
-  const [opening, setOpening] = useState<{
-    eco: string;
-    name: string;
-  } | null>(null);
-  useEffect(() => {
-    let live = true;
-    if (!room || room.rule !== "chess" || room.moves.length === 0) {
-      setOpening(null);
-      return;
-    }
-    void openingForMoves(room.moves).then((o) => {
-      if (live) setOpening(o);
-    });
-    return () => {
-      live = false;
-    };
-  }, [room?.id, room?.rule, room?.moves]);
-  const review = useMemo(
-    () =>
-      room && room.rule !== "fog" && reviewPly
-        ? replayTo(room.rule, room.moves, reviewPly)
-        : null,
-    [room?.id, room?.rule, room?.moves, reviewPly],
-  );
-  const displayPos = review?.pos ?? pos;
-  const lastMove = useMemo(
-    () => (review ? review.last : lastMoveSquares(room?.lastMove)),
-    [review, room?.lastMove],
-  );
-  const checkSq = useMemo(() => {
-    if (!displayPos) return null;
-    try {
-      if (typeof displayPos.isCheck === "function" && displayPos.isCheck()) {
-        const k = displayPos.board.kingOf(displayPos.turn);
-        return typeof k === "number" ? k : null;
-      }
-    } catch {
-      // Kingless variants (antichess) throw or lack kings - no check UI.
-    }
-    return null;
-  }, [displayPos]);
-  const material =
-    room?.rule === "chess"
-      ? materialFromFen(review ? variantFen(review.pos) : room.fen)
-      : null;
-  const sanOf = useMemo(() => {
-    if (!pos || isFog) return () => null;
-    const cache = new Map<string, string | null>();
-    return (uci: string) => {
-      if (!cache.has(uci)) {
-        let san: string | null = null;
-        try {
-          const m = parseUci(uci);
-          if (m) san = makeSan(pos.clone(), m);
-        } catch {
-          san = null;
-        }
-        cache.set(uci, san);
-      }
-      return cache.get(uci) ?? null;
-    };
-  }, [pos, isFog]);
-  const submitMoveInput = () => {
-    const uci = matchMoveInput(moveInput, legal, sanOf);
-    if (!uci) {
-      setMoveInputError("Not a legal move here.");
-      return;
-    }
-    setMoveInput("");
-    setMoveInputError("");
-    doMove(uci);
-  };
-  const active =
-    !review &&
-    room?.status === "active" &&
-    room.yourColor === room.turn &&
-    notice === "Connected";
-  const doMove = (uci: string) =>
-    void run(async () => {
-      if (!room) return;
-      await api("game", {
-        room: room.id,
-        version: room.version,
-        action: "move",
-        uci,
-      });
-      setSelected(null);
-      setPromotion([]);
-      setDrop("");
-    });
-  function square(sq: number) {
-    if (!active) {
-      // Premove: game running, your seat, not your turn, live board.
-      if (
-        !room ||
-        isFog ||
-        review ||
-        !pos ||
-        room.status !== "active" ||
-        notice !== "Connected"
-      )
-        return;
-      if (selected === null) {
-        setSelected(
-          pos.board.get(sq)?.color === room.yourColor ? sq : null,
-        );
-        return;
-      }
-      const uci = premoveUci(pos, selected, sq, room.yourColor);
-      if (uci) {
-        if (prefs.premoveLimit === "limitless") {
-          setPremoveQueue((prev) => [...prev, uci]);
-          setPremove(uci);
-        } else {
-          setPremoveQueue([uci]);
-          setPremove(uci);
-        }
-      }
-      setSelected(null);
-      return;
-    }
-    const moves = legal
-      .filter((u) =>
-        u.startsWith(
-          drop ? drop + "@" : selected === null ? "!" : makeSquare(selected),
-        ),
-      )
-      .filter((u) => parseUci(u)?.to === sq);
-    if (moves.length > 1) {
-      setPromotion(moves);
-      return;
-    }
-    if (moves.length) {
-      doMove(moves[0]);
-      return;
-    }
-    if (isFog && room) {
-      const p = fogState(room.fen).board[sq];
-      setSelected(
-        p && colorOf(p) === (room.yourColor === "white" ? "w" : "b")
-          ? sq
-          : null,
-      );
-    } else {
-      setSelected(pos?.board.get(sq)?.color === room?.yourColor ? sq : null);
-    }
-    setDrop("");
-  }
-  const dests = legal
-    .filter((u) =>
-      u.startsWith(
-        drop ? drop + "@" : selected === null ? "!" : makeSquare(selected),
-      ),
-    )
-    .map((u) => parseUci(u)!.to);
-  // Fire a queued premove the moment the opponent's move makes it our
-  // turn; discard it if the new position made it illegal.
-  useEffect(() => {
-    if (!active) return;
-    const currentQueue = premoveQueue.length > 0 ? premoveQueue : (premove ? [premove] : []);
-    if (currentQueue.length === 0) return;
-
-    const nextUci = currentQueue[0];
-    if (legal.includes(nextUci)) {
-      // Valid premove! Cross-check passed
-      setPremoveQueue((prev) => prev.slice(1));
-      setPremove(currentQueue[1] || null);
-      doMove(nextUci);
-    } else {
-      // Invalid premove: illegal move! Discard queue
-      setPremoveQueue([]);
-      setPremove(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, legal]);
   const gameAction = (action: string) =>
-    void run(() =>
-      api("game", { room: room!.id, version: room!.version, action }),
-    );
+    void run(() => {
+      const target = state?.rooms.find((r) => r.id === (matchViewRoom || selectedRoom)) || room;
+      if (!target) return Promise.resolve();
+      return api("game", { room: target.id, version: target.version, action });
+    });
   const getInviteLink = (roomId: string) => {
     try {
       const baseOrigin =
@@ -607,11 +309,7 @@ export default function OnlinePage({
         invitee: id,
       });
       setSelectedRoom(r.room);
-      setTab("play");
-      setTimeout(() => {
-        const el = document.getElementById("online-game-section");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 150);
+      setMatchViewRoom(r.room);
     });
 
   const [autoJoined, setAutoJoined] = useState(false);
@@ -626,10 +324,7 @@ export default function OnlinePage({
         void run(async () => {
           await api("join", { room: joinCode });
           setSelectedRoom(joinCode);
-          setTimeout(() => {
-            const el = document.getElementById("online-game-section");
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 150);
+          setMatchViewRoom(joinCode);
         });
       }
     } catch {}
@@ -674,35 +369,91 @@ export default function OnlinePage({
     ? state.rooms.find((r) => r.id === activeRoomId) || room
     : room;
 
-  if (activeRoomId && currentActiveRoom && state) {
+  if (activeRoomId && state) {
+    if (currentActiveRoom) {
+      return (
+        <OnlineMatchView
+          standardRoom={currentActiveRoom}
+          currentUserId={state.profile.id}
+          run={run}
+          gameAction={gameAction}
+          busy={busy}
+          onExit={() => {
+            setMatchViewRoom(null);
+            setSelectedRoom("");
+          }}
+        />
+      );
+    }
     return (
-      <OnlineMatchView
-        standardRoom={currentActiveRoom}
-        currentUserId={state.profile.id}
-        run={run}
-        gameAction={gameAction}
-        busy={busy}
-        onExit={() => {
-          setMatchViewRoom(null);
-          setSelectedRoom("");
-        }}
-      />
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-200">
+        <div className="w-16 h-16 rounded-full bg-[#1A1A1A] border border-[#AFF65B]/30 flex items-center justify-center mb-4 shadow-xl">
+          <span className="w-6 h-6 rounded-full border-2 border-[#AFF65B] border-t-transparent animate-spin" />
+        </div>
+        <div className="matiks-kicker text-[#AFF65B] text-xs tracking-widest mb-1">
+          MATCH ARENA
+        </div>
+        <h2 className="matiks-headline text-2xl sm:text-3xl text-white mb-2 uppercase">
+          CONNECTING TO ROOM {activeRoomId}
+        </h2>
+        <p className="text-xs text-[#8A8A8A] max-w-sm mb-6">
+          Synchronizing board position and clocks from the server...
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setMatchViewRoom(null);
+            setSelectedRoom("");
+          }}
+          className="btn-raised px-5 py-2.5 text-xs font-bold rounded-full cursor-pointer hover:border-white/30"
+        >
+          ← Return to Lobby
+        </button>
+      </div>
     );
   }
 
   const activeCustomRoom = state?.customRooms?.find((r) => r.id === selectedCustomRoomId);
-  if (inCustomMatchScreen && activeCustomRoom && state) {
+  if ((inCustomMatchScreen || selectedCustomRoomId) && state) {
+    if (activeCustomRoom) {
+      return (
+        <OnlineMatchView
+          customRoom={activeCustomRoom}
+          currentUserId={state.profile.id}
+          run={run}
+          busy={busy}
+          onExit={() => {
+            setInCustomMatchScreen(false);
+            setSelectedCustomRoomId(null);
+          }}
+        />
+      );
+    }
     return (
-      <OnlineMatchView
-        customRoom={activeCustomRoom}
-        currentUserId={state.profile.id}
-        run={run}
-        busy={busy}
-        onExit={() => {
-          setInCustomMatchScreen(false);
-          setSelectedCustomRoomId(null);
-        }}
-      />
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-200">
+        <div className="w-16 h-16 rounded-full bg-[#1A1A1A] border border-[#AFF65B]/30 flex items-center justify-center mb-4 shadow-xl">
+          <span className="w-6 h-6 rounded-full border-2 border-[#AFF65B] border-t-transparent animate-spin" />
+        </div>
+        <div className="matiks-kicker text-[#AFF65B] text-xs tracking-widest mb-1">
+          CUSTOM ARENA
+        </div>
+        <h2 className="matiks-headline text-2xl sm:text-3xl text-white mb-2 uppercase">
+          ENTERING CUSTOM ARENA {selectedCustomRoomId}
+        </h2>
+        <p className="text-xs text-[#8A8A8A] max-w-sm mb-6">
+          Connecting to multiplayer battlefield...
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setInCustomMatchScreen(false);
+            setSelectedCustomRoomId(null);
+          }}
+          className="btn-raised px-5 py-2.5 text-xs font-bold rounded-full cursor-pointer hover:border-white/30"
+        >
+          ← Return to Lobby
+        </button>
+      </div>
     );
   }
 
@@ -742,7 +493,7 @@ export default function OnlinePage({
               onClick={onExit}
               className="btn-raised py-2.5 px-5 text-xs font-semibold cursor-pointer"
             >
-              Back to Home
+              ← Return to Hub
             </button>
           </div>
         </div>
@@ -1314,7 +1065,7 @@ export default function OnlinePage({
             </div>
           )}
           {tab === "friends" && (
-            <div className={room && (pos || isFog) ? "online-grid" : "w-full"}>
+            <div className="w-full">
               {/* Top Banner: Your 8-Digit Player ID */}
               <section className="online-card bg-[#1A1A1A] border border-[#AFF65B]/30 rounded-2xl p-5 mb-4 shadow-lg">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1612,7 +1363,6 @@ export default function OnlinePage({
                           <optgroup label="Standard Chess & Variants">
                             <option value="chess">Standard Chess</option>
                             <option value="fog">Fog of War</option>
-                            <option value="chess960">Chess960</option>
                             <option value="atomic">Atomic Chess</option>
                             <option value="crazyhouse">Crazyhouse</option>
                             <option value="kingofthehill">King of the Hill</option>
@@ -1930,8 +1680,7 @@ export default function OnlinePage({
                     <button
                       onClick={() => {
                         setSelectedRoom(r.id);
-                        setSelected(null);
-                        setPromotion([]);
+                        setMatchViewRoom(r.id);
                       }}
                     >
                       {r.whiteName} vs {r.blackName ?? "waiting"} ·{" "}
@@ -1947,6 +1696,7 @@ export default function OnlinePage({
                           void run(async () => {
                             await api("join", { room: r.id });
                             setSelectedRoom(r.id);
+                            setMatchViewRoom(r.id);
                           })
                         }
                       >
@@ -1970,633 +1720,6 @@ export default function OnlinePage({
                   </p>
                 )}
               </section>
-              {room && (pos || isFog) && (
-                <section id="online-game-section" className="online-card online-game">
-                  <>
-                    <h2>
-                      {room.whiteName} vs{" "}
-                      {room.blackName ?? "waiting for Black"}
-                    </h2>
-                    <div className="flex items-center justify-between gap-3 my-2">
-                      <button
-                        type="button"
-                        onClick={() => setMatchViewRoom(room.id)}
-                        className="btn-lime py-2 px-4 text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer shadow-md flex items-center gap-2"
-                      >
-                        <span>⚔️</span>
-                        <span>Open Full Match View & Live Chat →</span>
-                      </button>
-                    </div>
-                    {room.status === "waiting" && (
-                      <div className="p-4 rounded-xl bg-[#1E2616] border border-[#AFF65B]/30 my-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] animate-ping" />
-                            <strong className="text-white text-sm">Waiting for opponent to join…</strong>
-                          </div>
-                          <span className="font-mono text-[#AFF65B] font-bold text-xs bg-black/60 px-2.5 py-1 rounded border border-[#AFF65B]/20">
-                            Room: {room.id}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#A3A3A3] mb-3">
-                          Send this invite link or room code to a friend. The game clock starts as soon as Black makes their first move.
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => copyInviteLink(room.id)}
-                            className="btn-lime px-3 py-1.5 text-xs font-bold rounded cursor-pointer"
-                          >
-                            {copiedLink ? "✓ Invite Link Copied!" : "📋 Copy Invite Link"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => copyRoomCode(room.id)}
-                            className="px-3 py-1.5 bg-[#262626] text-white text-xs rounded border border-white/10 hover:bg-[#333] cursor-pointer"
-                          >
-                            {copied ? "✓ Code Copied" : "Copy Code"}
-                          </button>
-                          {room.white === state.profile.id && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => gameAction("cancel")}
-                              className="px-3 py-1.5 bg-transparent text-[#FF8080] text-xs border border-[#E5484D]/30 hover:bg-[#E5484D]/10 rounded cursor-pointer ml-auto"
-                            >
-                              Cancel Room
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {room.status === "active" &&
-                      (room.yourColor === "white"
-                        ? room.black !== null && room.blackOnline === false
-                        : room.whiteOnline === false) && (
-                        <p className="online-offline" role="status">
-                          {room.yourColor === "white"
-                            ? room.blackName
-                            : room.whiteName}{" "}
-                          is offline - their clock keeps running and they can
-                          rejoin anytime.
-                        </p>
-                      )}
-                    <p>
-                      You are {room.yourColor}. Room: <code>{room.id}</code>{" "}
-                      <button
-                        className="online-copy"
-                        disabled={busy}
-                        onClick={() => copyRoomCode(room.id)}
-                      >
-                        {copied ? "Copied" : "Copy code"}
-                      </button>{" "}
-                      <button
-                        className="online-copy"
-                        disabled={busy}
-                        onClick={() => copyInviteLink(room.id)}
-                      >
-                        {copiedLink ? "Link copied" : "Copy invite link"}
-                      </button>
-                    </p>
-                    {room.result ? (
-                      <div className="online-result" role="status">
-                        <strong>{room.result}</strong>
-                        <span>
-                          {room.moves.length}{" "}
-                          {room.moves.length === 1 ? "move" : "moves"} played
-                          {opening ? ` · ${opening.name}` : ""}
-                        </span>
-                        {room.rule === "chess" &&
-                          room.result !== "Room cancelled" &&
-                          room.result !== "Game aborted" && (
-                            <span>
-                              Standard chess uses provisional private-match
-                              ratings.
-                              {room.ratingDelta &&
-                                (() => {
-                                  const d =
-                                    room.ratingDelta[room.yourColor];
-                                  return ` Rating change: ${
-                                    d > 0 ? `+${d}` : d === 0 ? "no change" : d
-                                  }.`;
-                                })()}
-                            </span>
-                          )}
-                        {room.black && room.result !== "Room cancelled" && (
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              void run(async () => {
-                                const out = await api<{ room?: string }>(
-                                  "game",
-                                  {
-                                    room: room.id,
-                                    version: room.version,
-                                    action: "rematch",
-                                  },
-                                );
-                                if (out?.room) setSelectedRoom(out.room);
-                              })
-                            }
-                          >
-                            Rematch (colours swap)
-                          </button>
-                        )}
-                        {room.rule !== "fog" &&
-                          room.result !== "Room cancelled" &&
-                          room.moves.length > 0 && (
-                            <button
-                              className="online-copy-pgn"
-                              disabled={busy}
-                              title="Copy this game's score in PGN, the standard chess record format. Not offered for Fog of War: players only see a filtered move list there."
-                              onClick={() => {
-                                void navigator.clipboard
-                                  ?.writeText(buildPgn(room))
-                                  .then(() => setCopiedPgn(true))
-                                  .catch(() =>
-                                    setError("Copy failed - your browser blocked clipboard access."),
-                                  );
-                              }}
-                            >
-                              {copiedPgn ? "PGN copied" : "Copy PGN"}
-                            </button>
-                          )}
-                        {room.result !== "Room cancelled" &&
-                          room.result !== "Game aborted" &&
-                          room.moves.length > 0 && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-                              title="Match review with deep engine analysis is coming soon"
-                              onClick={() =>
-                                alert(
-                                  `Match Review for Online Game vs ${
-                                    (room.yourColor === "white" ? room.blackName : room.whiteName) || "Opponent"
-                                  }:\n\nDeep Stockfish engine move-by-move evaluation, blunder analysis, and brilliance detection is coming soon in the next major update!`
-                                )
-                              }
-                            >
-                              <span>Match Review</span>
-                              <span style={{ fontSize: "10px", background: "rgba(175, 246, 91, 0.2)", color: "#AFF65B", padding: "2px 6px", borderRadius: "999px", fontWeight: "bold" }}>
-                                Coming Soon
-                              </span>
-                            </button>
-                          )}
-
-                      </div>
-                    ) : (
-                      <p>
-                        {room.status === "waiting"
-                          ? "Share the room code."
-                          : `${room.turn} to move`}
-                        .
-                      </p>
-                    )}
-                    {room.status === "active" && room.takeback && (
-                      <div className="online-draw" role="status">
-                        {room.takeback === state.profile.id ? (
-                          <>
-                            <span>You asked to undo the last move.</span>
-                            <button
-                              disabled={busy}
-                              onClick={() => gameAction("declineTakeback")}
-                            >
-                              Withdraw request
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <span>
-                              {room.yourColor === "white"
-                                ? room.blackName
-                                : room.whiteName}{" "}
-                              asks to undo the last move.
-                            </span>
-                            <button
-                              disabled={busy}
-                              onClick={() => gameAction("acceptTakeback")}
-                            >
-                              Accept
-                            </button>
-                            <button
-                              disabled={busy}
-                              onClick={() => gameAction("declineTakeback")}
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {room.status === "active" && room.drawOffer && (
-                      <div className="online-draw" role="status">
-                        {room.drawOffer === state.profile.id ? (
-                          <>
-                            <span>You offered a draw.</span>
-                            <button
-                              disabled={busy}
-                              onClick={() => gameAction("declineDraw")}
-                            >
-                              Withdraw offer
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <span>
-                              {room.yourColor === "white"
-                                ? room.blackName
-                                : room.whiteName}{" "}
-                              offers a draw.
-                            </span>
-                            <button
-                              disabled={busy}
-                              onClick={() => gameAction("acceptDraw")}
-                            >
-                              Accept
-                            </button>
-                            <button
-                              disabled={busy}
-                              onClick={() => gameAction("declineDraw")}
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <div className="online-clocks">
-                      <span
-                        className={`${room.status === "active" && room.turn === "white" ? "online-clock-active" : ""} ${live && live.whiteMs <= 10000 && room.status === "active" ? "online-clock-low" : ""}`}
-                      >
-                        White {formatClock(live?.whiteMs ?? room.whiteMs)}
-                      </span>
-                      <span
-                        className={`${room.status === "active" && room.turn === "black" ? "online-clock-active" : ""} ${live && live.blackMs <= 10000 && room.status === "active" ? "online-clock-low" : ""}`}
-                      >
-                        Black {formatClock(live?.blackMs ?? room.blackMs)}
-                      </span>
-                    </div>
-                    <div className="sr-only" role="status" aria-live="polite">
-                      {announcement}
-                    </div>
-                    {material && (
-                      <div className="online-material" aria-label="Material balance" title="Missing starting pieces inferred from the board; promotions can change these icons.">
-                        <Captured label="White took" pieces={material.capturedByWhite} color="b" />
-                        <span className="online-material-lead">
-                          {material.lead === 0
-                            ? "Level material"
-                            : material.lead > 0
-                              ? `White +${material.lead}`
-                              : `Black +${-material.lead}`}
-                        </span>
-                        <Captured label="Black took" pieces={material.capturedByBlack} color="w" />
-                      </div>
-                    )}
-                    {isFog ? (
-                      <FogBoard
-                        fen={room.fen}
-                        fogSquares={room.fogSquares ?? []}
-                        flip={boardFlip}
-                        selected={selected}
-                        dests={active ? dests : []}
-                        onSquare={square}
-                        lastMove={lastMove}
-                      />
-                    ) : pos ? (
-                      <VariantBoard
-                        flip={boardFlip}
-                        pos={displayPos!}
-                        selected={selected}
-                        dests={active ? dests : []}
-                        onSquare={square}
-                        lastMove={lastMove}
-                        checkSq={checkSq}
-                        premove={premoveQueue.length > 0 ? premoveQueue.flatMap(lastMoveSquares) : (premove ? lastMoveSquares(premove) : [])}
-                      />
-                    ) : null}
-                    {isFog && (
-                      <p className="fine-print">
-                        Fog of War house rules: capture the king to win - there
-                        is no check or checkmate. Enemy pieces stay hidden
-                        unless your pieces can see their square.
-                      </p>
-                    )}
-                    {room.rule === "crazyhouse" && pos && pos.pockets && (
-                      <label>
-                        Drop from your pocket
-                        <select
-                          value={drop}
-                          onChange={(e) => {
-                            setDrop(e.target.value);
-                            setSelected(null);
-                          }}
-                        >
-                          <option value="">Choose a piece</option>
-                          {(
-                            [
-                              "pawn",
-                              "knight",
-                              "bishop",
-                              "rook",
-                              "queen",
-                            ] as const
-                          )
-                            .filter(
-                              (role) => pos.pockets![room.yourColor][role] > 0,
-                            )
-                            .map((role) => (
-                              <option
-                                key={role}
-                                value={
-                                  {
-                                    pawn: "P",
-                                    knight: "N",
-                                    bishop: "B",
-                                    rook: "R",
-                                    queen: "Q",
-                                  }[role]
-                                }
-                              >
-                                {role} ({pos.pockets![room.yourColor][role]})
-                              </option>
-                            ))}
-                        </select>
-                      </label>
-                    )}
-                    {active && !isFog && (
-                      <form
-                        className="online-keyboard"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          submitMoveInput();
-                        }}
-                      >
-                        <label>
-                          Type a move
-                          <input
-                            value={moveInput}
-                            onChange={(e) => {
-                              setMoveInput(e.target.value);
-                              setMoveInputError("");
-                            }}
-                            placeholder="e4, Nf3, O-O, e2e4"
-                            aria-label="Type a move"
-                            autoComplete="off"
-                            spellCheck={false}
-                          />
-                        </label>
-                        <button type="submit" disabled={busy || !moveInput.trim()}>
-                          Play move
-                        </button>
-                      </form>
-                    )}
-                    {active && isFog && (
-                      <form
-                        className="online-keyboard"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          submitMoveInput();
-                        }}
-                      >
-                        <label>
-                          Type a move
-                          <input
-                            value={moveInput}
-                            onChange={(e) => {
-                              setMoveInput(e.target.value);
-                              setMoveInputError("");
-                            }}
-                            placeholder="e2e4"
-                            aria-label="Type a move"
-                            autoComplete="off"
-                            spellCheck={false}
-                          />
-                        </label>
-                        <button type="submit" disabled={busy || !moveInput.trim()}>
-                          Play move
-                        </button>
-                      </form>
-                    )}
-                    {moveInputError && (
-                      <p className="online-keyboard-error" role="alert">
-                        {moveInputError}
-                      </p>
-                    )}
-                    {promotion.length > 0 && (
-                      <div
-                        className="online-actions"
-                        aria-label="Promotion choice"
-                      >
-                        {promotion.map((m) => (
-                          <button
-                            key={m}
-                            disabled={busy}
-                            onClick={() => doMove(m)}
-                          >
-                            Promote to{" "}
-                            {{
-                              q: "queen",
-                              r: "rook",
-                              b: "bishop",
-                              n: "knight",
-                            }[m[4]] ?? m[4]}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {(premoveQueue.length > 0 || premove) && (
-                      <div className="online-premove flex items-center justify-between" role="status">
-                        <span>
-                          {premoveQueue.length > 1
-                            ? `${premoveQueue.length} premoves queued (${prefs.premoveLimit === "limitless" ? "limitless" : "1-move"})`
-                            : "Premove set (1)"} - plays automatically if legal.
-                        </span>
-                        <button
-                          onClick={() => {
-                            setPremoveQueue([]);
-                            setPremove(null);
-                          }}
-                          className="text-xs text-red-400 hover:text-red-300 font-bold ml-2 underline cursor-pointer"
-                        >
-                          Cancel [✕]
-                        </button>
-                      </div>
-                    )}
-                    <p aria-live="polite">
-                      {busy
-                        ? "Waiting for server confirmation"
-                        : room.status === "active"
-                          ? active
-                            ? "Your turn"
-                            : "Waiting for opponent"
-                          : "Game not active"}
-                    </p>
-                    <div className="online-actions">
-                      <button
-                        disabled={busy}
-                        onClick={() => setFlipped((f) => !f)}
-                      >
-                        Flip board
-                      </button>
-                      <button
-                        aria-pressed={!muted}
-                        title="Move sounds. Your choice is remembered on this device."
-                        onClick={() => {
-                          const next = !muted;
-                          setMuted(next);
-                          localStorage.setItem(
-                            "chaturanga-muted",
-                            next ? "1" : "0",
-                          );
-                          if (!next) playSound("move");
-                        }}
-                      >
-                        {muted ? "Sound off" : "Sound on"}
-                      </button>
-                      {room.status === "active" && (
-                        <>
-                          {confirmResign ? (
-                            <>
-                              <button
-                                className="online-danger"
-                                disabled={busy}
-                                onClick={() => {
-                                  setConfirmResign(false);
-                                  gameAction("resign");
-                                }}
-                              >
-                                Confirm resign
-                              </button>
-                              <button
-                                disabled={busy}
-                                onClick={() => setConfirmResign(false)}
-                              >
-                                Keep playing
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              disabled={busy}
-                              onClick={() => setConfirmResign(true)}
-                            >
-                              Resign
-                            </button>
-                          )}
-                          {room.moves.length < 2 &&
-                            (confirmAbort ? (
-                              <>
-                                <button
-                                  className="online-danger"
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setConfirmAbort(false);
-                                    gameAction("abort");
-                                  }}
-                                >
-                                  Confirm abort
-                                </button>
-                                <button
-                                  disabled={busy}
-                                  onClick={() => setConfirmAbort(false)}
-                                >
-                                  Keep playing
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                disabled={busy}
-                                title="End the game with no result. Only available before each player has moved."
-                                onClick={() => setConfirmAbort(true)}
-                              >
-                                Abort
-                              </button>
-                            ))}
-                          <button
-                            disabled={busy}
-                            onClick={() => gameAction("offerDraw")}
-                          >
-                            Offer draw
-                          </button>
-                          {!isFog && room.moves.length > 0 && (
-                            <button
-                              disabled={busy || room.takeback === state.profile.id}
-                              title="Ask your opponent to undo the last move. Casual rooms only - the clock time already spent is not restored."
-                              onClick={() => gameAction("requestTakeback")}
-                            >
-                              Takeback
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {room.status === "waiting" &&
-                        room.white === state.profile.id && (
-                          <button
-                            disabled={busy}
-                            onClick={() => gameAction("cancel")}
-                          >
-                            Cancel room
-                          </button>
-                        )}
-                    </div>
-                    {reviewPly && (
-                      <p className="online-review" role="status">
-                        Viewing move {reviewPly} of {room.moves.length} - the
-                        board is read-only. Arrow keys step through moves.{" "}
-                        <button
-                          className="online-review-exit"
-                          onClick={() => setReviewPly(null)}
-                        >
-                          Back to live
-                        </button>
-                      </p>
-                    )}
-                    {opening && (
-                      <p className="online-opening" title="Named from the ECO opening table while the game follows a book line.">
-                        {opening.name} <small>{opening.eco}</small>
-                      </p>
-                    )}
-                    <div className="online-moves" aria-label="Move list" ref={movesRef}>
-                      {room.moves.length === 0 && <p>No moves yet</p>}
-                      {moveRows(room.moves).map(([n, w, b], i) => (
-                        <div className="online-move-row" key={n}>
-                          <span>{n}</span>
-                          {isFog ? (
-                            <>
-                              <span>{w}</span>
-                              <span>{b ?? ""}</span>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className={reviewPly === i * 2 + 1 ? "reviewing" : ""}
-                                title="View the board after this move"
-                                onClick={() => setReviewPly(i * 2 + 1)}
-                              >
-                                {w}
-                              </button>
-                              {b !== null && (
-                                <button
-                                  className={reviewPly === i * 2 + 2 ? "reviewing" : ""}
-                                  title="View the board after this move"
-                                  onClick={() => setReviewPly(i * 2 + 2)}
-                                >
-                                  {b}
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <small>
-                      Server clocks keep running when a player disconnects.
-                      Reconnect restores the latest board. These private games
-                      are not official FIDE games.
-                    </small>
-                  </>
-                </section>
-              )}
             </div>
           )}
         </>
@@ -2625,31 +1748,4 @@ export default function OnlinePage({
     </div>
   );
 }
-function Captured({
-  label,
-  pieces,
-  color,
-}: {
-  label: string;
-  pieces: string[];
-  color: "w" | "b";
-}) {
-  const FILE: Record<string, string> = {
-    p: "P",
-    n: "N",
-    b: "B",
-    r: "R",
-    q: "Q",
-  };
-  return (
-    <span className="online-captured" aria-label={label} title={label}>
-      {pieces.map((role, i) => (
-        <img
-          key={`${role}-${i}`}
-          src={`/pieces/${color}${FILE[role]}.svg`}
-          alt={role}
-        />
-      ))}
-    </span>
-  );
-}
+

@@ -138,9 +138,9 @@ describe("filterRooms", () => {
 
 describe("ruleLabel", () => {
   it("translates rule keys into friendly names", () => {
-    expect(ruleLabel("chess")).toBe("Standard chess");
+    expect(ruleLabel("chess")).toBe("Standard Chess");
     expect(ruleLabel("kingofthehill")).toBe("King of the Hill");
-    expect(ruleLabel("3check")).toBe("3-Check");
+    expect(ruleLabel("3check")).toBe("Three-Check Chess");
     expect(ruleLabel("fog")).toBe("Fog of War");
     expect(ruleLabel("something-new")).toBe("something-new");
   });

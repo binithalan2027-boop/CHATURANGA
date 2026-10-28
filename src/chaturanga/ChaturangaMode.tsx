@@ -447,7 +447,7 @@ export default function ChaturangaMode({
           <button onClick={open} aria-label="Open board settings">
             ⚙ Settings
           </button>
-          <button onClick={onExit}>Back home</button>
+          <button onClick={onExit} className="btn-raised">← Return to Hub</button>
         </div>
       </header>
       {!game ? (

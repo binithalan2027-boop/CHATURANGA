@@ -4,10 +4,10 @@ import type { CustomKind, CustomView } from "./customTypes";
 import OnlineMatchView from "./OnlineMatchView";
 
 const names: Record<CustomKind, string> = {
-  mind: "Mind Before Move",
-  mantra: "Mantra Duel + spells",
-  cross3: "Three-player cross-board",
-  cross4: "Four-player cross-board",
+  mind: "Chess MM (Mind Before Move)",
+  mantra: "Mantra Duel",
+  cross3: "3-Player Cross-Board",
+  cross4: "4-Player Cross-Board",
 };
 
 const kindDescriptions: Record<CustomKind, string> = {
@@ -37,14 +37,45 @@ export default function CustomRoomPanel({
   const selectedRoom = rooms.find((r) => r.id === selected);
 
   // If user joins or creates an active room and enters match screen, render OnlineMatchView!
-  if (inMatchScreen && selectedRoom) {
+  if (inMatchScreen && selected) {
+    if (selectedRoom) {
+      return (
+        <OnlineMatchView
+          customRoom={selectedRoom}
+          currentUserId={currentUserId}
+          onExit={() => {
+            setInMatchScreen(false);
+            setSelected("");
+          }}
+          run={run}
+        />
+      );
+    }
     return (
-      <OnlineMatchView
-        customRoom={selectedRoom}
-        currentUserId={currentUserId}
-        onExit={() => setInMatchScreen(false)}
-        run={run}
-      />
+      <div className="min-h-[calc(100vh-64px)] bg-[#0E0E0E] text-[#F4F4F4] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-200">
+        <div className="w-16 h-16 rounded-full bg-[#1A1A1A] border border-[#AFF65B]/30 flex items-center justify-center mb-4 shadow-xl">
+          <span className="w-6 h-6 rounded-full border-2 border-[#AFF65B] border-t-transparent animate-spin" />
+        </div>
+        <div className="matiks-kicker text-[#AFF65B] text-xs tracking-widest mb-1">
+          CUSTOM ARENA
+        </div>
+        <h2 className="matiks-headline text-2xl sm:text-3xl text-white mb-2 uppercase">
+          ENTERING CUSTOM ARENA {selected}
+        </h2>
+        <p className="text-xs text-[#8A8A8A] max-w-sm mb-6">
+          Connecting to multiplayer battlefield...
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setInMatchScreen(false);
+            setSelected("");
+          }}
+          className="btn-raised px-5 py-2.5 text-xs font-bold rounded-full cursor-pointer hover:border-white/30"
+        >
+          ← Return to Lobby
+        </button>
+      </div>
     );
   }
 
@@ -52,7 +83,7 @@ export default function CustomRoomPanel({
     void run(async () => {
       const r = await api<{ room: string }>("custom-create", { kind, minutes });
       setSelected(r.room);
-      // Wait for second player or view waiting room
+      setInMatchScreen(true);
     });
   };
 

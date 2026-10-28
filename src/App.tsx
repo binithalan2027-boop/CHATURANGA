@@ -335,6 +335,7 @@ function AppContent() {
           onOpenProfile={() => setScreen("profile")}
           onOpenStamps={() => setScreen("stamps")}
           onOpenProgress={() => setScreen("progress")}
+          onOpenOnline={() => setScreen("online")}
           onCreatePrivateRoom={() => {
             setOnlineAutoCreate(true);
             setScreen("online");
