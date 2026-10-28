@@ -1,6 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { PreferenceProvider } from "./chaturanga/preferences";
 import ProductNav from "./chaturanga/ProductNav";
+import { getCurrentUser, signOutUser, signInWithGoogle, onUserChange, ChaturangaUser } from "./services/authStore";
+import GoogleAuthModal from "./components/auth/GoogleAuthModal";
 const TournamentPage = lazy(() => import("./chaturanga/TournamentPage"));
 const TrainingPage = lazy(() => import("./chaturanga/TrainingPage"));
 const StudyBoard = lazy(() => import("./chaturanga/StudyBoard"));
@@ -47,12 +49,6 @@ type Screen =
   | "stamps"
   | "progress";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
 import { authConfigured, getSupabase } from "./lib/supabase";
 
 function AppContent() {
@@ -67,7 +63,12 @@ function AppContent() {
     return "landing";
   });
   const [onlineAutoCreate, setOnlineAutoCreate] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ChaturangaUser>(() => getCurrentUser());
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    return onUserChange((u) => setUser(u));
+  }, []);
   const [selectedElo, setSelectedElo] = useState<number>(1300);
   const [timeMinutes, setTimeMinutes] = useState<number>(10);
   const [gameMode, setGameMode] = useState<string>(() => {
@@ -93,34 +94,32 @@ function AppContent() {
     void getSupabase().then((supabase) => {
       if (cancelled) return;
       supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          name:
-            session.user.user_metadata?.display_name ||
-            session.user.email?.split("@")[0] ||
-            "Player",
-          email: session.user.email || "",
-        });
-      }
-    });
+        if (session?.user) {
+          signInWithGoogle({
+            name:
+              session.user.user_metadata?.display_name ||
+              session.user.email?.split("@")[0] ||
+              "Player",
+            email: session.user.email || "",
+            picture: session.user.user_metadata?.avatar_url,
+          });
+        }
+      });
 
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          name:
-            session.user.user_metadata?.display_name ||
-            session.user.email?.split("@")[0] ||
-            "Player",
-          email: session.user.email || "",
-        });
-      } else {
-        setUser(null);
-      }
-    });
+        if (session?.user) {
+          signInWithGoogle({
+            name:
+              session.user.user_metadata?.display_name ||
+              session.user.email?.split("@")[0] ||
+              "Player",
+            email: session.user.email || "",
+            picture: session.user.user_metadata?.avatar_url,
+          });
+        }
+      });
 
       unsubscribe = () => subscription.unsubscribe();
     });
@@ -163,8 +162,12 @@ function AppContent() {
   };
 
   const handleLogout = async () => {
-    await (await getSupabase()).auth.signOut();
-    setUser(null);
+    signOutUser();
+    if (authConfigured) {
+      try {
+        await (await getSupabase()).auth.signOut();
+      } catch {}
+    }
   };
 
   const renderScreen = () => {
@@ -174,6 +177,7 @@ function AppContent() {
           user={user}
           onBack={() => setScreen("landing")}
           onOpenStamps={() => setScreen("stamps")}
+          onOpenAuth={() => setAuthModalOpen(true)}
         />
       );
     }
@@ -203,7 +207,7 @@ function AppContent() {
             setScreen("landing");
           }}
           onPlayBot={() => setScreen("bot_select")}
-          onOpenAuth={() => setScreen("auth")}
+          onOpenAuth={() => setAuthModalOpen(true)}
           autoCreateRoom={onlineAutoCreate}
           initialTab={
             screen === "friends"
@@ -323,7 +327,7 @@ function AppContent() {
           onBots={() => setScreen("bots")}
           user={user}
           onPlay={triggerPlay}
-          onLogin={() => setScreen("auth")}
+          onLogin={() => setAuthModalOpen(true)}
           onLogout={handleLogout}
           onOpenPolicy={() => setScreen("policy")}
           onOpenLearn={() => setScreen("learn")}
@@ -343,7 +347,8 @@ function AppContent() {
   };
   return (
     <>
-      <ProductNav
+      {screen !== "landing" && (
+        <ProductNav
         active={
           screen === "drills"
             ? "drills"
@@ -363,9 +368,7 @@ function AppContent() {
                           ? "progress"
                           : screen === "online"
                             ? "online"
-                            : screen === "landing"
-                              ? "home"
-                              : "play"
+                            : "play"
         }
         onHome={() => setScreen("landing")}
         onPlay={() => setScreen("bot_select")}
@@ -378,8 +381,12 @@ function AppContent() {
         onStamps={() => setScreen("stamps")}
         onProgress={() => setScreen("progress")}
         onOnline={() => setScreen("online")}
+        user={user}
+        onLogin={() => setAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
-      <div className={`product-content min-h-[calc(100vh-64px)] ${screen === "landing" ? "w-full" : "w-full lg:pl-56 pb-16 lg:pb-0"}`}>
+      )}
+      <div className={`product-content ${screen === "landing" ? "w-full" : "w-full lg:pl-56 pb-16 lg:pb-0 min-h-[calc(100vh-64px)]"}`}>
         <Suspense
           fallback={
             <div className="min-h-screen bg-[#0E0E0E] flex items-center justify-center text-[#AFF65B] font-heading text-2xl" role="status">
@@ -396,6 +403,14 @@ function AppContent() {
           onDismiss={() => setCelebratedAchievement(null)}
         />
       )}
+      <GoogleAuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(u) => {
+          setUser(u);
+          setAuthModalOpen(false);
+        }}
+      />
     </>
   );
 }

@@ -2,21 +2,37 @@ import { useState } from 'react';
 import { getLocalStats, getRatingTier } from './chaturanga/stats';
 import { getAchievementProgress, ACHIEVEMENTS, isAchievementUnlocked } from './chaturanga/achievements';
 import StampTile from './chaturanga/StampTile';
+import { getCurrentUser } from './services/authStore';
+import { formatPlayerId } from './services/playerId';
 
 interface ProfilePageProps {
   onBack: () => void;
   onOpenStamps?: () => void;
-  user?: { name: string; email: string } | null;
+  user?: {
+    id?: string;
+    playerId?: string;
+    name: string;
+    email: string;
+    picture?: string;
+    bio?: string;
+    provider?: string;
+    createdAt?: number;
+  } | null;
+  onOpenAuth?: () => void;
 }
 
-export default function ProfilePage({ onBack, onOpenStamps, user }: ProfilePageProps) {
+export default function ProfilePage({ onBack, onOpenStamps, user, onOpenAuth }: ProfilePageProps) {
   const [stats] = useState(() => getLocalStats());
   const progress = getAchievementProgress();
   const unlockedAchievements = ACHIEVEMENTS.filter((a) => isAchievementUnlocked(a.id));
   const [historyFilter, setHistoryFilter] = useState<'all' | 'online' | 'bots'>('all');
+  const [copiedId, setCopiedId] = useState(false);
 
-  const displayName = user?.name || 'Local Player';
-  const handle = user?.email ? `@${user.email.split('@')[0]}` : '@local';
+  const activeUser = user?.name ? user : getCurrentUser();
+  const displayName = activeUser?.name || 'Local Player';
+  const handle = activeUser?.email ? `@${activeUser.email.split('@')[0]}` : '@local';
+  const isGoogle = activeUser?.provider === 'google' || (activeUser?.email && !activeUser.email.includes('@chaturanga.local'));
+  const playerId = activeUser?.playerId || 'CH8K9A2M';
 
   const ratingTier = getRatingTier(stats.currentRating);
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
@@ -52,17 +68,17 @@ export default function ProfilePage({ onBack, onOpenStamps, user }: ProfilePageP
         {/* Hero Profile Banner */}
         <div className="relative mt-8 rounded-3xl bg-[#F07040] text-[#0E0E0E] p-6 sm:p-10 overflow-hidden shadow-2xl bg-diagonal-stripes">
           <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
-            {/* Avatar Circle with Knight illustration */}
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#F4F4F4] border-4 border-[#0E0E0E] flex items-center justify-center p-3 shadow-xl shrink-0">
+            {/* Avatar Circle with Knight illustration or Google picture */}
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#F4F4F4] border-4 border-[#0E0E0E] flex items-center justify-center p-2 shadow-xl shrink-0 overflow-hidden">
               <img
-                src="/illustrations/knight.svg"
+                src={activeUser?.picture || "/illustrations/knight.svg"}
                 alt="Avatar"
                 className="w-full h-full object-contain"
               />
             </div>
 
             {/* Profile Info */}
-            <div className="flex flex-col text-center sm:text-left">
+            <div className="flex flex-col text-center sm:text-left flex-1">
               <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
                 <h1 className="matiks-headline text-4xl sm:text-6xl text-[#0E0E0E] leading-none m-0">
                   {displayName}
@@ -70,12 +86,99 @@ export default function ProfilePage({ onBack, onOpenStamps, user }: ProfilePageP
                 <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-[#AFF65B] text-xs font-mono font-bold tracking-wider uppercase">
                   {ratingTier.tier} · {stats.currentRating} ELO
                 </span>
+                {isGoogle ? (
+                  <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" aria-hidden="true">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.36 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.14 0 9.89 0 12c0 2.11.45 3.86 1.24 5.42l4.04-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
+                    Google Connected
+                  </span>
+                ) : (
+                  onOpenAuth && (
+                    <button
+                      type="button"
+                      onClick={onOpenAuth}
+                      className="px-3 py-1 rounded-full bg-[#0E0E0E] hover:bg-[#222] text-[#AFF65B] hover:text-white text-xs font-bold border-none cursor-pointer flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" aria-hidden="true">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.36 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.14 0 9.89 0 12c0 2.11.45 3.86 1.24 5.42l4.04-3.15z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                      </svg>
+                      Sign In with Google
+                    </button>
+                  )
+                )}
               </div>
               <span className="font-body text-sm font-semibold text-[#0E0E0E]/80 mt-1">
                 {handle} • Standard 1200 Starting Baseline
               </span>
               <span className="font-body text-xs text-[#0E0E0E]/60 mt-0.5">
-                Saved locally on this browser • Dynamic Elo updates after rated matches
+                Saved across devices with Google • Dynamic Elo updates after rated matches
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Official 8-Digit Player ID & Friend Connect Card */}
+        <div className="mt-6 bg-[#1A1A1A] border border-[#AFF65B]/40 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="text-[10px] font-mono tracking-widest text-[#AFF65B] uppercase font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-pulse" />
+                OFFICIAL 8-DIGIT PLAYER ID
+              </div>
+              <h2 className="matiks-headline text-2xl sm:text-3xl text-[#F4F4F4] mt-1 mb-1">
+                PLAYER ID: <span className="text-[#AFF65B] select-all font-mono">{formatPlayerId(playerId)}</span>
+              </h2>
+              <p className="font-body text-xs text-[#8A8A8A] max-w-xl mb-0 leading-relaxed">
+                This 8-digit alphanumeric ID is generated by us so friends can easily search, add, and challenge you to live online matches without friction.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(playerId);
+                  setCopiedId(true);
+                  setTimeout(() => setCopiedId(false), 2000);
+                }}
+                className="px-5 py-3 rounded-2xl bg-[#AFF65B] hover:bg-white text-[#0E0E0E] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-2"
+              >
+                {copiedId ? "✓ COPIED TO CLIPBOARD" : "📋 COPY PLAYER ID"}
+              </button>
+            </div>
+          </div>
+
+          {/* Basic Player Information Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/5 text-xs">
+            <div className="bg-[#121212] p-3 rounded-2xl border border-white/5">
+              <span className="text-[10px] font-mono uppercase text-[#888] block">Account Status</span>
+              <span className="font-bold text-white mt-0.5 block truncate">
+                {isGoogle ? "Google Verified" : "Guest Account"}
+              </span>
+            </div>
+            <div className="bg-[#121212] p-3 rounded-2xl border border-white/5">
+              <span className="text-[10px] font-mono uppercase text-[#888] block">Player Email</span>
+              <span className="font-bold text-white mt-0.5 block truncate">
+                {activeUser?.email || "Local Player"}
+              </span>
+            </div>
+            <div className="bg-[#121212] p-3 rounded-2xl border border-white/5">
+              <span className="text-[10px] font-mono uppercase text-[#888] block">Starting Baseline</span>
+              <span className="font-bold text-[#AFF65B] mt-0.5 block">
+                1200 Elo ({ratingTier.tier})
+              </span>
+            </div>
+            <div className="bg-[#121212] p-3 rounded-2xl border border-white/5">
+              <span className="text-[10px] font-mono uppercase text-[#888] block">Friend Matching</span>
+              <span className="font-bold text-[#AFF65B] mt-0.5 block">
+                Direct ID Matching Ready
               </span>
             </div>
           </div>

@@ -90,6 +90,15 @@ function generateRoomCode(store: Store): string {
   return code;
 }
 
+const PLAYER_ID_CHARSET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+function generatePlayerId(): string {
+  let id = "";
+  for (let i = 0; i < 8; i++) {
+    id += PLAYER_ID_CHARSET[Math.floor(Math.random() * PLAYER_ID_CHARSET.length)];
+  }
+  return id;
+}
+
 export class Service {
   /** Last contact with each player (API call or live socket), epoch ms.
    * In-memory only: a restart simply starts the grace window fresh. */
@@ -134,6 +143,7 @@ export class Service {
     if (!p) {
       p = {
         id,
+        playerId: generatePlayerId(),
         username: `player_${randomBytes(5).toString("hex")}`,
         displayName: "Player",
         bio: "",
@@ -150,6 +160,9 @@ export class Service {
         losses: 0,
         draws: 0,
       };
+      this.store.put("profile", id, p);
+    } else if (!p.playerId) {
+      p.playerId = generatePlayerId();
       this.store.put("profile", id, p);
     }
     return p;
@@ -169,6 +182,7 @@ export class Service {
         .some((u) => u.id !== id && u.username === username)
     )
       throw Error("That username is taken.");
+    const playerId = typeof input.playerId === "string" && input.playerId.trim().length === 8 ? input.playerId.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") : (p.playerId || generatePlayerId());
     const bio = clean(input.bio ?? "", 160),
       country = clean(input.country ?? "", 2).toUpperCase(),
       timezone = clean(input.timezone ?? "UTC", 60);
@@ -195,6 +209,7 @@ export class Service {
       throw Error("Invalid self-reported FIDE rating.");
     const next = {
       ...p,
+      playerId,
       fideRating,
       username,
       displayName,
@@ -221,19 +236,33 @@ export class Service {
       !this.blocked(a, b)
     );
   }
-  lookup(id: string, username: string) {
+  lookup(id: string, query: string) {
+    const raw = (query || "").trim();
+    const cleanLower = raw.toLowerCase();
+    const cleanId = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const p = this.store
       .all<PlayerProfile>("profile")
-      .find(
-        (p) =>
-          p.username === username.toLowerCase() &&
+      .find((p) => {
+        if (p.id === id || this.blocked(id, p.id)) return false;
+        // Direct 8-digit alphanumeric Player ID match allows friends to connect directly via their ID
+        if (cleanId.length === 8 && p.playerId && p.playerId.toUpperCase() === cleanId) {
+          return true;
+        }
+        // Username search requires discovery to be enabled and profile ready
+        return (
+          p.username.toLowerCase() === cleanLower &&
           p.discoverable &&
-          (p.adultConfirmed || p.profileReady) &&
-          p.id !== id &&
-          !this.blocked(id, p.id),
-      );
+          (p.adultConfirmed || p.profileReady)
+        );
+      });
     return p
-      ? { id: p.id, username: p.username, displayName: p.displayName }
+      ? {
+          id: p.id,
+          playerId: p.playerId,
+          username: p.username,
+          displayName: p.displayName,
+          rating: p.rating,
+        }
       : null;
   }
   friends(id: string): FriendView[] {
@@ -243,8 +272,10 @@ export class Service {
         const p = this.requireUser(f.from === id ? f.to : f.from);
         rows.push({
           id: p.id,
+          playerId: p.playerId,
           username: p.username,
           displayName: p.displayName,
+          rating: p.rating,
           state:
             f.status === "accepted"
               ? "friend"

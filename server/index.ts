@@ -303,7 +303,7 @@ const server = createServer(async (req, res) => {
         user: id,
         expires: Date.now() + 7 * 86400000,
       });
-      reply(res, 200, { token, guestId: id, displayName: p.displayName });
+      reply(res, 200, { token, guestId: id, playerId: p.playerId, displayName: p.displayName });
       return;
     }
     if (req.method === "POST" && path === "/api/ai-coach") {
@@ -445,7 +445,7 @@ ${data.evaluation ? `Stockfish score: ${String(data.evaluation).slice(0, 30)}` :
       else if (path === "/api/profile")
         result = service.profile(id, data, mode === "local");
       else if (path === "/api/find")
-        result = service.lookup(id, String(data.username ?? "").slice(0, 24));
+        result = service.lookup(id, String(data.query ?? data.username ?? "").slice(0, 32));
       else if (path === "/api/friend")
         service.friendAction(id, data.action, data.target);
       else if (path === "/api/create") {

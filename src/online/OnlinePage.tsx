@@ -21,6 +21,7 @@ const fogState = fogFromFen;
 import { variantPosition, variantFen, variantMoves } from "../chaturanga/variantRules";
 import { RULE_VARIANTS } from "../chaturanga/variantCatalog";
 import { getLocalStats, recordMatchRating } from "../chaturanga/stats";
+import { formatPlayerId } from "../services/playerId";
 import {
   api,
   createGuestSession,
@@ -66,7 +67,7 @@ export default function OnlinePage({
   initialTab = "play",
   autoCreateRoom = false,
 }: {
-  user?: { id: string; name: string; email: string } | null;
+  user?: { id?: string; playerId?: string; name: string; email: string; provider?: string } | null;
   onExit: () => void;
   onPlayBot?: () => void;
   onOpenAuth?: () => void;
@@ -92,8 +93,10 @@ export default function OnlinePage({
     [query, setQuery] = useState(""),
     [found, setFound] = useState<{
       id: string;
+      playerId?: string;
       username: string;
       displayName: string;
+      rating?: number;
     } | null>(null);
   const [profile, setProfile] = useState<PlayerProfile | null>(null),
     [selected, setSelected] = useState<number | null>(null),
@@ -921,9 +924,15 @@ export default function OnlinePage({
                       <h1 className="matiks-headline text-4xl sm:text-6xl text-[#0E0E0E] leading-none m-0">
                         {user?.name || state.profile.displayName}
                       </h1>
-                      {user ? (
-                        <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-[#AFF65B] text-xs font-mono font-bold">
-                          Signed in: {user.email}
+                      {user && (user.provider === "google" || !user.email.includes("@chaturanga.local")) ? (
+                        <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-[#AFF65B] text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm">
+                          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" aria-hidden="true">
+                            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.36 24 12 24z"/>
+                            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.14 0 9.89 0 12c0 2.11.45 3.86 1.24 5.42l4.04-3.15z"/>
+                            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                          </svg>
+                          Google: {user.email}
                         </span>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -932,16 +941,22 @@ export default function OnlinePage({
                           </span>
                           <button
                             type="button"
-                            onClick={() => void login("google")}
-                            className="btn-lime py-1 px-3 text-xs font-bold cursor-pointer"
+                            onClick={() => (onOpenAuth ? onOpenAuth() : void login("google"))}
+                            className="btn-lime py-1 px-3 text-xs font-bold cursor-pointer flex items-center gap-1.5"
                           >
+                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" aria-hidden="true">
+                              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.36 24 12 24z"/>
+                              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.14 0 9.89 0 12c0 2.11.45 3.86 1.24 5.42l4.04-3.15z"/>
+                              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                            </svg>
                             Sign in with Google
                           </button>
                         </div>
                       )}
                     </div>
                     <span className="font-body text-sm font-semibold text-[#0E0E0E]/80 mt-1">
-                      @{profile.username} • Provisional Rating: {state.profile.rating ?? 1200} Elo
+                      @{profile.username} • Player ID: {formatPlayerId(state.profile.playerId || user?.playerId || "")} • Rating: {state.profile.rating ?? 1200} Elo
                     </span>
                     <span className="font-body text-xs text-[#0E0E0E]/60 mt-0.5">
                       Online competitive account • Server authoritative
@@ -1300,6 +1315,35 @@ export default function OnlinePage({
           )}
           {tab === "friends" && (
             <div className={room && (pos || isFog) ? "online-grid" : "w-full"}>
+              {/* Top Banner: Your 8-Digit Player ID */}
+              <section className="online-card bg-[#1A1A1A] border border-[#AFF65B]/30 rounded-2xl p-5 mb-4 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-mono tracking-widest text-[#AFF65B] uppercase font-bold flex items-center gap-1.5 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-[#AFF65B] animate-pulse" />
+                      YOUR 8-DIGIT PLAYER ID
+                    </div>
+                    <div className="font-mono text-2xl font-black text-[#AFF65B] tracking-widest select-all">
+                      {formatPlayerId(state.profile.playerId || user?.playerId || "CH8K9A2M")}
+                    </div>
+                    <p className="text-xs text-[#8A8A8A] mt-1 mb-0">
+                      Share this 8-digit alphanumeric ID with friends so they can add and match with you in real-time.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(state.profile.playerId || user?.playerId || "");
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="btn-lime py-2 px-4 text-xs font-bold rounded cursor-pointer self-start sm:self-auto"
+                  >
+                    {copied ? "✓ Copied ID" : "📋 Copy Your Player ID"}
+                  </button>
+                </div>
+              </section>
+
               <section className="online-card">
                 <div className="section-kicker">INSTANT MATCH</div>
                 <h2>Play via Private Room Code</h2>
@@ -1317,21 +1361,24 @@ export default function OnlinePage({
                   Create Private Room & Share Code →
                 </button>
               </section>
+
+              {/* Add someone by 8-Digit Player ID or Username */}
               <section className="online-card">
-                <h2>Add someone you know</h2>
+                <h2>Add Friends by 8-Digit Player ID or Username</h2>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     void run(async () =>
-                      setFound(await api("find", { username: query })),
+                      setFound(await api("find", { query, username: query })),
                     );
                   }}
                   className="online-form"
                 >
                   <label>
-                    Exact username
+                    Friend's 8-Digit Player ID or Username
                     <input
-                      maxLength={24}
+                      maxLength={32}
+                      placeholder="e.g. K9X2M7P4 or username"
                       value={query}
                       onChange={(e) => {
                         setQuery(e.target.value);
@@ -1339,47 +1386,78 @@ export default function OnlinePage({
                       }}
                     />
                   </label>
-                  <button disabled={busy}>Find player</button>
+                  <button disabled={busy} className="cursor-pointer">Find Player</button>
                 </form>
                 {found ? (
-                  <p>
-                    {found.displayName} · @{found.username}{" "}
-                    <button
-                      disabled={busy}
-                      onClick={() =>
-                        void run(() =>
-                          api("friend", {
-                            action: "request",
-                            target: found.id,
-                          }),
-                        )
-                      }
-                    >
-                      Send request
-                    </button>
-                  </p>
+                  <div className="bg-[#121212] p-4 rounded-xl border border-[#AFF65B]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
+                    <div>
+                      <div className="font-bold text-sm text-white flex items-center gap-2">
+                        {found.displayName}
+                        {found.playerId && (
+                          <span className="font-mono text-[10px] text-[#AFF65B] bg-[#0E0E0E] px-2 py-0.5 rounded border border-white/10 font-bold">
+                            ID: {formatPlayerId(found.playerId)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#888] font-mono mt-0.5">
+                        @{found.username} {found.rating ? "• " + found.rating + " Elo" : ""}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          void run(() =>
+                            api("friend", {
+                              action: "request",
+                              target: found.id,
+                            }),
+                          )
+                        }
+                        className="btn-raised py-1.5 px-3 text-xs font-bold rounded cursor-pointer"
+                      >
+                        ➕ Add Friend
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={() => challenge(found.id)}
+                        className="btn-lime py-1.5 px-3 text-xs font-bold rounded cursor-pointer shadow-md"
+                      >
+                        ⚔️ Match Now
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <p>
-                    Search only finds adult players who choose to be
-                    discoverable.
+                  <p className="text-xs text-[#777] mt-2">
+                    Enter an 8-digit Player ID to match directly, or search by exact username.
                   </p>
                 )}
               </section>
+
+              {/* Your circle of friends with Match button */}
               <section className="online-card">
-                <h2>Your circle</h2>
+                <h2>Your Circle</h2>
                 {!state.friends.length && (
                   <p>
-                    No friends yet. Requests must be accepted before a
-                    challenge.
+                    No friends yet. Add friends above using their 8-digit Player ID to challenge them.
                   </p>
                 )}
                 {state.friends.map((f) => (
-                  <div className="online-person" key={f.id}>
-                    <strong>{f.displayName}</strong>
-                    <span>
-                      @{f.username} · {f.state}
-                    </span>
-                    <div className="online-actions">
+                  <div className="online-person flex items-center justify-between py-2 border-b border-white/5" key={f.id}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <strong className="text-white text-sm">{f.displayName}</strong>
+                        {f.playerId && (
+                          <span className="font-mono text-[10px] text-[#AFF65B] bg-[#0E0E0E] px-1.5 py-0.5 rounded border border-white/10">
+                            ID: {formatPlayerId(f.playerId)}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-[#888]">
+                        @{f.username} · <span className="capitalize">{f.state}</span>
+                      </span>
+                    </div>
+                    <div className="online-actions flex items-center gap-2">
                       {f.state === "incoming" && (
                         <button
                           disabled={busy}
@@ -1388,13 +1466,18 @@ export default function OnlinePage({
                               api("friend", { action: "accept", target: f.id }),
                             )
                           }
+                          className="btn-lime py-1 px-3 text-xs font-bold rounded cursor-pointer"
                         >
                           Accept
                         </button>
                       )}
                       {f.state === "friend" && (
-                        <button disabled={busy} onClick={() => challenge(f.id)}>
-                          Challenge (selected PvP settings)
+                        <button
+                          disabled={busy}
+                          onClick={() => challenge(f.id)}
+                          className="btn-lime py-1.5 px-3.5 text-xs font-bold rounded cursor-pointer shadow-md flex items-center gap-1 active:scale-95"
+                        >
+                          ⚔️ Match with Friend
                         </button>
                       )}
                       {f.state !== "blocked" && (
@@ -1409,12 +1492,13 @@ export default function OnlinePage({
                                 }),
                               )
                             }
+                            className="text-[#8A8A8A] hover:text-[#E5484D] text-xs bg-transparent border-none cursor-pointer py-1 px-2"
                           >
                             {f.state === "friend"
-                              ? "Remove friend"
+                              ? "Remove"
                               : f.state === "incoming"
                                 ? "Decline"
-                                : "Cancel request"}
+                                : "Cancel"}
                           </button>
                           <button
                             disabled={busy}

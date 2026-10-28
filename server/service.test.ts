@@ -133,6 +133,7 @@ describe("authoritative game service", () => {
     expect(p.wins).toBe(0);
     expect(p).not.toHaveProperty("email");
     expect(s.lookup("b", "renamed")).toBeNull();
+    expect(s.lookup("b", p.playerId!).id).toBe("a");
   });
   it("draw acceptance requires an opponent offer and cancellation works", () => {
     const { s } = setup();

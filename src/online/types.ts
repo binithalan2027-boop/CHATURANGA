@@ -9,8 +9,10 @@ export type Rule =
   | "horde"
   | "racingkings"
   | "fog";
+
 export interface PlayerProfile {
   id: string;
+  playerId?: string;
   username: string;
   displayName: string;
   bio: string;
@@ -28,12 +30,16 @@ export interface PlayerProfile {
   losses: number;
   draws: number;
 }
+
 export interface FriendView {
   id: string;
+  playerId?: string;
   username: string;
   displayName: string;
+  rating?: number;
   state: "friend" | "incoming" | "outgoing" | "blocked";
 }
+
 export interface ChatMessage {
   id: string;
   sender: string;
@@ -85,11 +91,13 @@ export interface RoomView {
   whiteOnline?: boolean;
   blackOnline?: boolean;
 }
+
 export interface EntitlementStatus {
   unlocked: boolean;
   played: number;
   remaining: number | null;
 }
+
 export interface OnlineState {
   profile: PlayerProfile;
   friends: FriendView[];
