@@ -34,4 +34,6 @@ Upstream GPL text has CRLF normalized to LF for portable patch application. Lice
 
 - **Lichess API**: Free, read-only public API (`https://lichess.org/api`, AGPL-3.0-or-later). Used client-side for daily tactical puzzles (`/api/puzzle/daily` and `/api/puzzle/{id}`) and live master opening database statistics (`https://explorer.lichess.ovh/masters`). Replayed legally in-browser using existing chess.js engine. Rate-limit etiquette is strictly respected with client in-flight request deduplication, 60-second backoff on HTTP 429, and daily puzzle localStorage caching. Labeled in UI as "Puzzle from Lichess".
 - **Chess.com PubAPI**: Free, read-only public API (`https://api.chess.com/pub/`). Used client-side for public player profile lookup (`/pub/player/{username}`), monthly game archives index (`/pub/player/{username}/games/archives`), and individual game PGN imports. Replayed legally in-browser using existing chess.js with strict variant safety (Chess960, Crazyhouse, and non-standard starting positions rejected with friendly notification; standard chess imported). Labeled in UI as "Data: Chess.com PubAPI".
+- **Three.js**: MIT License, Copyright (c) 2010-2026 three.js authors. Used via dynamic import for procedural WebGL point sprite particle bursts (https://threejs.org/). No copied external 3D models or textures.
+
 

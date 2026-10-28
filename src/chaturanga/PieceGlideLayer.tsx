@@ -59,10 +59,9 @@ export default function PieceGlideLayer({
   );
 }
 
-/** Skips animation entirely when the user prefers reduced motion. */
+import { motionOK as baseMotionOK } from "../lib/motion";
+
+/** Skips animation entirely when the user prefers reduced motion (OS or in-app preference). */
 export function motionOK(): boolean {
-  return (
-    typeof matchMedia === "undefined" ||
-    !matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
+  return baseMotionOK();
 }

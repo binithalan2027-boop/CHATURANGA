@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Achievement } from './achievements';
+import { useReducedMotion } from '../lib/motion';
+import { playThreeParticleBurst } from '../lib/threeParticles';
 
 export interface EndOfGameCelebrationProps {
   achievements: Achievement[];
@@ -13,6 +15,18 @@ export default function EndOfGameCelebration({
   onSkip,
 }: EndOfGameCelebrationProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const reducedMotion = useReducedMotion();
+  const [isPageVisible, setIsPageVisible] = useState(
+    typeof document !== 'undefined' ? !document.hidden : true
+  );
+
+  useEffect(() => {
+    const onVisibility = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   const total = achievements.length;
   const current = achievements[currentIndex] || achievements[0];
@@ -55,9 +69,24 @@ export default function EndOfGameCelebration({
   if (!current || total === 0) return null;
 
   const isLast = currentIndex === total - 1;
+  const shouldSpin = !reducedMotion && isPageVisible;
+  const burstRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (current && !reducedMotion && burstRef.current) {
+      playThreeParticleBurst({
+        container: burstRef.current,
+        count: 45,
+        accentColors: ['#AFF65B', '#F2D500', '#F4F4F4', '#A594F0'],
+        durationMs: 800,
+        radiusScale: 2.2,
+      }).catch(() => {});
+    }
+  }, [currentIndex, current, reducedMotion]);
 
   return (
     <div
+      ref={burstRef}
       role="dialog"
       aria-modal="true"
       aria-label="End of Game Achievements"
@@ -67,8 +96,8 @@ export default function EndOfGameCelebration({
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
         <svg
           viewBox="0 0 1000 1000"
-          className="w-[180vmin] h-[180vmin] animate-sunburst"
-          style={{ willChange: 'transform' }}
+          className={`w-[180vmin] h-[180vmin] ${shouldSpin ? 'animate-sunburst' : ''}`}
+          style={{ willChange: shouldSpin ? 'transform' : 'auto' }}
         >
           {Array.from({ length: 24 }).map((_, i) => {
             const angle = (i * 360) / 24;
@@ -98,105 +127,55 @@ export default function EndOfGameCelebration({
         </button>
       </div>
 
-      {/* Central celebration card */}
-      <div className="relative z-10 w-full max-w-lg bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-[0_20px_60px_rgba(0,0,0,0.85)] max-h-[90vh] overflow-y-auto">
-        {/* Glow backdrop matching stamp accent color */}
-        <div
-          className="absolute -top-12 w-52 h-52 rounded-full blur-3xl pointer-events-none opacity-40 transition-colors duration-500"
-          style={{ backgroundColor: current.accentColor || '#AFF65B' }}
-        />
+      {/* Celebration Card */}
+      <div className="relative z-10 max-w-sm sm:max-w-md w-full bg-[#1A1A1A] border-2 border-[#F2D500] rounded-3xl p-6 sm:p-8 text-center shadow-2xl flex flex-col items-center">
+        {/* Glow Accent */}
+        <div className="absolute -top-12 w-24 h-24 bg-[#F2D500]/20 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Top Kicker & Count Badge */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="matiks-kicker">
-            {total > 1 ? `MATCH COMPLETE · STAMP ${currentIndex + 1} OF ${total}` : 'MATCH COMPLETE · ACHIEVEMENT UNLOCKED'}
-          </span>
+        {/* Badge Banner */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F2D500]/15 border border-[#F2D500]/30 text-[#F2D500] text-xs font-mono font-bold tracking-widest uppercase mb-4">
+          <span>🏆</span>
+          <span>ACHIEVEMENT UNLOCKED</span>
         </div>
 
-        {/* Stepper Progress Dots if multiple stamps */}
+        {/* Big Icon */}
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#262626] border-2 border-white/10 flex items-center justify-center text-5xl sm:text-6xl my-2 shadow-inner">
+          {current.icon}
+        </div>
+
+        {/* Title */}
+        <h2 className="font-heading text-2xl sm:text-3xl text-[#F4F4F4] tracking-wide mt-4 mb-1">
+          {current.title}
+        </h2>
+
+        {/* Description */}
+        <p className="font-body text-sm text-[#8A8A8A] leading-relaxed max-w-xs mb-6">
+          {current.description}
+        </p>
+
+        {/* Pagination Indicator dots if multiple achievements */}
         {total > 1 && (
-          <div className="flex items-center gap-2 mb-3">
-            {achievements.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i)}
-                className={`h-1.5 rounded-full transition-all cursor-pointer border-none p-0 ${
-                  i === currentIndex ? 'w-7 bg-[#AFF65B]' : 'w-2 bg-white/20 hover:bg-white/40'
+          <div className="flex items-center gap-2 mb-6" aria-label={`Achievement ${currentIndex + 1} of ${total}`}>
+            {achievements.map((_, idx) => (
+              <span
+                key={idx}
+                className={`w-2.5 h-2.5 rounded-full transition-all ${
+                  idx === currentIndex
+                    ? 'bg-[#F2D500] scale-125'
+                    : 'bg-white/20'
                 }`}
-                aria-label={`Jump to stamp ${i + 1}`}
               />
             ))}
           </div>
         )}
 
-        {/* Big Lime Headline */}
-        <h2 className="matiks-headline text-3xl sm:text-4xl text-[#AFF65B] mb-1">
-          {total > 1 ? `STAMP ${currentIndex + 1} OF ${total} EARNED` : 'STAMP EARNED'}
-        </h2>
-        <div className="font-heading text-2xl sm:text-3xl text-[#F4F4F4] tracking-wider mb-2">
-          {current.title}
-        </div>
-
-        {/* Set Badge */}
-        <span className="text-xs uppercase font-mono tracking-wider px-3 py-0.5 rounded-full bg-white/10 text-[#8A8A8A] mb-4">
-          {current.setName}
-        </span>
-
-        {/* Centered Stamp Art with metallic frame */}
-        <div className="relative my-2 p-3.5 bg-[#262626] rounded-2xl border-2 border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.6)] flex items-center justify-center transition-transform hover:scale-102">
-          <img
-            src={current.unlockedStampSvg}
-            alt={current.title}
-            className="w-36 h-48 sm:w-44 sm:h-56 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.7)]"
-          />
-          <div className="absolute -bottom-3 bg-[#F07040] text-[#0E0E0E] font-body text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md">
-            NEW COLLECTIBLE
-          </div>
-        </div>
-
-        {/* Description */}
-        <p className="font-body text-sm sm:text-base text-[#F4F4F4]/90 max-w-sm mt-6 mb-5 leading-relaxed font-medium">
-          {current.description}
-        </p>
-
-        {/* Multiple Stamps Thumbnails Strip */}
-        {total > 1 && (
-          <div className="w-full flex items-center justify-center gap-2 mb-6 py-2 overflow-x-auto">
-            {achievements.map((ach, idx) => (
-              <button
-                key={ach.id}
-                onClick={() => setCurrentIndex(idx)}
-                className={`relative p-1 rounded-xl border transition-all cursor-pointer ${
-                  idx === currentIndex
-                    ? 'border-[#AFF65B] bg-[#262626] scale-105 shadow-md shadow-[#AFF65B]/20'
-                    : 'border-white/10 bg-[#1F1F1F] opacity-60 hover:opacity-100'
-                }`}
-                aria-label={`View ${ach.title}`}
-              >
-                <img
-                  src={ach.unlockedStampSvg}
-                  alt={ach.title}
-                  className="w-10 h-14 object-contain"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Action Button: Next / Claim */}
-        <div className="w-full flex flex-col gap-2">
-          <button
-            onClick={handleNext}
-            className="btn-lime w-full py-4 text-base font-semibold uppercase tracking-wider shadow-lg cursor-pointer font-heading"
-            autoFocus
-          >
-            {isLast
-              ? total > 1
-                ? 'CLAIM ALL & CONTINUE'
-                : 'CLAIM & CONTINUE'
-              : `NEXT STAMP (${currentIndex + 1}/${total}) →`}
-          </button>
-        </div>
+        {/* Action Button */}
+        <button
+          onClick={handleNext}
+          className="btn-lime w-full py-3.5 rounded-2xl font-heading text-base uppercase tracking-wider font-bold cursor-pointer transition-all active:scale-95 shadow-xl"
+        >
+          {isLast ? 'CONTINUE' : `NEXT (${currentIndex + 1}/${total})`}
+        </button>
       </div>
     </div>
   );

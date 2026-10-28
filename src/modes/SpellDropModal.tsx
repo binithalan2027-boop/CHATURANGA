@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { SpellDef } from './spells';
 import { SPELL_CONFIG } from './spellConfig';
 import SpellIcon from './SpellIcon';
+import { useReducedMotion } from '../lib/motion';
+import { playThreeParticleBurst } from '../lib/threeParticles';
 
 export interface SpellDropModalProps {
   spell: SpellDef;
@@ -39,12 +41,10 @@ export default function SpellDropModal({
   const [phase, setPhase] = useState<'fall' | 'impact' | 'reveal' | 'ready' | 'flying'>('fall');
   const [replaceMode, setReplaceMode] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(autoCollectEnabled);
+  const stageRef = useRef<HTMLDivElement>(null);
 
-  // Check prefers-reduced-motion
-  const prefersReduced = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }, []);
+  // Check prefers-reduced-motion (OS and in-app preference)
+  const prefersReduced = useReducedMotion();
 
   // Generate deterministic confetti chips based on rarity
   const chips = useMemo(() => {
@@ -93,6 +93,18 @@ export default function SpellDropModal({
       clearTimeout(tReady);
     };
   }, [prefersReduced]);
+
+  // Progressive enhancement: Trigger GPU point sprite particle burst on impact
+  useEffect(() => {
+    if (phase === 'impact' && !prefersReduced && stageRef.current) {
+      playThreeParticleBurst({
+        container: stageRef.current,
+        count: spell.rarity === 'epic' ? 64 : spell.rarity === 'rare' ? 48 : 32,
+        accentColors: [spell.accent, '#AFF65B', '#F2D500', '#F4F4F4'],
+        durationMs: 700,
+      }).catch(() => {});
+    }
+  }, [phase, prefersReduced, spell]);
 
   const isFull = currentSpellCount >= maxSlots;
 
@@ -156,7 +168,7 @@ export default function SpellDropModal({
         </div>
 
         {/* Drop Animation Stage */}
-        <div className="relative w-40 h-40 sm:w-44 sm:h-44 flex items-center justify-center my-1">
+        <div ref={stageRef} className="relative w-40 h-40 sm:w-44 sm:h-44 flex items-center justify-center my-1">
           {/* Ground Contact Shadow */}
           <div
             className="absolute -bottom-2 w-32 h-6 rounded-full bg-black blur-md transition-all pointer-events-none"

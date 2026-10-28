@@ -1,4 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import { Achievement } from './achievements';
+import { useReducedMotion } from '../lib/motion';
+import { playThreeParticleBurst } from '../lib/threeParticles';
 
 interface AchievementCelebrationProps {
   achievement: Achievement | null;
@@ -11,6 +14,19 @@ export default function AchievementCelebration({
   onDismiss,
   onSkip,
 }: AchievementCelebrationProps) {
+  const reducedMotion = useReducedMotion();
+  const [isPageVisible, setIsPageVisible] = useState(
+    typeof document !== 'undefined' ? !document.hidden : true
+  );
+
+  useEffect(() => {
+    const onVisibility = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
   if (!achievement) return null;
 
   const handleSkip = () => {
@@ -21,8 +37,24 @@ export default function AchievementCelebration({
     }
   };
 
+  const shouldSpin = !reducedMotion && isPageVisible;
+  const burstRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (achievement && !reducedMotion && burstRef.current) {
+      playThreeParticleBurst({
+        container: burstRef.current,
+        count: 50,
+        accentColors: ['#AFF65B', '#F2D500', '#F4F4F4', '#66D4C2'],
+        durationMs: 800,
+        radiusScale: 2.2,
+      }).catch(() => {});
+    }
+  }, [achievement, reducedMotion]);
+
   return (
     <div
+      ref={burstRef}
       role="dialog"
       aria-modal="true"
       aria-label="Achievement Celebration"
@@ -32,8 +64,8 @@ export default function AchievementCelebration({
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
         <svg
           viewBox="0 0 1000 1000"
-          className="w-[180vmin] h-[180vmin] animate-sunburst"
-          style={{ willChange: 'transform' }}
+          className={`w-[180vmin] h-[180vmin] ${shouldSpin ? 'animate-sunburst' : ''}`}
+          style={{ willChange: shouldSpin ? 'transform' : 'auto' }}
         >
           {Array.from({ length: 24 }).map((_, i) => {
             const angle = (i * 360) / 24;
@@ -63,49 +95,38 @@ export default function AchievementCelebration({
         </button>
       </div>
 
-      {/* Central celebration card */}
-      <div className="relative z-10 w-full max-w-md bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
-        {/* Glow backdrop */}
-        <div
-          className="absolute -top-10 w-44 h-44 rounded-full blur-3xl pointer-events-none opacity-40"
-          style={{ backgroundColor: achievement.accentColor || '#AFF65B' }}
-        />
+      {/* Celebration Card */}
+      <div className="relative z-10 max-w-sm sm:max-w-md w-full bg-[#1A1A1A] border-2 border-[#F2D500] rounded-3xl p-6 sm:p-8 text-center shadow-2xl flex flex-col items-center">
+        {/* Glow Accent */}
+        <div className="absolute -top-12 w-24 h-24 bg-[#F2D500]/20 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Top Kicker */}
-        <div className="matiks-kicker mb-2">ACHIEVEMENT UNLOCKED</div>
+        {/* Badge Banner */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F2D500]/15 border border-[#F2D500]/30 text-[#F2D500] text-xs font-mono font-bold tracking-widest uppercase mb-4">
+          <span>🏆</span>
+          <span>ACHIEVEMENT UNLOCKED</span>
+        </div>
 
-        {/* Big Lime Headline */}
-        <h2 className="matiks-headline text-4xl sm:text-5xl text-[#AFF65B] mb-1">
-          STAMP EARNED
-        </h2>
-        <div className="font-heading text-2xl text-[#F4F4F4] tracking-wider mb-6">
+        {/* Big Icon */}
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#262626] border-2 border-white/10 flex items-center justify-center text-5xl sm:text-6xl my-2 shadow-inner">
+          {achievement.icon}
+        </div>
+
+        {/* Title */}
+        <h2 className="font-heading text-2xl sm:text-3xl text-[#F4F4F4] tracking-wide mt-4 mb-1">
           {achievement.title}
-        </div>
-
-        {/* Centered Stamp Art with metallic frame */}
-        <div className="relative my-2 p-3 bg-[#262626] rounded-2xl border-2 border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.6)] flex items-center justify-center">
-          <img
-            src={achievement.unlockedStampSvg}
-            alt={achievement.title}
-            className="w-36 h-48 sm:w-44 sm:h-56 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.7)]"
-          />
-          <div className="absolute -bottom-3 bg-[#F07040] text-[#0E0E0E] font-body text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md">
-            NEW COLLECTIBLE
-          </div>
-        </div>
+        </h2>
 
         {/* Description */}
-        <p className="font-body text-sm text-[#F4F4F4]/80 max-w-xs mt-6 mb-8 leading-relaxed">
+        <p className="font-body text-sm text-[#8A8A8A] leading-relaxed max-w-xs mb-6">
           {achievement.description}
         </p>
 
-        {/* The ONE lime action button */}
+        {/* Action Button */}
         <button
           onClick={onDismiss}
-          className="btn-lime w-full py-4 text-base font-semibold uppercase tracking-wider shadow-lg cursor-pointer"
-          autoFocus
+          className="btn-lime w-full py-3.5 rounded-2xl font-heading text-base uppercase tracking-wider font-bold cursor-pointer transition-all active:scale-95 shadow-xl"
         >
-          CLAIM & CONTINUE
+          CLAIM REWARD
         </button>
       </div>
     </div>

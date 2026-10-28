@@ -11,7 +11,7 @@ Rules libraries:
 - chessops (lichess-org) - GPL-3.0+ - variant move generation
 - chess.js - BSD-2-Clause - classic move generation
 
-Framework: React (MIT), Vite (MIT).
+Framework: React (MIT), Vite (MIT), Three.js (MIT - https://threejs.org - Copyright (c) 2010-2026 three.js authors).
 
 Consequence of the GPL components: if Chaturanga is published, its complete
 corresponding source must be published under GPL-compatible terms. This was an

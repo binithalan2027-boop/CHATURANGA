@@ -56,6 +56,10 @@
   --r-chip: 16px;
   --r-pill: 999px;
 
+  /* Motion tokens (Three.js aligned) */
+  --ease-card: 0.15s;
+  --ease-drawer: 0.25s;
+  --ease-scrim: 0.2s;
   /* Fonts */
   --font-heading: 'Bebas Neue', Impact, sans-serif;
   --font-body: 'Poppins', Arial, sans-serif;
@@ -103,11 +107,11 @@ body {
   border-radius: var(--r-tile);
   position: relative;
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform var(--ease-card, 0.15s) ease, box-shadow var(--ease-card, 0.15s) ease;
 }
 
 .bento-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.015);
 }
 
 .bento-charcoal {
@@ -557,7 +561,7 @@ body {
   inset: 0 !important;
   border-radius: 6px !important;
   background: radial-gradient(circle, rgba(229, 72, 77, 0.7) 0%, rgba(242, 213, 0, 0.4) 40%, rgba(175, 246, 91, 0.2) 65%, transparent 80%) !important;
-  animation: matiks-capture-burst 320ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+  animation: matiks-capture-burst 300ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
   pointer-events: none !important;
   z-index: 7 !important;
 }
@@ -639,4 +643,102 @@ body {
     animation: none !important;
     transform: none !important;
   }
+}
+
+/* Shared Modal, Drawer & Scrim transitions */
+@keyframes matiksFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes matiksFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes matiksZoomIn95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes matiksDrawerInBottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes matiksDrawerInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-in.fade-in {
+  animation-name: matiksFadeIn;
+}
+
+.animate-in.zoom-in-95 {
+  animation-name: matiksZoomIn95;
+}
+
+.animate-in.slide-in-from-bottom {
+  animation-name: matiksDrawerInBottom;
+}
+
+.animate-in.slide-in-from-left {
+  animation-name: matiksDrawerInLeft;
+}
+
+.duration-150 {
+  animation-duration: 150ms;
+  transition-duration: 150ms;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+  transition-duration: 200ms;
+}
+
+.duration-250 {
+  animation-duration: 250ms;
+  transition-duration: 250ms;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+  transition-duration: 300ms;
+}
+
+/* Comprehensive Reduced Motion Overrides */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .bento-card:hover {
+    transform: none !important;
+  }
+  .animate-sunburst {
+    animation: none !important;
+  }
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+.reduce-motion .bento-card:hover {
+  transform: none !important;
+}
+
+.reduce-motion .animate-sunburst {
+  animation: none !important;
 }
