@@ -16,6 +16,7 @@ export interface GameModeProps {
   onExit: () => void;
   botElo: number;
   timeMinutes?: number;
+  playerColor?: "w" | "b";
 }
 
 // Rebuild capture lists from the board so takebacks stay accurate.
@@ -51,7 +52,8 @@ export function capturedFromBoard(chess: Chess) {
   return { capturedByWhite, capturedByBlack };
 }
 
-export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameModeProps) {
+export default function StandardMode({ onExit, botElo, timeMinutes = 10, playerColor = "w" }: GameModeProps) {
+  const botColor = playerColor === "w" ? "b" : "w";
   const { prefs } = usePreferences();
   const [chess, setChess] = useState(() => new Chess());
   const [fen, setFen] = useState(chess.fen());
@@ -74,10 +76,10 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
   useEffect(() => {
     if (winner) return;
     const interval = setInterval(() => {
-      if (chess.turn() === 'w') {
+      if (chess.turn() === playerColor) {
         setPlayerTime((t) => {
           if (t <= 1) {
-            setWinner('b');
+            setWinner(botColor);
             setResultReason('DEFEAT · TIME FORFEIT');
             recordGameResult('loss', currentBot.name, currentBotElo, 'Standard Chess');
             return 0;
@@ -87,7 +89,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
       } else {
         setBotTime((t) => {
           if (t <= 1) {
-            setWinner('w');
+            setWinner(playerColor);
             setResultReason('VICTORY · WON ON TIME');
             unlockAchievement('first-win');
             recordGameResult('win', currentBot.name, currentBotElo, 'Standard Chess');
@@ -99,7 +101,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [chess, winner]);
+  }, [chess, winner, playerColor, botColor, currentBot.name, currentBotElo]);
 
   const formatClock = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -138,8 +140,8 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
   const materialAdvantage = useMemo(() => {
     const whiteScore = capturedByWhite.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
     const blackScore = capturedByBlack.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
-    return whiteScore - blackScore;
-  }, [capturedByWhite, capturedByBlack]);
+    return playerColor === "w" ? whiteScore - blackScore : blackScore - whiteScore;
+  }, [capturedByWhite, capturedByBlack, playerColor]);
 
   const recordCapture = (moveResult: Move) => {
     const captured = moveResult.captured;
@@ -166,8 +168,8 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
     setPremoveAlert,
   } = usePremoveHandler({
     chess,
-    playerColor: 'w',
-    isPlayerTurn: chess.turn() === 'w' && !winner,
+    playerColor,
+    isPlayerTurn: chess.turn() === playerColor && !winner,
     isGameOver: Boolean(winner),
     premoveLimit: prefs.premoveLimit,
     onMoveSuccess: (move) => {
@@ -190,7 +192,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
 
   const handleSquareClick = (sq: string) => {
     if (winner) return;
-    if (chess.turn() !== 'w') {
+    if (chess.turn() !== playerColor) {
       handlePremoveSquareClick(sq);
       return;
     }
@@ -210,7 +212,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
         }
       } else {
         const piece = chess.get(sq as Square);
-        if (piece && piece.color === 'w') {
+        if (piece && piece.color === playerColor) {
           setSelectedSquare(sq);
         } else {
           setSelectedSquare(null);
@@ -218,14 +220,14 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
       }
     } else {
       const piece = chess.get(sq as Square);
-      if (piece && piece.color === 'w') {
+      if (piece && piece.color === playerColor) {
         setSelectedSquare(sq);
       }
     }
   };
 
   useEffect(() => {
-    if (winner || chess.turn() === 'w') return;
+    if (winner || chess.turn() === playerColor) return;
     let isActive = true;
 
     const playBotMove = async () => {
@@ -244,7 +246,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
 
         if (chess.isGameOver()) {
           if (chess.isCheckmate()) {
-            setWinner('b');
+            setWinner(botColor);
             setResultReason('DEFEAT · CHECKMATE');
             recordGameResult('loss', currentBot.name, currentBotElo, 'Standard Chess');
           } else if (chess.isDraw()) {
@@ -258,7 +260,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
     playBotMove();
 
     return () => { isActive = false; };
-  }, [fen, chess, getBestMove, currentBot, winner, botTime]);
+  }, [fen, chess, getBestMove, currentBot, winner, botTime, playerColor, botColor]);
 
   const handleNewGame = () => {
     clearPremoves();
@@ -281,7 +283,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
     if (chess.history().length === 0) return;
     stopThinking();
     chess.undo();
-    if (chess.turn() === 'b' && chess.history().length > 0) chess.undo();
+    if (chess.turn() !== playerColor && chess.history().length > 0) chess.undo();
     setFen(chess.fen());
     setLastMove(null);
     setSelectedSquare(null);
@@ -303,11 +305,12 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
       botName={currentBot.name}
       botElo={currentBotElo}
       isBotThinking={isThinking}
+      playerColor={playerColor}
       capturedByWhite={capturedByWhite}
       capturedByBlack={capturedByBlack}
       materialAdvantage={materialAdvantage}
-      botActive={chess.turn() === 'b' && !winner}
-      playerActive={chess.turn() === 'w' && !winner}
+      botActive={chess.turn() === botColor && !winner}
+      playerActive={chess.turn() === playerColor && !winner}
       playerClock={formatClock(playerTime)}
       botClock={formatClock(botTime)}
       resultTitle={resultReason || undefined}
@@ -315,7 +318,7 @@ export default function StandardMode({ onExit, botElo, timeMinutes = 10 }: GameM
         engineError
           ? 'The engine could not start. You can still set up a new game.'
           : isReady
-            ? 'Engine ready. You play White.'
+            ? (playerColor === 'w' ? 'Engine ready. You play White.' : 'Engine ready. You play Black.')
             : 'Loading the engine…'
       }
       tools={<button onClick={handleTakeback}>Takeback</button>}

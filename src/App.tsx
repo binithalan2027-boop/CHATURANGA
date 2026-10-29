@@ -86,6 +86,7 @@ function AppContent() {
     } catch {}
     return "showdown";
   });
+  const [selectedPlayerColor, setSelectedPlayerColor] = useState<"w" | "b">("w");
 
   useEffect(() => {
     if (!authConfigured) return;
@@ -259,13 +260,14 @@ function AppContent() {
       return (
         <BotSelectScreen
           initialTimeMinutes={timeMinutes}
-          onStart={(elo, time, mode, subMode) => {
+          onStart={(elo, time, mode, subMode, color) => {
             setSelectedElo(elo);
             setTimeMinutes(time);
             setGameMode(mode);
             if (subMode === 'gate' || subMode === 'showdown') {
               setMathSubMode(subMode);
             }
+            setSelectedPlayerColor(color || 'w');
             setScreen("playing");
           }}
           onBack={() => setScreen("landing")}
@@ -291,6 +293,7 @@ function AppContent() {
               | "cross4"
           }
           mathSubMode={mathSubMode}
+          playerColor={selectedPlayerColor}
           onExit={() =>
             setScreen(gameMode === "cross3" || gameMode === "cross4" ? "landing" : "bot_select")
           }

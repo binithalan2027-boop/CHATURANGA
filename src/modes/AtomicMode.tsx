@@ -15,9 +15,11 @@ export interface GameModeProps {
   onExit: () => void;
   botElo: number;
   timeMinutes?: number;
+  playerColor?: "w" | "b";
 }
 
-export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameModeProps) {
+export default function AtomicMode({ onExit, botElo, timeMinutes = 10, playerColor = "w" }: GameModeProps) {
+  const botColor = playerColor === "w" ? "b" : "w";
   const { prefs } = usePreferences();
   const [chess, setChess] = useState(() => new Chess());
   const [fen, setFen] = useState(chess.fen());
@@ -39,10 +41,10 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
   useEffect(() => {
     if (winner) return;
     const interval = setInterval(() => {
-      if (chess.turn() === 'w') {
+      if (chess.turn() === playerColor) {
         setPlayerTime((t) => {
           if (t <= 1) {
-            setWinner('b');
+            setWinner(botColor);
             setResultReason('DEFEAT · TIME FORFEIT');
             recordGameResult('loss', currentBot.name, currentBotElo, 'Atomic Chess');
             return 0;
@@ -52,7 +54,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
       } else {
         setBotTime((t) => {
           if (t <= 1) {
-            setWinner('w');
+            setWinner(playerColor);
             setResultReason('VICTORY · WON ON TIME');
             unlockAchievement('first-win');
             recordGameResult('win', currentBot.name, currentBotElo, 'Atomic Chess');
@@ -64,7 +66,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [chess, winner]);
+  }, [chess, winner, playerColor, botColor, currentBot.name, currentBotElo]);
 
   const formatClock = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -103,8 +105,8 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
   const materialAdvantage = useMemo(() => {
     const whiteScore = capturedByWhite.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
     const blackScore = capturedByBlack.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
-    return whiteScore - blackScore;
-  }, [capturedByWhite, capturedByBlack]);
+    return playerColor === "w" ? whiteScore - blackScore : blackScore - whiteScore;
+  }, [capturedByWhite, capturedByBlack, playerColor]);
 
   const [explodingSquares, setExplodingSquares] = useState<Set<string>>(new Set());
 
@@ -171,8 +173,8 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
     setPremoveAlert,
   } = usePremoveHandler({
     chess,
-    playerColor: 'w',
-    isPlayerTurn: chess.turn() === 'w' && !winner,
+    playerColor,
+    isPlayerTurn: chess.turn() === playerColor && !winner,
     isGameOver: Boolean(winner),
     premoveLimit: prefs.premoveLimit,
     onMoveSuccess: (move) => {
@@ -188,14 +190,14 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
     if (winner) return;
     stopThinking();
     clearPremoves();
-    setWinner('b');
+    setWinner(botColor);
     setResultReason('DEFEAT · RESIGNED');
     recordGameResult('loss', currentBot.name, currentBotElo, 'Atomic Chess');
   };
 
   const handleSquareClick = (sq: string) => {
     if (winner) return;
-    if (chess.turn() !== 'w') {
+    if (chess.turn() !== playerColor) {
       handlePremoveSquareClick(sq);
       return;
     }
@@ -215,7 +217,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
         }
       } else {
         const piece = chess.get(sq as Square);
-        if (piece && piece.color === 'w') {
+        if (piece && piece.color === playerColor) {
           setSelectedSquare(sq);
         } else {
           setSelectedSquare(null);
@@ -223,14 +225,14 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
       }
     } else {
       const piece = chess.get(sq as Square);
-      if (piece && piece.color === 'w') {
+      if (piece && piece.color === playerColor) {
         setSelectedSquare(sq);
       }
     }
   };
 
   useEffect(() => {
-    if (winner || chess.turn() === 'w') return;
+    if (winner || chess.turn() === playerColor) return;
     let isActive = true;
 
     const playBotMove = async () => {
@@ -263,7 +265,7 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
     playBotMove();
 
     return () => { isActive = false; };
-  }, [fen, chess, getBestMove, currentBot, winner, botTime]);
+  }, [fen, chess, getBestMove, currentBot, winner, botTime, playerColor, botColor]);
 
   const handleNewGame = () => {
     clearPremoves();
@@ -302,9 +304,10 @@ export default function AtomicMode({ onExit, botElo, timeMinutes = 10 }: GameMod
       isBotThinking={isThinking}
       capturedByWhite={capturedByWhite}
       capturedByBlack={capturedByBlack}
+      playerColor={playerColor}
       materialAdvantage={materialAdvantage}
-      botActive={chess.turn() === 'b' && !winner}
-      playerActive={chess.turn() === 'w' && !winner}
+      botActive={chess.turn() === botColor && !winner}
+      playerActive={chess.turn() === playerColor && !winner}
       playerClock={formatClock(playerTime)}
       botClock={formatClock(botTime)}
       resultTitle={resultReason || undefined}

@@ -50,6 +50,9 @@ export interface CourtyardMatchProps {
   botName: string;
   botElo?: number;
   isBotThinking?: boolean;
+  playerColor?: "w" | "b";
+  flipped?: boolean;
+  onFlipBoard?: () => void;
   capturedByWhite: string[];
   capturedByBlack: string[];
   materialAdvantage: number;
@@ -111,6 +114,9 @@ export default function CourtyardMatch({
   botName,
   botElo,
   isBotThinking = false,
+  playerColor = "w",
+  flipped: controlledFlip,
+  onFlipBoard,
   capturedByWhite,
   capturedByBlack,
   materialAdvantage,
@@ -139,6 +145,14 @@ export default function CourtyardMatch({
   onExit,
 }: CourtyardMatchProps) {
   const { prefs, open, update } = usePreferences();
+  const [internalFlip, setInternalFlip] = useState(false);
+  const isFlipped = (playerColor === "b") !== (controlledFlip !== undefined ? controlledFlip : internalFlip);
+  const toggleFlip = onFlipBoard || (() => setInternalFlip((f) => !f));
+  const botColor = playerColor === "w" ? "b" : "w";
+  const botCaptured = botColor === "w" ? capturedByWhite : capturedByBlack;
+  const botCapturedPieceColor = botColor === "w" ? "b" : "w";
+  const playerCaptured = playerColor === "w" ? capturedByWhite : capturedByBlack;
+  const playerCapturedPieceColor = playerColor === "w" ? "b" : "w";
 
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [endGameAchievements, setEndGameAchievements] = useState<Achievement[]>(() => {
@@ -182,7 +196,7 @@ export default function CourtyardMatch({
     return (
       <MatchAnalysisScreen
         winner={winner || "w"}
-        playerColor="w"
+        playerColor={playerColor}
         playerName="You"
         playerRating={1015}
         opponentName={botName || "Aarav BOT"}
@@ -304,6 +318,17 @@ export default function CourtyardMatch({
               )}
               <button
                 type="button"
+                onClick={toggleFlip}
+                className={`btn-raised text-xs py-1 px-3 rounded-full cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  isFlipped ? "border-[#AFF65B]/60 text-[#AFF65B]" : ""
+                }`}
+                title="Rotate board (Flip view)"
+              >
+                <span>🔄</span>
+                <span>{isFlipped ? "Rotated (Black)" : "Flip Board"}</span>
+              </button>
+              <button
+                type="button"
                 onClick={onExit}
                 className="btn-raised text-xs py-1 px-3 rounded-full cursor-pointer transition-colors"
               >
@@ -312,13 +337,15 @@ export default function CourtyardMatch({
             </div>
           </div>
 
-          {/* Opponent (Black) Line */}
+          {/* Opponent Line */}
           <div className={`w-full max-w-[640px] flex items-center justify-between px-4 py-2.5 rounded-t-xl transition-colors ${
             botActive ? "bg-[#1F1F1F] border-b border-[#AFF65B]/40" : "bg-[#161616]"
           }`}>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#262626] border border-white/10 flex items-center justify-center text-sm font-heading">
-                ●
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-heading font-bold ${
+                botColor === "w" ? "bg-[#FAFAFA] text-[#0E0E0E]" : "bg-[#262626] border border-white/10 text-white"
+              }`}>
+                {botColor === "w" ? "○" : "●"}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -339,10 +366,10 @@ export default function CourtyardMatch({
                   ) : (
                     <span>{botActive ? "To move" : "Waiting"}</span>
                   )}
-                  {capturedByBlack.length > 0 && (
+                  {botCaptured.length > 0 && (
                     <>
                       <span>·</span>
-                      <CapturedRow pieces={capturedByBlack} color="w" />
+                      <CapturedRow pieces={botCaptured} color={botCapturedPieceColor} />
                     </>
                   )}
                 </div>
@@ -373,10 +400,14 @@ export default function CourtyardMatch({
               role="group"
               aria-label={`${title} chess board`}
             >
-              {RANKS.map((rank, r) =>
-                FILES.map((file, f) => {
-                  const sq = `${file}${rank}`;
-                  const piece = board[r][f];
+              {RANKS.map((_, r) =>
+                FILES.map((_, f) => {
+                  const actualRank = isFlipped ? RANKS[7 - r] : RANKS[r];
+                  const actualFile = isFlipped ? FILES[7 - f] : FILES[f];
+                  const sq = `${actualFile}${actualRank}`;
+                  const boardRow = 8 - Number(actualRank);
+                  const boardCol = FILES.indexOf(actualFile);
+                  const piece = board[boardRow]?.[boardCol] ?? null;
                   const hidden = hiddenSquares ? !hiddenSquares.has(sq) : false;
                   const mark = squareMarks[sq];
                   const isLast =
@@ -429,12 +460,12 @@ export default function CourtyardMatch({
                       {/* Coordinates matching 15-mode-classic.svg */}
                       {prefs.coordinates && f === 0 && (
                         <small aria-hidden="true" className="rank coord-rank">
-                          {rank}
+                          {actualRank}
                         </small>
                       )}
                       {prefs.coordinates && r === 7 && (
                         <small aria-hidden="true" className="file coord-file">
-                          {file}
+                          {actualFile}
                         </small>
                       )}
 
@@ -471,6 +502,7 @@ export default function CourtyardMatch({
               <PieceGlideLayer
                 glides={glides}
                 batch={batch}
+                flip={isFlipped}
                 render={(p) => ({
                   text: (
                     <div className="piece-wrapper" aria-hidden="true">
@@ -565,13 +597,15 @@ export default function CourtyardMatch({
             )}
           </div>
 
-          {/* Player (White) Line */}
+          {/* Player Line */}
           <div className={`w-full max-w-[640px] flex items-center justify-between px-4 py-2.5 rounded-b-xl transition-colors ${
             playerActive ? "bg-[#1F1F1F] border-t border-[#AFF65B]/40" : "bg-[#161616]"
           }`}>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#FAFAFA] text-[#0E0E0E] flex items-center justify-center text-sm font-heading font-bold">
-                ○
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-heading font-bold ${
+                playerColor === "w" ? "bg-[#FAFAFA] text-[#0E0E0E]" : "bg-[#262626] border border-white/10 text-white"
+              }`}>
+                {playerColor === "w" ? "○" : "●"}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -582,10 +616,10 @@ export default function CourtyardMatch({
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#8A8A8A]">
                   <span>{playerActive ? "Your turn" : "Waiting"}</span>
-                  {capturedByWhite.length > 0 && (
+                  {playerCaptured.length > 0 && (
                     <>
                       <span>·</span>
-                      <CapturedRow pieces={capturedByWhite} color="b" />
+                      <CapturedRow pieces={playerCaptured} color={playerCapturedPieceColor} />
                     </>
                   )}
                 </div>
@@ -707,6 +741,20 @@ export default function CourtyardMatch({
               <img src="/icons/flag.svg" alt="" className="w-5 h-5 opacity-90" />
               <span className="text-[9px] font-semibold tracking-wider text-[#8A8A8A] uppercase">
                 RESIGN
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleFlip}
+              className={`bg-[#262626] hover:bg-[#333333] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                isFlipped ? "border-[#AFF65B]/60 text-[#AFF65B]" : ""
+              }`}
+              title="Rotate board view"
+            >
+              <span className="text-base leading-none">🔄</span>
+              <span className="text-[9px] font-semibold tracking-wider uppercase">
+                {isFlipped ? "ROTATED" : "FLIP"}
               </span>
             </button>
 

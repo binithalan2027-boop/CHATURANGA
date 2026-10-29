@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export interface BotSelectScreenProps {
-  onStart: (elo: number, timeMinutes: number, gameMode: string, subMode?: 'showdown' | 'gate') => void;
+  onStart: (elo: number, timeMinutes: number, gameMode: string, subMode?: 'showdown' | 'gate', playerColor?: 'w' | 'b') => void;
   onBack: () => void;
   initialTimeMinutes?: number;
   onPlayOnline?: () => void;
@@ -101,13 +101,15 @@ export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 
   const [elo, setElo] = useState<number>(1850);
   const [timeMinutes, setTimeMinutes] = useState<number>(initialTimeMinutes);
   const [mathFormat, setMathFormat] = useState<'showdown' | 'gate'>('showdown');
+  const [playerColorChoice, setPlayerColorChoice] = useState<'w' | 'b' | 'random'>('w');
 
   const currentBot = BOTS.reduce((prev, curr) => 
     Math.abs(curr.elo - elo) < Math.abs(prev.elo - elo) ? curr : prev
   );
 
   const handleCommence = () => {
-    onStart(elo, timeMinutes, selectedMode, selectedMode === 'math' ? mathFormat : undefined);
+    const resolvedColor: 'w' | 'b' = playerColorChoice === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : playerColorChoice;
+    onStart(elo, timeMinutes, selectedMode, selectedMode === 'math' ? mathFormat : undefined, resolvedColor);
   };
 
   return (
@@ -345,6 +347,36 @@ export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 
                 </div>
               )}
 
+              {/* Choose Playing Side (White / Black / Random) */}
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                <span className="font-body text-xs font-semibold text-[#8A8A8A] uppercase tracking-wider">
+                  Board Perspective & Side
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'w' as const, label: 'White', icon: '⚪', sub: 'Standard' },
+                    { id: 'b' as const, label: 'Black', icon: '⚫', sub: 'Rotated Board' },
+                    { id: 'random' as const, label: 'Random', icon: '🎲', sub: '50/50 Chance' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setPlayerColorChoice(s.id)}
+                      className={`py-2 px-2 rounded-xl text-center border cursor-pointer transition-all ${
+                        playerColorChoice === s.id
+                          ? 'bg-[#AFF65B]/15 border-[#AFF65B] text-[#F4F4F4] shadow-sm'
+                          : 'bg-[#1A1A1A] border-white/5 text-[#8A8A8A] hover:text-[#F4F4F4] hover:bg-[#202020]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1.5 font-heading text-sm">
+                        <span>{s.icon}</span>
+                        <span>{s.label}</span>
+                      </div>
+                      <div className="text-[9px] font-mono opacity-80 mt-0.5">{s.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
               {/* The ONE lime action button */}
               <button
                 onClick={handleCommence}

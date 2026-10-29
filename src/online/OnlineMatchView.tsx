@@ -261,7 +261,7 @@ export default function OnlineMatchView({
 
   // Clocks
   const standardLive = standardRoom ? liveClock(standardRoom, 0) : null;
-  const yourColor = standardRoom?.yourColor ?? (customRoom?.yourSeat === "w" ? "white" : "black");
+  const yourColor = standardRoom?.yourColor ?? (customRoom?.yourSeat === "b" ? "black" : "white");
   const isYourTurn = standardRoom
     ? standardRoom.turn === yourColor
     : customRoom
@@ -582,8 +582,9 @@ export default function OnlineMatchView({
                 >
                   {RANKS.map((rank, rIdx) =>
                     FILES.map((file, fIdx) => {
-                      const actualRank = flipped ? RANKS[7 - rIdx] : rank;
-                      const actualFile = flipped ? FILES[7 - fIdx] : file;
+                      const isBoardFlipped = (yourColor === "black") !== flipped;
+                      const actualRank = isBoardFlipped ? RANKS[7 - rIdx] : rank;
+                      const actualFile = isBoardFlipped ? FILES[7 - fIdx] : file;
                       const sq = `${actualFile}${actualRank}` as Square;
                       const piece = customChess.get(sq);
                       const isDark = (FILES.indexOf(actualFile) + Number(actualRank)) % 2 === 0;
@@ -601,12 +602,12 @@ export default function OnlineMatchView({
                             isSelected ? "selected" : ""
                           }`}
                         >
-                          {actualFile === "a" && (
+                          {fIdx === 0 && (
                             <small className="rank coord-rank" aria-hidden="true">
                               {actualRank}
                             </small>
                           )}
-                          {actualRank === "1" && (
+                          {rIdx === 7 && (
                             <small className="file coord-file" aria-hidden="true">
                               {actualFile}
                             </small>
@@ -702,7 +703,7 @@ export default function OnlineMatchView({
                 onClick={() => setFlipped((f) => !f)}
                 className="btn-raised text-xs py-1.5 px-3 font-semibold cursor-pointer"
               >
-                🔄 Flip Board
+                🔄 {((yourColor === "black") !== flipped) ? "Rotated (Black)" : "Rotate Board"}
               </button>
               <button
                 type="button"
