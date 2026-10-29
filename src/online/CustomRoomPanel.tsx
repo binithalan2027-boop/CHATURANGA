@@ -148,7 +148,7 @@ export default function CustomRoomPanel({
                   aria-label="Custom mode"
                   value={kind}
                   onChange={(e) => setKind(e.target.value as CustomKind)}
-                  className="w-full bg-[#242424] text-white text-xs font-semibold px-3 py-2.5 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none cursor-pointer"
+                  className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3.5 rounded-2xl text-sm border border-white/10 focus:border-[#AFF65B] focus:outline-none cursor-pointer"
                 >
                   {Object.entries(names).map(([k, n]) => (
                     <option key={k} value={k}>
@@ -169,7 +169,7 @@ export default function CustomRoomPanel({
                   aria-label="Time limit"
                   value={minutes}
                   onChange={(e) => setMinutes(Number(e.target.value))}
-                  className="w-full bg-[#242424] text-white text-xs font-semibold px-3 py-2.5 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none cursor-pointer"
+                  className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3.5 rounded-2xl text-sm border border-white/10 focus:border-[#AFF65B] focus:outline-none cursor-pointer"
                 >
                   <option value={3}>3 Minutes (Blitz)</option>
                   <option value={5}>5 Minutes (Rapid)</option>
@@ -214,7 +214,7 @@ export default function CustomRoomPanel({
                 autoCorrect="off"
                 spellCheck={false}
                 placeholder="e.g. CPY36E"
-                className="w-full bg-[#242424] text-white font-mono font-bold tracking-widest text-base uppercase px-3 py-2.5 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none placeholder:text-[#555]"
+                className="w-full bg-[#242424] text-white font-mono font-bold tracking-widest text-base uppercase px-4 py-3.5 rounded-2xl text-sm border border-white/10 focus:border-[#AFF65B] focus:outline-none placeholder:text-[#555]"
                 onChange={(e) => setCode(e.target.value.trim().toLowerCase())}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && code) {

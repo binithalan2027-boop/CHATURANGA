@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { getLocalStats, getRatingTier } from './chaturanga/stats';
 import { getAchievementProgress, ACHIEVEMENTS, isAchievementUnlocked } from './chaturanga/achievements';
 import StampTile from './chaturanga/StampTile';
-import { getCurrentUser } from './services/authStore';
+import { getCurrentUser, updateUserProfile } from './services/authStore';
 import { formatPlayerId } from './services/playerId';
 
 interface ProfilePageProps {
@@ -28,7 +28,26 @@ export default function ProfilePage({ onBack, onOpenStamps, user, onOpenAuth }: 
   const [historyFilter, setHistoryFilter] = useState<'all' | 'online' | 'bots'>('all');
   const [copiedId, setCopiedId] = useState(false);
 
-  const activeUser = user?.name ? user : getCurrentUser();
+  const initialUser = user?.name ? user : getCurrentUser();
+  const [currentUserState, setCurrentUserState] = useState(() => initialUser);
+  const [editName, setEditName] = useState(initialUser?.name || '');
+  const [editBio, setEditBio] = useState(initialUser?.bio || 'Passionate chess & math player.');
+  const [editAvatar, setEditAvatar] = useState(initialUser?.picture || '/illustrations/knight.svg');
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = updateUserProfile({
+      name: editName.trim() || initialUser?.name || 'Player',
+      bio: editBio.trim(),
+      picture: editAvatar,
+    });
+    setCurrentUserState(updated);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const activeUser = currentUserState;
   const displayName = activeUser?.name || 'Local Player';
   const handle = activeUser?.email ? `@${activeUser.email.split('@')[0]}` : '@local';
   const isGoogle = activeUser?.provider === 'google' || (activeUser?.email && !activeUser.email.includes('@chaturanga.local'));
@@ -120,6 +139,11 @@ export default function ProfilePage({ onBack, onOpenStamps, user, onOpenAuth }: 
               <span className="font-body text-xs text-[#0E0E0E]/60 mt-0.5">
                 Saved across devices with Google • Dynamic Elo updates after rated matches
               </span>
+              {activeUser?.bio && (
+                <span className="font-body text-xs font-medium text-[#0E0E0E]/85 mt-2 bg-black/10 px-3 py-1.5 rounded-xl max-w-xl">
+                  "{activeUser.bio}"
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -182,6 +206,103 @@ export default function ProfilePage({ onBack, onOpenStamps, user, onOpenAuth }: 
               </span>
             </div>
           </div>
+        </div>
+        {/* Your Information & Bio Editor */}
+        <div className="mt-6 bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+            <div>
+              <div className="matiks-kicker text-[#AFF65B] mb-1">PLAYER IDENTITY &amp; BIO</div>
+              <h2 className="matiks-headline text-2xl sm:text-3xl text-[#F4F4F4] m-0">
+                MENTION INFORMATION ABOUT YOURSELF
+              </h2>
+              <p className="font-body text-xs text-[#8A8A8A] mt-1 mb-0">
+                Introduce yourself to opponents, describe your chess style, and choose your board avatar.
+              </p>
+            </div>
+            {savedSuccess && (
+              <span className="px-3.5 py-1.5 bg-[#AFF65B]/15 text-[#AFF65B] border border-[#AFF65B]/30 rounded-full font-mono text-xs font-bold animate-in fade-in flex items-center gap-1.5">
+                <span>✓</span> Information Saved!
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveProfile} className="mt-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Display Name Input */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-2">
+                  Player Display Name
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Enter your display name"
+                  maxLength={30}
+                  className="w-full bg-[#141414] text-white text-sm font-semibold px-4 py-3.5 rounded-2xl border border-white/10 focus:border-[#AFF65B] focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Avatar Selection with Bishop included */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-2">
+                  Choose Board Avatar
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {[
+                    { id: "/illustrations/knight.svg", label: "Knight" },
+                    { id: "/illustrations/bishop.svg", label: "Bishop" },
+                    { id: "/illustrations/rook.svg", label: "Rook" },
+                    { id: "/illustrations/queen.svg", label: "Queen" },
+                    { id: "/illustrations/king.svg", label: "King" },
+                    { id: "/illustrations/pawn.svg", label: "Pawn" },
+                  ].map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => setEditAvatar(a.id)}
+                      className={`p-2 rounded-2xl border cursor-pointer transition-all flex flex-col items-center gap-1 ${
+                        editAvatar === a.id
+                          ? "bg-[#252525] border-[#AFF65B] scale-105 shadow-md shadow-[#AFF65B]/10"
+                          : "bg-[#141414] border-white/5 opacity-65 hover:opacity-100 hover:border-white/20"
+                      }`}
+                    >
+                      <img src={a.id} alt={a.label} className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+                      <span className="text-[9px] font-mono text-[#AAA] truncate">{a.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Bio Textarea */}
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-2 flex items-center justify-between">
+                <span>About You / Player Bio</span>
+                <span className="text-[10px] font-mono text-[#666]">{editBio.length}/200 characters</span>
+              </label>
+              <textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                placeholder="Mention information about yourself, your favorite openings, tactics, or playstyle..."
+                maxLength={200}
+                rows={3}
+                className="w-full bg-[#141414] text-white text-xs px-4 py-3 rounded-2xl border border-white/10 focus:border-[#AFF65B] focus:outline-none transition-colors resize-none leading-relaxed"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-[#8A8A8A]">
+                Updates will be visible to your online friends and opponents.
+              </span>
+              <button
+                type="submit"
+                className="px-6 py-3 rounded-2xl bg-[#AFF65B] hover:bg-white text-[#0E0E0E] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-2"
+              >
+                <span>Save Information</span>
+              </button>
+            </div>
+          </form>
         </div>
 
         {/* 4 Bento Stat Tiles */}

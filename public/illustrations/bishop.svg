@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<title>illustration bishop</title>
+<rect id="Background" width="200" height="200" fill="#1A1A1A"/>
+<g transform="translate(20,20) scale(1.6)">
+<circle cx="50" cy="14" r="6" fill="#A594F0"/>
+<path d="M50 20 C32 34 30 52 40 62 L34 72 H66 L60 62 C70 52 68 34 50 20 Z" fill="#A594F0"/>
+<rect x="24" y="74" width="52" height="14" rx="6" fill="#A594F0"/>
+<line x1="44" y1="38" x2="56" y2="50" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
+<rect x="36" y="60" width="28" height="5" rx="2.5" fill="#1A1A1A"/>
+</g>
+</svg>

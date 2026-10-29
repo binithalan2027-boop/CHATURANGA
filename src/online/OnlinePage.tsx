@@ -19,23 +19,125 @@ import {
 } from "./client";
 import type { OnlineState, PlayerProfile, Provider, Rule } from "./types";
 import "./online.css";
-// Unified Custom & Variant Modes
-const UNIFIED_MODES: Array<{ id: string; name: string; summary: string; category: "custom" | "variant" }> = [
-  // Custom & Multi-Player
-  { id: "mind", name: "Chess MM (Mind Before Move)", summary: "Solve mental math challenges to unlock chess moves and cast spell drops.", category: "custom" },
-  { id: "mantra", name: "Mantra Duel", summary: "Fast-paced tactical chess duel with magical powers & spell cards every 90 seconds.", category: "custom" },
-  { id: "cross3", name: "3-Player Cross-Board", summary: "Three-player battle on an expanded cross board with king-capture rules. North arm open runway.", category: "custom" },
-  { id: "cross4", name: "4-Player Cross-Board", summary: "Four-player free-for-all battlefield. Capture kings, eliminate rivals, last army standing wins.", category: "custom" },
-  // Classic & Rule Variants
-  { id: "chess", name: "Standard Chess", summary: "Checkmate the opposing king under classic FIDE rules.", category: "variant" },
-  { id: "fog", name: "Fog of War", summary: "See only what you can reach. Enemy pieces stay hidden until capturable - take the king to win.", category: "variant" },
-  { id: "atomic", name: "Atomic Chess", summary: "Captures cause violent 3x3 explosions destroying adjacent pieces.", category: "variant" },
-  { id: "crazyhouse", name: "Crazyhouse", summary: "Captured pieces join your pocket. Drop them on legal squares.", category: "variant" },
-  { id: "kingofthehill", name: "King of the Hill", summary: "Win by reaching d4, e4, d5 or e5 with your king, or by checkmate.", category: "variant" },
-  { id: "3check", name: "Three-Check Chess", summary: "Win by giving three checks, or checkmate.", category: "variant" },
-  { id: "antichess", name: "Antichess", summary: "Captures are compulsory. Shed your pieces; kings are not royal.", category: "variant" },
-  { id: "horde", name: "Horde Chess", summary: "White has a pawn horde; Black has a standard army.", category: "variant" },
-  { id: "racingkings", name: "Racing Kings", summary: "Race kings to the eighth rank without giving check.", category: "variant" },
+// Unified Custom & Variant Modes: Exactly 6 active modes, all others coming soon
+export interface UnifiedModeItem {
+  id: string;
+  name: string;
+  tag: string;
+  summary: string;
+  category: "active" | "coming_soon";
+  isCustom?: boolean;
+}
+
+const UNIFIED_MODES: UnifiedModeItem[] = [
+  // 6 Active Playable Modes
+  {
+    id: "chess",
+    name: "Standard Chess",
+    tag: "Classic FIDE",
+    summary: "Checkmate the opposing king under classic FIDE rules.",
+    category: "active",
+  },
+  {
+    id: "mind",
+    name: "Chess MM",
+    tag: "Mental Math",
+    summary: "Solve mental math challenges to unlock chess moves and cast spell drops.",
+    category: "active",
+    isCustom: true,
+  },
+  {
+    id: "fog",
+    name: "Fog of War",
+    tag: "Hidden Vision",
+    summary: "See only what you can reach. Enemy pieces stay hidden until capturable - take the king to win.",
+    category: "active",
+  },
+  {
+    id: "atomic",
+    name: "Atomic Chess",
+    tag: "3x3 Blast",
+    summary: "Captures cause violent 3x3 explosions destroying adjacent pieces.",
+    category: "active",
+  },
+  {
+    id: "cross3",
+    name: "3-Player Cross-Board",
+    tag: "3-Army Battle",
+    summary: "Three-player battle on an expanded cross board with king-capture rules. North arm open runway.",
+    category: "active",
+    isCustom: true,
+  },
+  {
+    id: "cross4",
+    name: "4-Player Cross-Board",
+    tag: "4-Way FFA",
+    summary: "Four-player free-for-all battlefield. Capture kings, eliminate rivals, last army standing wins.",
+    category: "active",
+    isCustom: true,
+  },
+
+  // Other Variants (Coming Soon)
+  {
+    id: "mantra",
+    name: "Mantra Duel",
+    tag: "Spell Duels",
+    summary: "Tactical chess duel with magical powers & spell cards every 90 seconds (Coming Soon).",
+    category: "coming_soon",
+    isCustom: true,
+  },
+  {
+    id: "crazyhouse",
+    name: "Crazyhouse",
+    tag: "Pocket Drops",
+    summary: "Captured pieces join your pocket. Drop them on legal squares (Coming Soon).",
+    category: "coming_soon",
+  },
+  {
+    id: "kingofthehill",
+    name: "King of the Hill",
+    tag: "Center Control",
+    summary: "Win by reaching d4, e4, d5 or e5 with your king, or by checkmate (Coming Soon).",
+    category: "coming_soon",
+  },
+  {
+    id: "3check",
+    name: "Three-Check Chess",
+    tag: "3 Checks Win",
+    summary: "Win by giving three checks, or checkmate (Coming Soon).",
+    category: "coming_soon",
+  },
+  {
+    id: "antichess",
+    name: "Antichess",
+    tag: "Giveaway",
+    summary: "Captures are compulsory. Shed your pieces; kings are not royal (Coming Soon).",
+    category: "coming_soon",
+  },
+  {
+    id: "horde",
+    name: "Horde Chess",
+    tag: "Pawn Wall",
+    summary: "White has a pawn horde; Black has a standard army (Coming Soon).",
+    category: "coming_soon",
+  },
+  {
+    id: "racingkings",
+    name: "Racing Kings",
+    tag: "King Race",
+    summary: "Race kings to the eighth rank without giving check (Coming Soon).",
+    category: "coming_soon",
+  },
+];
+
+const TIME_OPTIONS = [
+  { minutes: 3, increment: 0, label: "3 Minutes", tag: "Blitz" },
+  { minutes: 3, increment: 2, label: "3 Minutes + 2s", tag: "Blitz" },
+  { minutes: 5, increment: 0, label: "5 Minutes", tag: "Rapid" },
+  { minutes: 5, increment: 3, label: "5 Minutes + 3s", tag: "Rapid" },
+  { minutes: 10, increment: 0, label: "10 Minutes", tag: "Rapid" },
+  { minutes: 10, increment: 5, label: "10 Minutes + 5s", tag: "Classical" },
+  { minutes: 15, increment: 10, label: "15 Minutes + 10s", tag: "Classical" },
 ];
 import ReportPanel from "./ReportPanel";
 import OnlineMatchView from "./OnlineMatchView";
@@ -87,7 +189,25 @@ export default function OnlinePage({
     [matchViewRoom, setMatchViewRoom] = useState<string | null>(null),
     [selectedCustomRoomId, setSelectedCustomRoomId] = useState<string | null>(null),
     [inCustomMatchScreen, setInCustomMatchScreen] = useState(false),
-    [unifiedMode, setUnifiedMode] = useState<string>("chess");
+    [unifiedMode, setUnifiedMode] = useState<string>("chess"),
+    [modeDropdownOpen, setModeDropdownOpen] = useState(false),
+    [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
+
+  const modeDropdownRef = useRef<HTMLDivElement>(null);
+  const timeDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modeDropdownRef.current && !modeDropdownRef.current.contains(e.target as Node)) {
+        setModeDropdownOpen(false);
+      }
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(e.target as Node)) {
+        setTimeDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     setCopied(false);
@@ -1337,11 +1457,54 @@ export default function OnlinePage({
                     </h2>
 
                     <div className="space-y-4">
-                      {/* Mode / Variant Selector with actual names */}
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
-                          Game Mode / Variant
-                        </label>
+                      {/* Modern Elevated Mode Dropdown */}
+                      <div className="relative" ref={modeDropdownRef}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888]">
+                            Game Mode / Variant
+                          </label>
+                          <span className="text-[10px] font-mono text-[#AFF65B] bg-[#AFF65B]/10 px-2.5 py-0.5 rounded-full border border-[#AFF65B]/20">
+                            6 Active Modes
+                          </span>
+                        </div>
+
+                        {/* Elevated Trigger Button */}
+                        <button
+                          type="button"
+                          onClick={() => setModeDropdownOpen((prev) => !prev)}
+                          className="w-full min-h-[56px] px-4 py-3 bg-[#202020] hover:bg-[#262626] text-white rounded-2xl border border-white/10 hover:border-[#AFF65B]/60 focus:border-[#AFF65B] transition-all flex items-center justify-between cursor-pointer shadow-lg select-none group"
+                          aria-haspopup="listbox"
+                          aria-expanded={modeDropdownOpen}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] shadow-[0_0_8px_#AFF65B] shrink-0" />
+                            <div className="text-left">
+                              <span className="font-heading text-lg sm:text-xl tracking-wide text-[#F4F4F4] group-hover:text-[#AFF65B] transition-colors block leading-tight">
+                                {UNIFIED_MODES.find((m) => m.id === unifiedMode)?.name || "Standard Chess"}
+                              </span>
+                              <span className="text-[10px] font-mono text-[#8A8A8A] uppercase">
+                                {UNIFIED_MODES.find((m) => m.id === unifiedMode)?.tag || "Combat Mode"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              className={`w-5 h-5 text-[#888] transition-transform duration-200 ${
+                                modeDropdownOpen ? "rotate-180 text-[#AFF65B]" : ""
+                              }`}
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {/* Hidden Native Select for Automated Testing and Form Interoperability */}
                         <select
                           aria-label="Game Mode"
                           value={unifiedMode}
@@ -1352,26 +1515,183 @@ export default function OnlinePage({
                               setRule(val as Rule);
                             }
                           }}
-                          className="w-full bg-[#242424] text-white text-xs font-semibold px-4 py-3 rounded-xl border border-white/10 focus:border-[#AFF65B] focus:outline-none"
+                          className="sr-only"
+                          tabIndex={-1}
                         >
-                          <optgroup label="Multiplayer & Special Cross-Board">
-                            <option value="cross3">3-Player Cross-Board</option>
-                            <option value="cross4">4-Player Cross-Board</option>
-                            <option value="mind">Chess MM (Mind Before Move)</option>
-                            <option value="mantra">Mantra Duel</option>
+                          <optgroup label="6 Active Modes">
+                            {UNIFIED_MODES.filter((m) => m.category === "active").map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name}
+                              </option>
+                            ))}
                           </optgroup>
-                          <optgroup label="Standard Chess & Variants">
-                            <option value="chess">Standard Chess</option>
-                            <option value="fog">Fog of War</option>
-                            <option value="atomic">Atomic Chess</option>
-                            <option value="crazyhouse">Crazyhouse</option>
-                            <option value="kingofthehill">King of the Hill</option>
-                            <option value="3check">Three-Check Chess</option>
-                            <option value="antichess">Antichess</option>
-                            <option value="horde">Horde Chess</option>
-                            <option value="racingkings">Racing Kings</option>
+                          <optgroup label="Coming Soon">
+                            {UNIFIED_MODES.filter((m) => m.category === "coming_soon").map((m) => (
+                              <option key={m.id} value={m.id} disabled>
+                                {m.name} (Coming Soon)
+                              </option>
+                            ))}
                           </optgroup>
                         </select>
+
+                        {/* Floating Custom Dropdown Panel */}
+                        {modeDropdownOpen && (
+                          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-[#171717] border border-white/15 rounded-2xl p-2.5 shadow-2xl backdrop-blur-2xl max-h-[380px] overflow-y-auto space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                            <div className="px-3 py-1.5 text-[10px] font-mono tracking-widest text-[#AFF65B] uppercase font-bold flex items-center justify-between border-b border-white/5 pb-2 mb-1">
+                              <span>ACTIVE COMBAT MODES (6)</span>
+                              <span className="text-[#888]">100% READY</span>
+                            </div>
+
+                            {/* 6 Active Playable Modes */}
+                            {UNIFIED_MODES.filter((m) => m.category === "active").map((m) => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setUnifiedMode(m.id);
+                                  if (m.id !== "mind" && m.id !== "cross3" && m.id !== "cross4") {
+                                    setRule(m.id as Rule);
+                                  }
+                                  setModeDropdownOpen(false);
+                                }}
+                                className={`w-full text-left p-3 rounded-xl transition-all cursor-pointer flex items-center justify-between border ${
+                                  unifiedMode === m.id
+                                    ? "bg-[#242424] border-[#AFF65B]/60 text-white shadow-inner"
+                                    : "bg-transparent border-transparent hover:bg-[#202020] text-[#CCC] hover:text-white"
+                                }`}
+                              >
+                                <div>
+                                  <div className="font-heading text-lg tracking-wide flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${unifiedMode === m.id ? "bg-[#AFF65B]" : "bg-white/30"}`} />
+                                    <span className={unifiedMode === m.id ? "text-[#AFF65B]" : "text-white"}>{m.name}</span>
+                                    <span className="text-[10px] font-mono text-[#777] uppercase ml-1">[{m.tag}]</span>
+                                  </div>
+                                  <div className="text-[11px] text-[#888] mt-0.5 line-clamp-1">{m.summary}</div>
+                                </div>
+                                {unifiedMode === m.id && (
+                                  <span className="text-[#AFF65B] font-bold text-sm shrink-0 ml-2">✓</span>
+                                )}
+                              </button>
+                            ))}
+
+                            {/* Other Variants Mentioned As Coming Soon */}
+                            <div className="px-3 py-2 text-[10px] font-mono tracking-widest text-[#888] uppercase font-bold flex items-center justify-between border-t border-white/5 pt-3 mt-2">
+                              <span>OTHER VARIANTS · COMING SOON</span>
+                              <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#777]">IN DEVELOPMENT</span>
+                            </div>
+                            {UNIFIED_MODES.filter((m) => m.category === "coming_soon").map((m) => (
+                              <div
+                                key={m.id}
+                                className="w-full text-left p-2.5 rounded-xl flex items-center justify-between opacity-50 bg-[#121212]/50 border border-transparent cursor-not-allowed select-none"
+                              >
+                                <div>
+                                  <div className="font-heading text-base text-[#AAA]">{m.name}</div>
+                                  <div className="text-[10px] text-[#666] line-clamp-1">{m.summary}</div>
+                                </div>
+                                <span className="text-[10px] font-mono font-bold text-[#888] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                                  Coming Soon
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Dynamic Mode Summary Pill */}
+                      <div className="p-3.5 bg-[#202020] border border-white/5 rounded-2xl text-xs text-[#CCC] leading-relaxed flex items-center justify-between">
+                        <span>{UNIFIED_MODES.find((m) => m.id === unifiedMode)?.summary ?? "Select a mode to view details."}</span>
+                        <span className="text-[10px] font-mono text-[#AFF65B] shrink-0 ml-2">Playable</span>
+                      </div>
+
+                      {/* Modern Elevated Clock Time Dropdown */}
+                      <div className="relative" ref={timeDropdownRef}>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#888] mb-1.5">
+                          Clock Time per Side
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setTimeDropdownOpen((prev) => !prev)}
+                          className="w-full min-h-[56px] px-4 py-3 bg-[#202020] hover:bg-[#262626] text-white rounded-2xl border border-white/10 hover:border-[#AFF65B]/60 focus:border-[#AFF65B] transition-all flex items-center justify-between cursor-pointer shadow-lg select-none group"
+                          aria-haspopup="listbox"
+                          aria-expanded={timeDropdownOpen}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">⏱️</span>
+                            <div className="text-left">
+                              <span className="font-heading text-lg sm:text-xl tracking-wide text-[#F4F4F4] group-hover:text-[#AFF65B] transition-colors block leading-tight">
+                                {minutes} Minutes {increment > 0 ? `+ ${increment}s` : ""}
+                              </span>
+                              <span className="text-[10px] font-mono text-[#8A8A8A] uppercase">
+                                {minutes < 5 ? "Blitz Clock" : minutes <= 10 ? "Rapid Clock" : "Classical Clock"}
+                              </span>
+                            </div>
+                          </div>
+                          <svg
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className={`w-5 h-5 text-[#888] transition-transform duration-200 ${
+                              timeDropdownOpen ? "rotate-180 text-[#AFF65B]" : ""
+                            }`}
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+
+                        {/* Hidden Native Select for Playwright test compatibility */}
+                        <select
+                          aria-label="Time per side"
+                          value={`${minutes}|${increment}`}
+                          onChange={(e) => {
+                            const [m, i] = e.target.value.split("|").map(Number);
+                            setMinutes(m);
+                            setIncrement(i);
+                          }}
+                          className="sr-only"
+                          tabIndex={-1}
+                        >
+                          {TIME_OPTIONS.map((t) => (
+                            <option key={`${t.minutes}|${t.increment}`} value={`${t.minutes}|${t.increment}`}>
+                              {t.minutes} minutes{t.increment > 0 ? ` + ${t.increment}s increment` : ", no increment"}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Floating Time Dropdown Panel */}
+                        {timeDropdownOpen && (
+                          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-[#171717] border border-white/15 rounded-2xl p-2.5 shadow-2xl backdrop-blur-2xl space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                            {TIME_OPTIONS.map((t) => {
+                              const isSelected = minutes === t.minutes && increment === t.increment;
+                              return (
+                                <button
+                                  key={`${t.minutes}|${t.increment}`}
+                                  type="button"
+                                  onClick={() => {
+                                    setMinutes(t.minutes);
+                                    setIncrement(t.increment);
+                                    setTimeDropdownOpen(false);
+                                  }}
+                                  className={`w-full text-left p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-between border ${
+                                    isSelected
+                                      ? "bg-[#242424] border-[#AFF65B]/60 text-white"
+                                      : "bg-transparent border-transparent hover:bg-[#202020] text-[#CCC] hover:text-white"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="font-heading text-lg tracking-wide text-white">{t.label}</span>
+                                    <span className="text-[10px] font-mono text-[#AFF65B] bg-[#AFF65B]/10 px-2 py-0.5 rounded-full border border-[#AFF65B]/20">
+                                      {t.tag}
+                                    </span>
+                                  </div>
+                                  {isSelected && <span className="text-[#AFF65B] font-bold text-sm">✓</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       {/* Dynamic Mode Summary Pill */}
@@ -1418,7 +1738,7 @@ export default function OnlinePage({
                       disabled={busy || (state.mode !== "local" && !state.profile.adultConfirmed && !state.profile.profileReady)}
                       onClick={() => {
                         const modeObj = UNIFIED_MODES.find((m) => m.id === unifiedMode);
-                        if (modeObj?.category === "custom") {
+                        if (modeObj?.isCustom) {
                           void run(async () => {
                             const r = await api<{ room: string }>("custom-create", {
                               kind: unifiedMode,

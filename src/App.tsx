@@ -410,6 +410,7 @@ function AppContent() {
         onSuccess={(u) => {
           setUser(u);
           setAuthModalOpen(false);
+          setScreen("profile");
         }}
       />
     </>
