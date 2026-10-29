@@ -59,10 +59,19 @@ export function createStaticHandler(root: string) {
     const candidate = resolve(join(base, normalize(pathname)));
     if (candidate !== base && !candidate.startsWith(base + sep)) return false;
     let file = candidate;
-    if (!existsSync(file) || statSync(file).isDirectory()) {
+    if (!existsSync(file)) {
       const index = join(base, "index.html");
       if (!existsSync(index)) return false;
       file = index;
+    } else if (statSync(file).isDirectory()) {
+      const dirIndex = join(file, "index.html");
+      if (existsSync(dirIndex)) {
+        file = dirIndex;
+      } else {
+        const index = join(base, "index.html");
+        if (!existsSync(index)) return false;
+        file = index;
+      }
     }
     const immutable = /\/assets\//.test(file) || /\.(woff2?|wasm|ttf|nnue)$/.test(file);
     send(req, res, file, immutable);
