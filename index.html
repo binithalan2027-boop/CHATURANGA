@@ -30,6 +30,39 @@
     <meta name="twitter:image" content="https://chaturangachess.games/og-image.png" />
     
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://chaturangachess.games/#website",
+          "url": "https://chaturangachess.games/",
+          "name": "Chaturanga",
+          "description": "Play local chess, explore maths and magic, study positions and practice checkmates in Chaturanga. No account needed for local play.",
+          "inLanguage": "en"
+        },
+        {
+          "@type": "VideoGame",
+          "@id": "https://chaturangachess.games/#game",
+          "name": "Chaturanga",
+          "url": "https://chaturangachess.games/",
+          "description": "Play local chess, explore maths and magic, study positions and practice checkmates in Chaturanga. Free browser app with classic chess, Chess960, Fog of War, Atomic chess, and mental mathematics.",
+          "applicationCategory": "GameApplication",
+          "operatingSystem": "Any (Web Browser)",
+          "genre": ["Chess", "Strategy", "Board Game", "Educational"],
+          "inLanguage": "en",
+          "playMode": "SinglePlayer, MultiPlayer",
+          "author": {
+            "@type": "Person",
+            "name": "Binit Halan"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body style="background-color: #0E0E0E; color: #F4F4F4; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="bg-void-black text-on-surface font-body-md text-body-md min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary">
     <div id="root" class="w-full flex flex-col min-h-screen">

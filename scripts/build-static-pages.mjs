@@ -245,7 +245,11 @@ const sharedStyles = `
   .footer-links a:hover { color: #AFF65B; }
 `;
 
-function renderPage({ title, description, canonical, activeTab, contentHtml }) {
+function renderPage({ title, description, canonical, activeTab, contentHtml, jsonLd }) {
+  const jsonLdScript = jsonLd
+    ? `\n    <!-- Structured Data (JSON-LD) -->\n    <script type="application/ld+json">\n${JSON.stringify(jsonLd, null, 2)}\n    </script>`
+    : '';
+
   return `<!doctype html>
 <html lang="en" class="dark">
   <head>
@@ -275,7 +279,7 @@ function renderPage({ title, description, canonical, activeTab, contentHtml }) {
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0E0E0E" />
+    <meta name="theme-color" content="#0E0E0E" />${jsonLdScript}
 
     <style>${sharedStyles}</style>
   </head>
@@ -541,6 +545,128 @@ const faqContent = `
   </div>
 `;
 
+const aboutJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About Chaturanga',
+  url: 'https://chaturangachess.games/about/',
+  description: 'Learn about Chaturanga, a quiet, tactical browser chess platform with combat variants, mental math showdowns, and custom Stockfish bots. Created by Binit Halan.',
+  mainEntity: {
+    '@type': 'Person',
+    name: 'Binit Halan',
+    jobTitle: 'Solo Developer',
+    description: 'Creator and developer of Chaturanga.',
+  },
+};
+
+const modesJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Game Modes & Rules - Chaturanga Chess Variants',
+  url: 'https://chaturangachess.games/modes/',
+  description: 'Explore all combat game modes in Chaturanga: Classic Chess, Chess960, Fog of War, Atomic Chess, and Chess MM (Mind & Magic). Full rules and mechanics.',
+  hasPart: [
+    {
+      '@type': 'Game',
+      name: 'Classic Chess',
+      description: 'Standard FIDE chess with engine bots from 250 to 2000+ Elo, custom timers, and board rotation.',
+    },
+    {
+      '@type': 'Game',
+      name: 'Chess960 (Fischer Random)',
+      description: '960 randomized starting configurations mirroring White and Black with opposite-colored bishops.',
+    },
+    {
+      '@type': 'Game',
+      name: 'Fog of War',
+      description: 'Stealth chess with imperfect information where players only see squares their pieces observe.',
+    },
+    {
+      '@type': 'Game',
+      name: 'Atomic Chess',
+      description: 'Explosive captures destroying captured piece, capturing piece, and adjacent non-pawns in a 3x3 radius.',
+    },
+    {
+      '@type': 'Game',
+      name: 'Chess MM (Mind & Magic)',
+      description: 'Chess fused with mental arithmetic challenges and seven unlockable tactical board spells.',
+    },
+  ],
+};
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  name: 'Frequently Asked Questions - Chaturanga',
+  url: 'https://chaturangachess.games/faq/',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is Chaturanga free to play?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Chaturanga is a free web browser application. You can play all local chess modes, practice puzzles, and compete against computer bots without paying any fees or subscriptions.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Do I need an account to play?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No account is needed for local play. You can jump directly onto the board as a guest with an automatically generated 8-digit Player ID. If you wish to sync your progress, you can optionally sign in with Google.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is Chess MM (Mind & Magic)?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Chess MM is an original game mode combining chess with mental mathematics. Players can choose between solving mental-maths problems before making moves, or entering a 90-second math sprint to earn tactical spells (such as freezing pieces, placing shields, or jumping pieces).',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How does Fog of War work?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: "In Fog of War, neither player has full board vision. Squares are hidden by fog unless one of your pieces occupies, attacks, or moves to that square. There is no check warning, and the objective is to capture the opponent's king directly.",
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do explosions work in Atomic Chess?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Whenever any capture occurs in Atomic Chess, an explosion destroys the captured piece, the capturing piece, and all non-pawn pieces in the eight immediately adjacent squares. Kings cannot capture and cannot move adjacent to other kings.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is Chess960?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Chess960 (also known as Fischer Random Chess) randomizes the home-rank pieces into one of 960 starting permutations. The pieces mirror identically for White and Black, bishops remain on opposite colors, and standard castling rules apply.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do private multiplayer rooms work?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You can create a private room and share the room code with a friend. Once your friend enters the code, both players are connected directly for real-time play across Classic Chess, Chess MM, or multi-board formats.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I play on mobile phones or tablets?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Chaturanga is fully responsive and optimized for mobile touchscreens, tablets, and desktop displays. It functions client-side as an offline-ready web application without requiring an app store download.',
+      },
+    },
+  ],
+};
+
 // Build pages
 export function buildStaticPages() {
   console.log('Building static pages for SEO/AEO/GEO...');
@@ -553,6 +679,7 @@ export function buildStaticPages() {
       canonical: 'https://chaturangachess.games/about/',
       activeTab: 'about',
       contentHtml: aboutContent,
+      jsonLd: aboutJsonLd,
     },
     {
       dir: path.join(distDir, 'modes'),
@@ -561,6 +688,7 @@ export function buildStaticPages() {
       canonical: 'https://chaturangachess.games/modes/',
       activeTab: 'modes',
       contentHtml: modesContent,
+      jsonLd: modesJsonLd,
     },
     {
       dir: path.join(distDir, 'faq'),
@@ -569,6 +697,7 @@ export function buildStaticPages() {
       canonical: 'https://chaturangachess.games/faq/',
       activeTab: 'faq',
       contentHtml: faqContent,
+      jsonLd: faqJsonLd,
     },
   ];
 
