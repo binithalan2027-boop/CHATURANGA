@@ -183,6 +183,7 @@ function AppContent() {
           onOpenStamps={() => setScreen("stamps")}
           onOpenFeedback={() => setFeedbackModalOpen(true)}
           onOpenAuth={() => setAuthModalOpen(true)}
+          onLogout={handleLogout}
         />
       );
     }

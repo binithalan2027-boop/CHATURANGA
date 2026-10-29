@@ -45,61 +45,51 @@ export function getRatingTier(elo: number): {
 
 const STATS_STORAGE_KEY = "chaturanga_local_stats_v2";
 
-const DEFAULT_STATS: LocalStats = {
-  gamesPlayed: 14,
-  gamesWon: 9,
-  gamesLost: 4,
-  gamesDrawn: 1,
-  mindGateStreaks: 3,
-  speedDuelsWon: 5,
+export const DEFAULT_STATS: LocalStats = {
+  gamesPlayed: 0,
+  gamesWon: 0,
+  gamesLost: 0,
+  gamesDrawn: 0,
+  mindGateStreaks: 0,
+  speedDuelsWon: 0,
   currentRating: 1200,
-  peakRating: 1216,
-  history: [
-    {
-      id: "game-1",
-      date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10),
-      ratingBefore: 1184,
-      ratingAfter: 1200,
-      delta: 16,
-      opponentName: "Tactical Bot",
-      opponentRating: 1200,
-      result: "win",
-      accuracy: 86.4,
-      mode: "Standard Chess",
-    },
-    {
-      id: "game-2",
-      date: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10),
-      ratingBefore: 1200,
-      ratingAfter: 1216,
-      delta: 16,
-      opponentName: "Guest #4912",
-      opponentRating: 1200,
-      result: "win",
-      accuracy: 89.1,
-      mode: "Online PvP (Standard)",
-    },
-    {
-      id: "game-3",
-      date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-      ratingBefore: 1216,
-      ratingAfter: 1200,
-      delta: -16,
-      opponentName: "Aarav",
-      opponentRating: 1200,
-      result: "loss",
-      accuracy: 82.5,
-      mode: "Chess MM (Mind Before Move)",
-    },
-  ],
+  peakRating: 1200,
+  history: [],
 };
 
-export function getLocalStats(): LocalStats {
+function getStatsStorageKey(playerId?: string): string {
+  if (playerId) return `chaturanga_stats_${playerId}`;
+  try {
+    const rawUser = typeof localStorage !== "undefined" ? localStorage.getItem("chaturanga_user_profile") : null;
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      if (parsed?.playerId) return `chaturanga_stats_${parsed.playerId}`;
+    }
+  } catch {}
+  return STATS_STORAGE_KEY;
+}
+
+export function getLocalStats(playerId?: string): LocalStats {
   try {
     if (typeof localStorage === "undefined") return DEFAULT_STATS;
-    const raw = localStorage.getItem(STATS_STORAGE_KEY);
+    const key = getStatsStorageKey(playerId);
+    const raw = localStorage.getItem(key);
     if (!raw) return DEFAULT_STATS;
-    return { ...DEFAULT_STATS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+
+    // Purge legacy mock data if detected
+    const isMockData =
+      parsed.gamesPlayed === 14 &&
+      Array.isArray(parsed.history) &&
+      parsed.history.length === 3 &&
+      parsed.history[0]?.id === "game-1";
+    if (isMockData) {
+      localStorage.removeItem(key);
+      localStorage.removeItem(STATS_STORAGE_KEY);
+      return DEFAULT_STATS;
+    }
+
+    return { ...DEFAULT_STATS, ...parsed };
   } catch {
     return DEFAULT_STATS;
   }
@@ -167,9 +157,10 @@ export function recordMatchRating(
   opponentRating: number,
   outcome: "win" | "loss" | "draw",
   accuracy = 87.5,
-  mode = "Standard Chess"
+  mode = "Standard Chess",
+  playerId?: string
 ): { newRating: number; delta: number; stats: LocalStats } {
-  const current = getLocalStats();
+  const current = getLocalStats(playerId);
   const delta = calculateEloDelta(current.currentRating, opponentRating, outcome);
   const newRating = Math.max(100, current.currentRating + delta);
   const peakRating = Math.max(current.peakRating, newRating);
@@ -200,7 +191,8 @@ export function recordMatchRating(
 
   try {
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(updated));
+      const key = getStatsStorageKey(playerId);
+      localStorage.setItem(key, JSON.stringify(updated));
     }
   } catch (e) {
     console.error("Failed to save rating stats", e);

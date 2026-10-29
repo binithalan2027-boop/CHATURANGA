@@ -97,6 +97,8 @@ interface Session {
 }
 /** Short-lived cache of validated Supabase tokens (avoids an upstream call per request). */
 const tokenCache = new Map<string, { user: string; expires: number }>();
+/** Ephemeral in-memory store for 6-digit email verification codes (10 min expiry). */
+const pendingVerifications = new Map<string, { code: string; expires: number; name?: string }>();
 const clients = new Map<WebSocket, { id: string; expires: number }>();
 const wsPerIp = new ConnectionTracker(20);
 /** Re-authenticate push sockets periodically so revoked sessions drop. */
@@ -398,6 +400,84 @@ ${data.evaluation ? `Stockfish score: ${String(data.evaluation).slice(0, 30)}` :
       } catch (e) {
         reply(res, 500, { error: String(e) });
       }
+      return;
+    }
+    if (req.method === "POST" && path === "/api/auth/send-code") {
+      limiter.check(`auth_code:${ip}`, 15 * LIMIT_SCALE, "Too many verification attempts.");
+      const data = await body(req);
+      const email = String(data.email ?? "").trim().toLowerCase();
+      const name = String(data.name ?? "").trim();
+      if (!email || !email.includes("@") || email.length > 254) {
+        reply(res, 400, { ok: false, error: "Please enter a valid email address." });
+        return;
+      }
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      pendingVerifications.set(email, {
+        code,
+        expires: Date.now() + 10 * 60_000,
+        name,
+      });
+
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        console.log(`[Email Verification Simulated] ${email} -> Code: ${code}`);
+        reply(res, 200, { ok: true, simulated: true, code });
+        return;
+      }
+      try {
+        const resendRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${resendKey}`,
+          },
+          body: JSON.stringify({
+            from: "Chaturanga <onboarding@resend.dev>",
+            to: email,
+            subject: `${code} is your Chaturanga Verification Code`,
+            html: `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0E0E0E; color: #F4F4F4; padding: 32px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 20px; font-weight: 800; color: #AFF65B; letter-spacing: 1px; margin-bottom: 8px;">CHATURANGA</div>
+                <h2 style="color: #F4F4F4; margin: 0 0 16px 0; font-size: 22px;">Verify your email address</h2>
+                <p style="color: #AAA; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+                  Hello ${name || "Player"}, use this 6-digit verification code to complete your Chaturanga sign in:
+                </p>
+                <div style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #0E0E0E; background: #AFF65B; padding: 16px 24px; border-radius: 12px; text-align: center; margin: 20px 0; font-family: monospace;">
+                  ${code}
+                </div>
+                <p style="color: #666; font-size: 12px; line-height: 1.5; margin: 24px 0 0 0;">
+                  This code expires in 10 minutes. If you did not request this verification, you can safely disregard this email.
+                </p>
+              </div>
+            `,
+            text: `Your Chaturanga verification code is: ${code}. It expires in 10 minutes.`,
+          }),
+        });
+        const rData = await resendRes.json();
+        reply(res, 200, { ok: resendRes.ok, data: rData });
+      } catch (e) {
+        console.error("Resend API error:", e);
+        reply(res, 200, { ok: true, simulated: true, code });
+      }
+      return;
+    }
+
+    if (req.method === "POST" && path === "/api/auth/verify-code") {
+      limiter.check(`auth_verify:${ip}`, 30 * LIMIT_SCALE);
+      const data = await body(req);
+      const email = String(data.email ?? "").trim().toLowerCase();
+      const code = String(data.code ?? "").trim();
+      const pending = pendingVerifications.get(email);
+      if (!pending || pending.expires < Date.now()) {
+        reply(res, 400, { ok: false, error: "Verification code has expired or was not requested. Please request a new code." });
+        return;
+      }
+      if (pending.code !== code) {
+        reply(res, 400, { ok: false, error: "Incorrect verification code. Please check your email and try again." });
+        return;
+      }
+      pendingVerifications.delete(email);
+      reply(res, 200, { ok: true, verified: true });
       return;
     }
     const token = req.headers.authorization?.replace(/^Bearer /, "");

@@ -496,7 +496,7 @@ export class Service {
     if (myRooms.length > 0) {
       return { room: myRooms[0].id, matched: false };
     }
-    const roomId = this.create(id, rule, minutes, null);
+    const roomId = this.create(id, rule, minutes, undefined);
     return { room: roomId, matched: false };
   }
   /**

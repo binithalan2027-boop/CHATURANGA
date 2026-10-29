@@ -13,9 +13,11 @@ export interface ChaturangaUser {
   timezone?: string;
   provider: "google" | "guest";
   createdAt: number;
+  emailVerified?: boolean;
 }
 
 const STORAGE_KEY = "chaturanga_user_profile";
+const ACCOUNTS_STORAGE_KEY = "chaturanga_accounts_v1";
 const USER_CHANGE_EVENT = "chaturanga:user_changed";
 
 const memoryStorage: Record<string, string> = {};
@@ -36,6 +38,28 @@ function setStorageItem(key: string, value: string): void {
     }
   } catch {}
   memoryStorage[key] = value;
+}
+
+export function getSavedAccountByEmail(email: string): ChaturangaUser | null {
+  try {
+    const raw = getStorageItem(ACCOUNTS_STORAGE_KEY);
+    if (!raw) return null;
+    const accounts = JSON.parse(raw) as Record<string, ChaturangaUser>;
+    const normalized = email.toLowerCase().trim();
+    return accounts[normalized] || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveAccountToDirectory(user: ChaturangaUser): void {
+  try {
+    if (!user.email || user.email.includes("@chaturanga.local")) return;
+    const raw = getStorageItem(ACCOUNTS_STORAGE_KEY);
+    const accounts = raw ? (JSON.parse(raw) as Record<string, ChaturangaUser>) : {};
+    accounts[user.email.toLowerCase().trim()] = user;
+    setStorageItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+  } catch {}
 }
 
 function createDefaultGuest(): ChaturangaUser {
@@ -95,27 +119,44 @@ export function signInWithGoogle(data: {
   email: string;
   picture?: string;
   bio?: string;
+  emailVerified?: boolean;
 }): ChaturangaUser {
-  const current = getCurrentUser();
-  // Preserve existing 8-digit playerId or generate a new one
-  const playerId =
-    current.playerId && current.playerId.length === 8
-      ? current.playerId
-      : generatePlayerId();
+  const normalizedEmail = data.email.trim().toLowerCase();
+  const existingAccount = getSavedAccountByEmail(normalizedEmail);
+
+  if (existingAccount) {
+    const updated: ChaturangaUser = {
+      ...existingAccount,
+      name: data.name.trim() || existingAccount.name,
+      picture: data.picture || existingAccount.picture,
+      bio: data.bio || existingAccount.bio,
+      emailVerified: data.emailVerified !== undefined ? data.emailVerified : existingAccount.emailVerified ?? true,
+      provider: "google",
+    };
+    saveAccountToDirectory(updated);
+    saveCurrentUser(updated);
+    return updated;
+  }
+
+  // Brand new user registration!
+  // Assign a fresh 8-digit player ID
+  const playerId = generatePlayerId();
 
   const googleUser: ChaturangaUser = {
-    ...current,
     id: `google_${normalizePlayerId(playerId).toLowerCase()}`,
     playerId,
     name: data.name.trim() || data.email.split("@")[0],
     email: data.email.trim(),
-    picture: data.picture,
-    bio: data.bio ?? current.bio ?? "Chess player & strategist on Chaturanga.",
+    picture: data.picture || "/illustrations/knight.svg",
+    bio: data.bio || "Passionate chess & tactical strategist.",
     provider: "google",
-    rating: current.rating || 1200,
-    peakRating: Math.max(current.peakRating || 1200, current.rating || 1200),
+    rating: 1200,
+    peakRating: 1200,
+    createdAt: Date.now(),
+    emailVerified: data.emailVerified !== undefined ? data.emailVerified : true,
   };
 
+  saveAccountToDirectory(googleUser);
   saveCurrentUser(googleUser);
   return googleUser;
 }
@@ -135,6 +176,7 @@ export function updateUserProfile(updates: Partial<ChaturangaUser>): ChaturangaU
     playerId: updates.playerId && updates.playerId.length === 8 ? updates.playerId : current.playerId,
   };
   saveCurrentUser(next);
+  saveAccountToDirectory(next);
   return next;
 }
 

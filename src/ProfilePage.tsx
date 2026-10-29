@@ -1,36 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getLocalStats, getRatingTier } from './chaturanga/stats';
 import { getAchievementProgress, ACHIEVEMENTS, isAchievementUnlocked } from './chaturanga/achievements';
 import StampTile from './chaturanga/StampTile';
-import { getCurrentUser, updateUserProfile } from './services/authStore';
+import { getCurrentUser, updateUserProfile, ChaturangaUser } from './services/authStore';
 import { formatPlayerId } from './services/playerId';
 
 interface ProfilePageProps {
   onBack: () => void;
   onOpenStamps?: () => void;
   onOpenFeedback?: () => void;
-  user?: {
-    id?: string;
-    playerId?: string;
-    name: string;
-    email: string;
-    picture?: string;
-    bio?: string;
-    provider?: string;
-    createdAt?: number;
-  } | null;
+  user?: ChaturangaUser | null;
   onOpenAuth?: () => void;
+  onLogout?: () => void;
 }
 
-export default function ProfilePage({ onBack, onOpenStamps, onOpenFeedback, user, onOpenAuth }: ProfilePageProps) {
-  const [stats] = useState(() => getLocalStats());
-  const progress = getAchievementProgress();
-  const unlockedAchievements = ACHIEVEMENTS.filter((a) => isAchievementUnlocked(a.id));
+export default function ProfilePage({ onBack, onOpenStamps, onOpenFeedback, user, onOpenAuth, onLogout }: ProfilePageProps) {
+  const initialUser = user?.name ? user : getCurrentUser();
+  const [currentUserState, setCurrentUserState] = useState<ChaturangaUser>(() => initialUser);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUserState(user);
+      setEditName(user.name);
+      setEditBio(user.bio || 'Passionate chess & math player.');
+      setEditAvatar(user.picture || '/illustrations/knight.svg');
+    }
+  }, [user]);
+
   const [historyFilter, setHistoryFilter] = useState<'all' | 'online' | 'bots'>('all');
   const [copiedId, setCopiedId] = useState(false);
 
-  const initialUser = user?.name ? user : getCurrentUser();
-  const [currentUserState, setCurrentUserState] = useState(() => initialUser);
   const [editName, setEditName] = useState(initialUser?.name || '');
   const [editBio, setEditBio] = useState(initialUser?.bio || 'Passionate chess & math player.');
   const [editAvatar, setEditAvatar] = useState(initialUser?.picture || '/illustrations/knight.svg');
@@ -48,11 +47,17 @@ export default function ProfilePage({ onBack, onOpenStamps, onOpenFeedback, user
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  const activeUser = currentUserState;
+  const activeUser = user || currentUserState;
   const displayName = activeUser?.name || 'Local Player';
   const handle = activeUser?.email ? `@${activeUser.email.split('@')[0]}` : '@local';
   const isGoogle = activeUser?.provider === 'google' || (activeUser?.email && !activeUser.email.includes('@chaturanga.local'));
+  const isVerified = Boolean(activeUser?.emailVerified);
   const playerId = activeUser?.playerId || 'CH8K9A2M';
+
+  // Per-player isolated stats and achievements
+  const stats = getLocalStats(playerId);
+  const progress = getAchievementProgress(playerId);
+  const unlockedAchievements = ACHIEVEMENTS.filter((a) => isAchievementUnlocked(a.id, playerId));
 
   const ratingTier = getRatingTier(stats.currentRating);
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
@@ -107,15 +112,27 @@ export default function ProfilePage({ onBack, onOpenStamps, onOpenFeedback, user
                   {ratingTier.tier} · {stats.currentRating} ELO
                 </span>
                 {isGoogle ? (
-                  <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" aria-hidden="true">
-                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.36 24 12 24z"/>
-                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.14 0 9.89 0 12c0 2.11.45 3.86 1.24 5.42l4.04-3.15z"/>
-                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                    </svg>
-                    Google Connected
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-[#0E0E0E] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" aria-hidden="true">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.36 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.14 0 9.89 0 12c0 2.11.45 3.86 1.24 5.42l4.04-3.15z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                      </svg>
+                      {isVerified ? "Google Verified" : "Google Connected"}
+                    </span>
+                    {onLogout && (
+                      <button
+                        type="button"
+                        onClick={onLogout}
+                        className="px-3 py-1 rounded-full bg-[#0E0E0E]/80 hover:bg-[#0E0E0E] text-white/90 hover:text-white text-xs font-semibold border-none cursor-pointer transition-all active:scale-95"
+                        title="Sign out or switch accounts"
+                      >
+                        Sign Out
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   onOpenAuth && (
                     <button
@@ -185,7 +202,7 @@ export default function ProfilePage({ onBack, onOpenStamps, onOpenFeedback, user
             <div className="bg-[#121212] p-3 rounded-2xl border border-white/5">
               <span className="text-[10px] font-mono uppercase text-[#888] block">Account Status</span>
               <span className="font-bold text-white mt-0.5 block truncate">
-                {isGoogle ? "Google Verified" : "Guest Account"}
+                {isGoogle ? (isVerified ? "Google Verified" : "Google Connected") : "Guest Account"}
               </span>
             </div>
             <div className="bg-[#121212] p-3 rounded-2xl border border-white/5">

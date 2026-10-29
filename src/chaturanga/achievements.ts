@@ -669,6 +669,18 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 const ACHIEVEMENTS_STORAGE_KEY = 'chaturanga_unlocked_achievements_v1';
 
+function getAchievementsStorageKey(playerId?: string): string {
+  if (playerId) return `chaturanga_achievements_${playerId}`;
+  try {
+    const rawUser = typeof localStorage !== 'undefined' ? localStorage.getItem('chaturanga_user_profile') : null;
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      if (parsed?.playerId) return `chaturanga_achievements_${parsed.playerId}`;
+    }
+  } catch {}
+  return ACHIEVEMENTS_STORAGE_KEY;
+}
+
 let memoryStore: Record<string, string> = {};
 let gameInProgress = false;
 let pendingGameAchievements: Achievement[] = [];
@@ -715,9 +727,10 @@ function setStorageItem(key: string, value: string): void {
   memoryStore[key] = value;
 }
 
-export function clearAchievementsStore(): void {
+export function clearAchievementsStore(playerId?: string): void {
   try {
     if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(getAchievementsStorageKey(playerId));
       localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
     }
   } catch {
@@ -728,9 +741,10 @@ export function clearAchievementsStore(): void {
   gameInProgress = false;
 }
 
-export function getUnlockedAchievementIds(): string[] {
+export function getUnlockedAchievementIds(playerId?: string): string[] {
   try {
-    const raw = getStorageItem(ACHIEVEMENTS_STORAGE_KEY);
+    const key = getAchievementsStorageKey(playerId);
+    const raw = getStorageItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -739,22 +753,23 @@ export function getUnlockedAchievementIds(): string[] {
   }
 }
 
-export function isAchievementUnlocked(id: string): boolean {
-  return getUnlockedAchievementIds().includes(id);
+export function isAchievementUnlocked(id: string, playerId?: string): boolean {
+  return getUnlockedAchievementIds(playerId).includes(id);
 }
 
-export function unlockAchievement(id: string): { newlyUnlocked: boolean; achievement?: Achievement } {
+export function unlockAchievement(id: string, playerId?: string): { newlyUnlocked: boolean; achievement?: Achievement } {
   const achievement = ACHIEVEMENTS.find(a => a.id === id);
   if (!achievement) return { newlyUnlocked: false };
 
-  const current = getUnlockedAchievementIds();
+  const current = getUnlockedAchievementIds(playerId);
   if (current.includes(id)) {
     return { newlyUnlocked: false, achievement };
   }
 
   const updated = [...current, id];
   try {
-    setStorageItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(updated));
+    const key = getAchievementsStorageKey(playerId);
+    setStorageItem(key, JSON.stringify(updated));
     if (isGameInProgress()) {
       // Buffer in-game achievements to celebrate only at end of game!
       if (!pendingGameAchievements.some(a => a.id === id)) {
@@ -775,13 +790,13 @@ export function unlockAchievement(id: string): { newlyUnlocked: boolean; achieve
   return { newlyUnlocked: true, achievement };
 }
 
-export function getAchievementProgress(): {
+export function getAchievementProgress(playerId?: string): {
   total: number;
   unlocked: number;
   percentage: number;
   bySet: Record<string, { total: number; unlocked: number }>;
 } {
-  const unlockedIds = new Set(getUnlockedAchievementIds());
+  const unlockedIds = new Set(getUnlockedAchievementIds(playerId));
   const total = ACHIEVEMENTS.length;
   const unlocked = ACHIEVEMENTS.filter(a => unlockedIds.has(a.id)).length;
   const percentage = total > 0 ? Math.round((unlocked / total) * 100) : 0;
