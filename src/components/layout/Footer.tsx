@@ -2,9 +2,10 @@ interface FooterProps {
   onOpenPolicy?: () => void;
   onOpenAbout?: () => void;
   onOpenLearn?: () => void;
+  onOpenFeedback?: () => void;
 }
 
-export default function Footer({ onOpenPolicy, onOpenAbout, onOpenLearn }: FooterProps) {
+export default function Footer({ onOpenPolicy, onOpenAbout, onOpenLearn, onOpenFeedback }: FooterProps) {
   return (
     <footer className="w-full bg-[#0E0E0E] border-t border-white/5 pt-12 pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
@@ -59,6 +60,15 @@ export default function Footer({ onOpenPolicy, onOpenAbout, onOpenLearn }: Foote
               className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left bg-transparent border-none cursor-pointer p-0"
             >
               Privacy & Local Storage
+            </button>
+          )}
+          {onOpenFeedback && (
+            <button
+              onClick={onOpenFeedback}
+              className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left bg-transparent border-none cursor-pointer p-0 flex items-center gap-1.5"
+            >
+              <span>💬</span>
+              <span>Feedback & New Modes</span>
             </button>
           )}
         </div>

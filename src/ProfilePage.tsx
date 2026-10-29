@@ -8,6 +8,7 @@ import { formatPlayerId } from './services/playerId';
 interface ProfilePageProps {
   onBack: () => void;
   onOpenStamps?: () => void;
+  onOpenFeedback?: () => void;
   user?: {
     id?: string;
     playerId?: string;
@@ -21,7 +22,7 @@ interface ProfilePageProps {
   onOpenAuth?: () => void;
 }
 
-export default function ProfilePage({ onBack, onOpenStamps, user, onOpenAuth }: ProfilePageProps) {
+export default function ProfilePage({ onBack, onOpenStamps, onOpenFeedback, user, onOpenAuth }: ProfilePageProps) {
   const [stats] = useState(() => getLocalStats());
   const progress = getAchievementProgress();
   const unlockedAchievements = ACHIEVEMENTS.filter((a) => isAchievementUnlocked(a.id));
@@ -618,6 +619,30 @@ export default function ProfilePage({ onBack, onOpenStamps, user, onOpenAuth }: 
             </div>
           )}
         </div>
+
+        {/* Community Feedback Card */}
+        {onOpenFeedback && (
+          <div className="mt-8 bg-gradient-to-r from-[#1A1A1A] to-[#222222] border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <div>
+              <div className="text-[10px] font-body font-semibold tracking-[2px] text-[#AFF65B] uppercase mb-1">
+                COMMUNITY DRIVEN
+              </div>
+              <h3 className="font-heading text-2xl text-[#F4F4F4] m-0">
+                Share Your Feedback & Mode Ideas
+              </h3>
+              <p className="font-body text-xs text-[#8A8A8A] max-w-lg mt-1 mb-0">
+                Tell us what you want to see next (Duck Chess, Horde, Crazyhouse), what is working well, and what bugs or friction you encountered.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenFeedback}
+              className="btn-lime text-xs py-2.5 px-6 font-semibold uppercase tracking-wider shrink-0 cursor-pointer shadow-md"
+            >
+              💬 Give Feedback
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

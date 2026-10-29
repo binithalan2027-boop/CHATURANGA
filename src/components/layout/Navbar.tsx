@@ -9,6 +9,7 @@ interface NavbarProps {
   onOpenProfile?: () => void;
   onOpenStamps?: () => void;
   onOpenProgress?: () => void;
+  onOpenFeedback?: () => void;
 }
 
 export default function Navbar({
@@ -22,6 +23,7 @@ export default function Navbar({
   onOpenProfile,
   onOpenStamps,
   onOpenProgress,
+  onOpenFeedback,
 }: NavbarProps) {
   const isGoogle = user?.provider === "google" || (user?.email && !user.email.includes("@chaturanga.local"));
 
@@ -94,6 +96,15 @@ export default function Navbar({
               className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#F4F4F4] px-3 py-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors"
             >
               About
+            </button>
+          )}
+          {onOpenFeedback && (
+            <button
+              onClick={onOpenFeedback}
+              className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#AFF65B] px-3 py-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors flex items-center gap-1.5"
+            >
+              <span>💬</span>
+              <span>Feedback</span>
             </button>
           )}
         </nav>

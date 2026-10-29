@@ -20,6 +20,7 @@ export interface LandingPageProps {
   onOpenProfile?: () => void;
   onOpenStamps?: () => void;
   onOpenProgress?: () => void;
+  onOpenFeedback?: () => void;
   onOpenFriendsSanctum?: () => void;
   onCreatePrivateRoom?: () => void;
   onOpenOnline?: () => void;
@@ -42,6 +43,7 @@ export default function LandingPage(props: LandingPageProps) {
         onOpenProfile={props.onOpenProfile}
         onOpenStamps={props.onOpenStamps}
         onOpenProgress={props.onOpenProgress}
+        onOpenFeedback={props.onOpenFeedback}
       />
 
       <main className="w-full pt-16 flex-1">
@@ -61,6 +63,7 @@ export default function LandingPage(props: LandingPageProps) {
         onOpenPolicy={props.onOpenPolicy}
         onOpenAbout={props.onOpenAbout}
         onOpenLearn={props.onOpenLearn}
+        onOpenFeedback={props.onOpenFeedback}
       />
     </div>
   );

@@ -13,6 +13,7 @@ export interface ProductNavProps {
   onStamps?: () => void;
   onProgress?: () => void;
   onDrills?: () => void;
+  onOpenFeedback?: () => void;
   user?: { name: string; email: string; playerId?: string; provider?: string } | null;
   onLogin?: () => void;
   onLogout?: () => void;
@@ -29,6 +30,7 @@ export default function ProductNav({
   onProfile,
   onStamps,
   onProgress,
+  onOpenFeedback,
   user,
   onLogin,
   onLogout,
@@ -100,6 +102,18 @@ export default function ProductNav({
             Play Free
           </button>
         </div>
+
+        {/* Right Action: Feedback */}
+        {onOpenFeedback && (
+          <button
+            type="button"
+            onClick={onOpenFeedback}
+            className="flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-[#262626] hover:bg-[#303030] border border-white/10 text-xs font-medium text-[#F4F4F4] hover:text-[#AFF65B] cursor-pointer transition-colors"
+          >
+            <span>💬</span>
+            <span className="hidden sm:inline">Feedback</span>
+          </button>
+        )}
       </header>
 
       {/* Persistent Left Rail Navigation for Desktop (hidden on screens < 1024px and on landing home) */}
@@ -132,6 +146,16 @@ export default function ProductNav({
 
           {/* Footer info in rail */}
           <div className="pt-4 border-t border-white/5 px-2">
+            {onOpenFeedback && (
+              <button
+                type="button"
+                onClick={onOpenFeedback}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-body font-medium text-[#8A8A8A] hover:text-[#AFF65B] hover:bg-[#262626] transition-colors bg-transparent border border-white/5 cursor-pointer mb-3"
+              >
+                <span>💬</span>
+                <span>Feedback & Ideas</span>
+              </button>
+            )}
             <div className="text-[10px] font-body text-[#AFF65B] font-semibold tracking-widest uppercase">
               MATIKS WEB
             </div>

@@ -3,6 +3,7 @@ import { PreferenceProvider } from "./chaturanga/preferences";
 import ProductNav from "./chaturanga/ProductNav";
 import { getCurrentUser, signOutUser, signInWithGoogle, onUserChange, ChaturangaUser } from "./services/authStore";
 import GoogleAuthModal from "./components/auth/GoogleAuthModal";
+import FeedbackModal from "./components/feedback/FeedbackModal";
 const TournamentPage = lazy(() => import("./chaturanga/TournamentPage"));
 const TrainingPage = lazy(() => import("./chaturanga/TrainingPage"));
 const StudyBoard = lazy(() => import("./chaturanga/StudyBoard"));
@@ -65,6 +66,7 @@ function AppContent() {
   const [onlineAutoCreate, setOnlineAutoCreate] = useState(false);
   const [user, setUser] = useState<ChaturangaUser>(() => getCurrentUser());
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
   useEffect(() => {
     return onUserChange((u) => setUser(u));
@@ -179,6 +181,7 @@ function AppContent() {
           user={user}
           onBack={() => setScreen("landing")}
           onOpenStamps={() => setScreen("stamps")}
+          onOpenFeedback={() => setFeedbackModalOpen(true)}
           onOpenAuth={() => setAuthModalOpen(true)}
         />
       );
@@ -347,6 +350,7 @@ function AppContent() {
           }}
           onOpenFriendsSanctum={() => setScreen("friends")}
           onSearchMatch={() => setScreen("online")}
+          onOpenFeedback={() => setFeedbackModalOpen(true)}
         />
       </>
     );
@@ -386,6 +390,7 @@ function AppContent() {
         onProfile={() => setScreen("profile")}
         onStamps={() => setScreen("stamps")}
         onProgress={() => setScreen("progress")}
+        onOpenFeedback={() => setFeedbackModalOpen(true)}
         user={user}
         onLogin={() => setAuthModalOpen(true)}
         onLogout={handleLogout}
@@ -416,6 +421,11 @@ function AppContent() {
           setAuthModalOpen(false);
           setScreen("profile");
         }}
+      />
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        user={user}
       />
     </>
   );
