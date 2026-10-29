@@ -1,0 +1,25 @@
+# Chaturanga
+
+> Free web-based tactical chess platform featuring classic chess, Chess960, Fog of War, Atomic chess, and Chess MM (mental mathematics and board spells). Built for distraction-free play with warm wood and quiet colours.
+
+## Overview
+Chaturanga is a web-first chess application running entirely in the browser. It is designed and maintained by Binit Halan as a solo project. It is not affiliated with any commercial chess federation, gambling site, or cash prize service.
+
+## Core Links
+- [Play Chaturanga](https://chaturangachess.games/): Main application interface and local game board.
+- [About Chaturanga](https://chaturangachess.games/about/): Project vision, architecture, and background.
+- [Game Modes & Rules](https://chaturangachess.games/modes/): Comprehensive rules for Classic, Chess960, Fog of War, Atomic, and Chess MM.
+- [Frequently Asked Questions](https://chaturangachess.games/faq/): Common questions on accounts, offline play, and multiplayer.
+- [GitHub Repository](https://github.com/binithalan2027-boop/CHATURANGA): Open-source source code and issue tracker.
+
+## Key Facts
+- Access: Free web application. No account is required for local play against computer bots or a shared two-player board.
+- Authentication: Optional Google sign-in for cloud syncing profile progress. Guest players receive an automatic 8-digit Player ID.
+- Game Modes:
+  - Classic Chess: Standard FIDE rules with Stockfish engine bots (Elo 250 to 2000+), customizable timers, and 180-degree board rotation for Black pieces.
+  - Chess960 (Fischer Random): 960 randomized home-rank permutations.
+  - Fog of War: Imperfect-information chess where only squares within friendly sight lines are visible. Direct king capture is required.
+  - Atomic Chess: Explosive captures destroying pieces within an adjacent 3x3 radius.
+  - Chess MM (Mind & Magic): Chess integrated with mental arithmetic challenges and seven tactical spells.
+- Technical Architecture: React 18, TypeScript, Vite, Tailwind CSS, Stockfish WASM Web Workers, and WebSocket private room networking.
+- Design: Dark void background, warm wood board accents, muted palette, high-contrast pieces, and responsive layout for desktop and mobile touchscreens.
