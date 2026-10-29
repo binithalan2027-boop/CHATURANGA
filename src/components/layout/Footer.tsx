@@ -32,26 +32,37 @@ export default function Footer({ onOpenPolicy, onOpenAbout, onOpenLearn, onOpenF
           <span className="text-xs font-body text-[#8A8A8A]">Fog of War</span>
           <span className="text-xs font-body text-[#8A8A8A]">Atomic Chess</span>
           <span className="text-xs font-body text-[#8A8A8A]">Chess MM (Mental Math)</span>
+          <a
+            href="/modes/"
+            className="text-xs font-body text-[#AFF65B] hover:underline mt-1 inline-block"
+          >
+            View All Rules &amp; Modes &rarr;
+          </a>
         </div>
 
         <div className="flex flex-col gap-2">
           <h4 className="font-heading text-base text-[#F4F4F4] tracking-wider mb-1 uppercase">
             Information
           </h4>
+          <a
+            href="/about/"
+            onClick={onOpenAbout ? (e) => { e.preventDefault(); onOpenAbout(); } : undefined}
+            className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left transition-colors"
+          >
+            About Chaturanga
+          </a>
+          <a
+            href="/faq/"
+            className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left transition-colors"
+          >
+            Frequently Asked Questions
+          </a>
           {onOpenLearn && (
             <button
               onClick={onOpenLearn}
               className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left bg-transparent border-none cursor-pointer p-0"
             >
-              Study & Rules
-            </button>
-          )}
-          {onOpenAbout && (
-            <button
-              onClick={onOpenAbout}
-              className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left bg-transparent border-none cursor-pointer p-0"
-            >
-              About Chaturanga
+              Study &amp; Rules
             </button>
           )}
           {onOpenPolicy && (
@@ -59,7 +70,7 @@ export default function Footer({ onOpenPolicy, onOpenAbout, onOpenLearn, onOpenF
               onClick={onOpenPolicy}
               className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left bg-transparent border-none cursor-pointer p-0"
             >
-              Privacy & Local Storage
+              Privacy &amp; Local Storage
             </button>
           )}
           {onOpenFeedback && (
@@ -68,7 +79,7 @@ export default function Footer({ onOpenPolicy, onOpenAbout, onOpenLearn, onOpenF
               className="text-xs font-body text-[#8A8A8A] hover:text-[#AFF65B] text-left bg-transparent border-none cursor-pointer p-0 flex items-center gap-1.5"
             >
               <span>💬</span>
-              <span>Feedback & New Modes</span>
+              <span>Feedback &amp; New Modes</span>
             </button>
           )}
         </div>

@@ -339,7 +339,7 @@ const aboutContent = `
       Many digital chess websites today are crowded with distractions, aggressive popups, and paywalls. Chaturanga returns focus to the board: distraction-free dark charcoal surfaces, clean SVG vector piece artwork, quiet colors, and smooth 60fps piece motion.
     </p>
     <p>
-      Whether you want a calm game against a custom Stockfish engine bot, an imperfect-information battle in Fog of War, or a tactical mental-arithmetic clash in Chess MM, everything is accessible directly in your web browser with no mandatory account required.
+      Whether you want a calm game against a custom Stockfish engine bot, an imperfect-information battle in Fog of War, or a tactical mental-arithmetic clash in Chess MM, everything is accessible directly in your web browser with no mandatory account required. Explore all <a href="/modes/">combat game modes and rules</a> or check our <a href="/faq/">frequently asked questions</a>.
     </p>
   </div>
 
@@ -368,7 +368,10 @@ const aboutContent = `
   <div class="card" style="text-align: center; background: #1C1C1C; border-color: rgba(175, 246, 91, 0.3);">
     <h2 style="justify-content: center;">Ready to make your move?</h2>
     <p style="max-width: 500px; margin: 0 auto 20px auto;">Jump straight into local combat modes, computer bots, or puzzle training.</p>
-    <a href="/" class="btn-play" style="font-size: 14px; padding: 10px 28px;">Start Playing Now &rarr;</a>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="/" class="btn-play" style="font-size: 14px; padding: 10px 28px;">Start Playing Now &rarr;</a>
+      <a href="/modes/" class="btn-play" style="font-size: 14px; padding: 10px 28px; background: rgba(255,255,255,0.08); color: #F4F4F4;">Browse Modes &rarr;</a>
+    </div>
   </div>
 `;
 
@@ -376,7 +379,7 @@ const aboutContent = `
 const modesContent = `
   <span class="kicker">Rulebook &amp; Variants</span>
   <h1>Combat Game Modes</h1>
-  <p class="subtitle">Complete rules and mechanics for all five combat modes available in Chaturanga.</p>
+  <p class="subtitle">Complete rules and mechanics for all five combat modes available in Chaturanga. Have common questions? See our <a href="/faq/">FAQ guide</a>.</p>
 
   <!-- Classic Chess -->
   <div class="card" id="classic">
@@ -394,6 +397,9 @@ const modesContent = `
       <li><strong>Rotated Board for Black:</strong> Automatic 180&deg; perspective rotation when playing Black pieces, with full manual flip support.</li>
       <li><strong>Move History &amp; Analysis:</strong> Replay moves, inspect captured material advantages, and practice checkmate patterns.</li>
     </ul>
+    <div style="margin-top: 16px;">
+      <a href="/?mode=standard" class="btn-play" style="font-size: 12px; padding: 6px 16px;">Play Classic Chess &rarr;</a>
+    </div>
   </div>
 
   <!-- Chess960 -->
@@ -412,6 +418,9 @@ const modesContent = `
       <li><strong>Bishop Placement:</strong> The two bishops must always start on opposite-colored squares.</li>
       <li><strong>Castling Constraints:</strong> The king always starts between the two rooks, allowing standard a-side and h-side castling.</li>
     </ul>
+    <div style="margin-top: 16px;">
+      <a href="/?mode=chess960" class="btn-play" style="font-size: 12px; padding: 6px 16px;">Play Chess960 &rarr;</a>
+    </div>
   </div>
 
   <!-- Fog of War -->
@@ -430,6 +439,9 @@ const modesContent = `
       <li><strong>No Check Warnings:</strong> There is no concept of "check" or "checkmate"—you do not have to announce threats.</li>
       <li><strong>King Capture Win Condition:</strong> The game ends immediately when a player captures the opponent's king.</li>
     </ul>
+    <div style="margin-top: 16px;">
+      <a href="/?mode=fog" class="btn-play" style="font-size: 12px; padding: 6px 16px;">Play Fog of War &rarr;</a>
+    </div>
   </div>
 
   <!-- Atomic Chess -->
@@ -448,6 +460,9 @@ const modesContent = `
       <li><strong>Pawn Resilience:</strong> Pawns are only removed if directly captured; they survive adjacent explosions.</li>
       <li><strong>King Immunity &amp; Restraints:</strong> Kings cannot capture any piece (since that would trigger a self-destructive explosion) and cannot make a move that causes an adjacent explosion to their own square.</li>
     </ul>
+    <div style="margin-top: 16px;">
+      <a href="/?mode=atomic" class="btn-play" style="font-size: 12px; padding: 6px 16px;">Play Atomic Chess &rarr;</a>
+    </div>
   </div>
 
   <!-- Chess MM -->
@@ -465,12 +480,18 @@ const modesContent = `
       <li><strong>Speed Duel &amp; Gate Showdown:</strong> A 90-second mental math trial where quick answers unlock seven collectible spells.</li>
       <li><strong>Earned Board Spells:</strong> Cast tactical powers onto the board—freeze enemy units, shield friendly pieces, jump over defenders, or swap piece positions.</li>
     </ul>
+    <div style="margin-top: 16px;">
+      <a href="/?mode=math" class="btn-play" style="font-size: 12px; padding: 6px 16px;">Play Chess MM &rarr;</a>
+    </div>
   </div>
 
   <div class="card" style="text-align: center; background: #1C1C1C; border-color: rgba(175, 246, 91, 0.3);">
     <h2 style="justify-content: center;">Choose your combat mode</h2>
     <p style="max-width: 500px; margin: 0 auto 20px auto;">All five modes are playable instantly in your browser with zero downloads.</p>
-    <a href="/" class="btn-play" style="font-size: 14px; padding: 10px 28px;">Play Modes Now &rarr;</a>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="/" class="btn-play" style="font-size: 14px; padding: 10px 28px;">Play Modes Now &rarr;</a>
+      <a href="/faq/" class="btn-play" style="font-size: 14px; padding: 10px 28px; background: rgba(255,255,255,0.08); color: #F4F4F4;">Read FAQ &rarr;</a>
+    </div>
   </div>
 `;
 
@@ -482,56 +503,56 @@ const faqContent = `
 
   <div class="card">
     <div class="faq-item">
-      <div class="faq-q">Is Chaturanga free to play?</div>
+      <h2 class="faq-q">Is Chaturanga free to play?</h2>
       <div class="faq-a">
         Yes. Chaturanga is a free web browser application. You can play all local chess modes, practice puzzles, and compete against computer bots without paying any fees or subscriptions.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">Do I need an account to play?</div>
+      <h2 class="faq-q">Do I need an account to play?</h2>
       <div class="faq-a">
         No account is needed for local play. You can jump directly onto the board as a guest with an automatically generated 8-digit Player ID. If you wish to sync your progress, you can optionally sign in with Google.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">What is Chess MM (Mind &amp; Magic)?</div>
+      <h2 class="faq-q">What is Chess MM (Mind &amp; Magic)?</h2>
       <div class="faq-a">
-        Chess MM is an original game mode combining chess with mental mathematics. Players can choose between solving mental-maths problems before making moves, or entering a 90-second math sprint to earn tactical spells (such as freezing pieces, placing shields, or jumping pieces).
+        Chess MM is an original game mode combining chess with mental mathematics. Players can choose between solving mental-maths problems before making moves, or entering a 90-second math sprint to earn tactical spells (such as freezing pieces, placing shields, or jumping pieces). Learn more on the <a href="/modes/#chess-mm">Chess MM mode rules</a>.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">How does Fog of War work?</div>
+      <h2 class="faq-q">How does Fog of War work?</h2>
       <div class="faq-a">
-        In Fog of War, neither player has full board vision. Squares are hidden by fog unless one of your pieces occupies, attacks, or moves to that square. There is no check warning, and the objective is to capture the opponent's king directly.
+        In Fog of War, neither player has full board vision. Squares are hidden by fog unless one of your pieces occupies, attacks, or moves to that square. There is no check warning, and the objective is to capture the opponent's king directly. Full details are in the <a href="/modes/#fog">Fog of War rules</a>.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">How do explosions work in Atomic Chess?</div>
+      <h2 class="faq-q">How do explosions work in Atomic Chess?</h2>
       <div class="faq-a">
-        Whenever any capture occurs in Atomic Chess, an explosion destroys the captured piece, the capturing piece, and all non-pawn pieces in the eight immediately adjacent squares. Kings cannot capture and cannot move adjacent to other kings.
+        Whenever any capture occurs in Atomic Chess, an explosion destroys the captured piece, the capturing piece, and all non-pawn pieces in the eight immediately adjacent squares. Kings cannot capture and cannot move adjacent to other kings. Full details are in the <a href="/modes/#atomic">Atomic Chess rules</a>.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">What is Chess960?</div>
+      <h2 class="faq-q">What is Chess960?</h2>
       <div class="faq-a">
-        Chess960 (also known as Fischer Random Chess) randomizes the home-rank pieces into one of 960 starting permutations. The pieces mirror identically for White and Black, bishops remain on opposite colors, and standard castling rules apply.
+        Chess960 (also known as Fischer Random Chess) randomizes the home-rank pieces into one of 960 starting permutations. The pieces mirror identically for White and Black, bishops remain on opposite colors, and standard castling rules apply. Full details are in the <a href="/modes/#chess960">Chess960 rules</a>.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">How do private multiplayer rooms work?</div>
+      <h2 class="faq-q">How do private multiplayer rooms work?</h2>
       <div class="faq-a">
         You can create a private room and share the room code with a friend. Once your friend enters the code, both players are connected directly for real-time play across Classic Chess, Chess MM, or multi-board formats.
       </div>
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">Can I play on mobile phones or tablets?</div>
+      <h2 class="faq-q">Can I play on mobile phones or tablets?</h2>
       <div class="faq-a">
         Yes. Chaturanga is fully responsive and optimized for mobile touchscreens, tablets, and desktop displays. It functions client-side as an offline-ready web application without requiring an app store download.
       </div>
@@ -541,8 +562,12 @@ const faqContent = `
   <div class="card" style="text-align: center; background: #1C1C1C; border-color: rgba(175, 246, 91, 0.3);">
     <h2 style="justify-content: center;">Have a new mode idea or feedback?</h2>
     <p style="max-width: 500px; margin: 0 auto 20px auto;">Open the in-game community feedback menu anytime to share ideas, mode requests, or report friction.</p>
-    <a href="/" class="btn-play" style="font-size: 14px; padding: 10px 28px;">Go to App &rarr;</a>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="/" class="btn-play" style="font-size: 14px; padding: 10px 28px;">Go to App &rarr;</a>
+      <a href="/modes/" class="btn-play" style="font-size: 14px; padding: 10px 28px; background: rgba(255,255,255,0.08); color: #F4F4F4;">Explore Modes &rarr;</a>
+    </div>
   </div>
+
 `;
 
 const aboutJsonLd = {

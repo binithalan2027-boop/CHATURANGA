@@ -111,8 +111,13 @@
         </section>
       </main>
 
-      <footer style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.06); max-width: 1200px; margin: 0 auto; width: 100%; color: #666; font-size: 12px;">
+      <footer style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.06); max-width: 1200px; margin: 0 auto; width: 100%; color: #666; font-size: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <span>Chaturanga &middot; Built with React 18, TypeScript &amp; Vite</span>
+        <div style="display: flex; gap: 16px;">
+          <a href="/about/" style="color: #8A8A8A; text-decoration: none;">About</a>
+          <a href="/modes/" style="color: #8A8A8A; text-decoration: none;">Modes</a>
+          <a href="/faq/" style="color: #8A8A8A; text-decoration: none;">FAQ</a>
+        </div>
       </footer>
     </div>
     <script type="module" src="/src/main.tsx"></script>
