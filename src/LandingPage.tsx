@@ -34,6 +34,7 @@ export default function LandingPage(props: LandingPageProps) {
       <Navbar
         user={props.user}
         onPlay={props.onPlay}
+        onBots={props.onBots}
         onLogin={props.onLogin}
         onLogout={props.onLogout}
         onOpenLearn={props.onOpenLearn}
@@ -41,12 +42,12 @@ export default function LandingPage(props: LandingPageProps) {
         onOpenProfile={props.onOpenProfile}
         onOpenStamps={props.onOpenStamps}
         onOpenProgress={props.onOpenProgress}
-        onOpenOnline={props.onOpenOnline}
       />
 
       <main className="w-full pt-16 flex-1">
         <HeroSection
           onPlay={(timeMinutes) => props.onPlay(undefined, timeMinutes)}
+          onBots={props.onBots}
           matchStatus={props.matchStatus || 'idle'}
           onSearchMatch={props.onSearchMatch || (() => props.onPlay())}
           onCancelMatch={props.onCancelMatch || (() => {})}

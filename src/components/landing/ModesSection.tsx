@@ -5,22 +5,31 @@ interface ModesSectionProps {
 export default function ModesSection({ onPlayMode }: ModesSectionProps) {
   const modes = [
     {
+      id: 'chess',
+      name: 'STANDARD CHESS',
+      tagline: 'Pure FIDE rules & calculation',
+      color: 'bento-yellow',
+      bgHex: '#F2D500',
+      illustration: '/illustrations/king.svg',
+      desc: 'Checkmate the opposing king under classic FIDE rules with zero gimmicks.',
+    },
+    {
+      id: 'mind',
+      name: 'CHESS MM',
+      tagline: 'Mental math showdowns & spell powers',
+      color: 'bento-charcoal',
+      bgHex: '#1A1A1A',
+      illustration: '/illustrations/pi.svg',
+      desc: 'Solve rapid math equations to make moves and unleash Freeze & Jump spells.',
+    },
+    {
       id: 'fog',
       name: 'FOG OF WAR',
       tagline: 'See only what you can reach',
       color: 'bento-lavender',
       bgHex: '#A594F0',
       illustration: '/illustrations/fog.svg',
-      desc: 'The squares outside your pieces\' legal moves are cloaked in mystery.',
-    },
-    {
-      id: 'chess960',
-      name: 'CHESS960',
-      tagline: 'Shuffled back rank, fresh every game',
-      color: 'bento-teal',
-      bgHex: '#66D4C2',
-      illustration: '/illustrations/dice.svg',
-      desc: 'Fischer random setup prevents memorized opening books.',
+      desc: 'The squares outside your pieces\' legal moves are cloaked in mystery. Take the king to win.',
     },
     {
       id: 'atomic',
@@ -32,26 +41,17 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
       desc: 'Detonations destroy both pieces and surrounding non-pawns.',
     },
     {
-      id: 'math',
-      name: 'CHESS MM',
-      tagline: 'Mental math showdowns & spell powers',
-      color: 'bento-charcoal',
-      bgHex: '#1A1A1A',
-      illustration: '/illustrations/pi.svg',
-      desc: 'Solve rapid math equations to make moves and unleash Freeze & Jump spells.',
-    },
-    {
       id: 'cross3',
-      name: '3-PLAYER CROSS',
-      tagline: 'North runway · King capture elimination',
-      color: 'bento-yellow',
-      bgHex: '#F2D500',
-      illustration: '/illustrations/king.svg',
+      name: '3-PLAYER CROSS-BOARD',
+      tagline: 'North runway · 3-Army battle',
+      color: 'bento-teal',
+      bgHex: '#66D4C2',
+      illustration: '/illustrations/rook.svg',
       desc: 'Three armies clash on a 14x14 cross-grid with an open North runway. Capture kings to eliminate rivals.',
     },
     {
       id: 'cross4',
-      name: '4-PLAYER CROSS',
+      name: '4-PLAYER CROSS-BOARD',
       tagline: 'Four-way free-for-all tactical war',
       color: 'bento-coral',
       bgHex: '#F07040',
@@ -66,7 +66,7 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
       <div className="flex flex-col items-start mb-8">
         <div className="matiks-kicker mb-1">FEATURED COMBAT MODES</div>
         <h2 className="matiks-headline text-4xl sm:text-5xl text-[#F4F4F4]">
-          SEVEN WAYS TO PLAY
+          SIX WAYS TO PLAY
         </h2>
         <p className="font-body text-sm text-[#8A8A8A] mt-1 max-w-xl">
           From pure tactical calculation and mental math to explosive atomic blasts and 3 &amp; 4-player cross-board battles.
@@ -87,13 +87,13 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
                 <div>
                   <h3
                     className="matiks-headline text-2xl sm:text-3xl leading-none"
-                    style={{ color: mode.id === 'math' ? '#F4F4F4' : '#0E0E0E' }}
+                    style={{ color: mode.id === 'mind' || mode.id === 'math' ? '#F4F4F4' : '#0E0E0E' }}
                   >
                     {mode.name}
                   </h3>
                   <div
                     className="font-body text-[11px] font-semibold mt-1"
-                    style={{ color: mode.id === 'math' ? '#AFF65B' : '#0E0E0E' }}
+                    style={{ color: mode.id === 'mind' || mode.id === 'math' ? '#AFF65B' : '#0E0E0E' }}
                   >
                     {mode.tagline}
                   </div>
@@ -110,7 +110,7 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
 
               <p
                 className="font-body text-xs mt-3 max-w-sm leading-relaxed"
-                style={{ color: mode.id === 'math' ? '#8A8A8A' : '#0E0E0E' }}
+                style={{ color: mode.id === 'mind' || mode.id === 'math' ? '#8A8A8A' : '#0E0E0E' }}
               >
                 {mode.desc}
               </p>
@@ -119,7 +119,7 @@ export default function ModesSection({ onPlayMode }: ModesSectionProps) {
             <div className="flex items-center justify-end mt-4">
               <button
                 className={`btn-raised text-xs py-2 px-5 font-semibold uppercase tracking-wider rounded-full ${
-                  mode.id === 'math'
+                  mode.id === 'mind' || mode.id === 'math'
                     ? 'btn-lime'
                     : 'bg-[#0E0E0E] text-[#F4F4F4] hover:bg-black'
                 }`}

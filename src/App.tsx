@@ -158,7 +158,8 @@ function AppContent() {
     if (typeof modeOrTime === "number") {
       setTimeMinutes(modeOrTime);
     }
-    setScreen("bot_select");
+    // Clicking Play leads to the online game screen
+    setScreen("online");
   };
 
   const handleLogout = async () => {
@@ -268,6 +269,7 @@ function AppContent() {
             setScreen("playing");
           }}
           onBack={() => setScreen("landing")}
+          onPlayOnline={() => setScreen("online")}
         />
       );
     }
@@ -372,7 +374,7 @@ function AppContent() {
                             : "play"
         }
         onHome={() => setScreen("landing")}
-        onPlay={() => setScreen("bot_select")}
+        onPlay={() => setScreen("online")}
         onBots={() => setScreen("bot_select")}
         onTournaments={() => setScreen("tournaments")}
         onStudy={() => setScreen("study")}
@@ -381,7 +383,6 @@ function AppContent() {
         onProfile={() => setScreen("profile")}
         onStamps={() => setScreen("stamps")}
         onProgress={() => setScreen("progress")}
-        onOnline={() => setScreen("online")}
         user={user}
         onLogin={() => setAuthModalOpen(true)}
         onLogout={handleLogout}

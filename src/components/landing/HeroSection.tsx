@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 interface HeroSectionProps {
   onPlay: (timeMinutes?: number) => void;
+  onBots?: () => void;
   onSearchMatch: () => void;
   onCancelMatch: () => void;
   matchStatus: 'idle' | 'searching' | 'found';
@@ -11,6 +12,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({
   onPlay,
+  onBots,
   onSearchMatch,
   onCancelMatch,
   matchStatus,
@@ -46,12 +48,12 @@ export default function HeroSection({
           </h1>
 
           <p className="font-body text-base sm:text-lg text-[#8A8A8A] max-w-xl mt-6 leading-relaxed">
-            Classic, Chess960, Fog of War, Atomic and Chess MM. Challenge Stockfish bots offline or duel friends in private rooms. 100% free, no login required.
+            Classic, Chess MM, Fog of War, Atomic, and 3 & 4-Player Cross-Board. Challenge Stockfish bots offline or duel live opponents in online rooms. 100% free, no login required.
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-8 w-full sm:w-auto">
             <button
-              onClick={() => onPlay(parseInt(timeControl, 10))}
+              onClick={() => (onBots ? onBots() : onPlay(parseInt(timeControl, 10)))}
               className="btn-lime text-base py-3.5 sm:py-4 px-6 sm:px-8 uppercase font-semibold tracking-wider shadow-xl text-center"
             >
               Play a Bot Free
@@ -72,7 +74,7 @@ export default function HeroSection({
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#66D4C2]" />
-              <span>5 ZERO-LATENCY MODES</span>
+              <span>6 ZERO-LATENCY MODES</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#F07040]" />

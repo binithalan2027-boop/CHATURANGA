@@ -1,5 +1,5 @@
 
-export type NavTab = 'home' | 'play' | 'bots' | 'study' | 'training' | 'learn' | 'tournaments' | 'stamps' | 'profile' | 'drills' | 'online';
+export type NavTab = 'home' | 'play' | 'bots' | 'study' | 'training' | 'learn' | 'tournaments' | 'stamps' | 'profile' | 'drills';
 
 export interface ProductNavProps {
   active: string;
@@ -13,7 +13,6 @@ export interface ProductNavProps {
   onStamps?: () => void;
   onProgress?: () => void;
   onDrills?: () => void;
-  onOnline?: () => void;
   user?: { name: string; email: string; playerId?: string; provider?: string } | null;
   onLogin?: () => void;
   onLogout?: () => void;
@@ -30,20 +29,18 @@ export default function ProductNav({
   onProfile,
   onStamps,
   onProgress,
-  onOnline,
   user,
   onLogin,
   onLogout,
 }: ProductNavProps) {
 
-  const navItems = [
+    const navItems = [
     { id: 'home', label: 'Home', icon: '/icons/home.svg', action: onHome },
     { id: 'play', label: 'Play', icon: '/icons/play.svg', action: onPlay },
     { id: 'bots', label: 'Bots', icon: '/icons/swap.svg', action: onBots },
     { id: 'study', label: 'Study', icon: '/icons/study.svg', action: onStudy },
     { id: 'learn', label: 'Training', icon: '/icons/train.svg', action: onLearn },
     { id: 'tournaments', label: 'Tournaments', icon: '/icons/trophy.svg', action: onTournaments },
-    ...(onOnline ? [{ id: 'online', label: 'Online', icon: '/icons/swap.svg', action: onOnline }] : []),
     ...(onProgress ? [{ id: 'progress', label: 'Progress', icon: '/icons/stamp.svg', action: onProgress }] : onStamps ? [{ id: 'stamps', label: 'Stamps', icon: '/icons/stamp.svg', action: onStamps }] : []),
     { id: 'profile', label: 'Profile', icon: '/icons/user.svg', action: onProfile },
   ];
@@ -156,7 +153,6 @@ export default function ProductNav({
             { id: 'home', label: 'Home', icon: '/icons/home.svg', action: onHome },
             { id: 'play', label: 'Play', icon: '/icons/play.svg', action: onPlay },
             { id: 'bots', label: 'Bots', icon: '/icons/swap.svg', action: onBots },
-            ...(onOnline ? [{ id: 'online', label: 'Online', icon: '/icons/swap.svg', action: onOnline }] : []),
             ...(onStamps ? [{ id: 'stamps', label: 'Stamps', icon: '/icons/stamp.svg', action: onStamps }] : []),
             { id: 'profile', label: 'Profile', icon: '/icons/user.svg', action: onProfile },
           ].map((item) => {

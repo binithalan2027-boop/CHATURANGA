@@ -9,7 +9,7 @@ export interface OfflineGameViewProps {
   onExit: () => void;
   botElo?: number;
   timeMinutes?: number;
-  gameMode?: 'standard' | 'chess960' | 'fog' | 'atomic' | 'math' | 'matiks' | 'cross3' | 'cross4';
+  gameMode?: 'standard' | 'chess' | 'chess960' | 'fog' | 'atomic' | 'math' | 'mind' | 'matiks' | 'cross3' | 'cross4';
   mathSubMode?: 'showdown' | 'gate';
   onPlayOnline?: (mode: "cross3" | "cross4") => void;
 }
@@ -30,7 +30,7 @@ export default function OfflineGameView({
     return <CrossBoardMode count={4} onExit={onExit} onPlayOnline={onPlayOnline} timeMinutes={timeMinutes} />;
   }
 
-  if (gameMode === 'math' || gameMode === 'matiks') {
+  if (gameMode === 'math' || gameMode === 'mind' || gameMode === 'matiks') {
     return <MathChessMode onExit={onExit} botElo={botElo} initialSubMode={mathSubMode} />;
   }
 

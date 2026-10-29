@@ -4,6 +4,7 @@ export interface BotSelectScreenProps {
   onStart: (elo: number, timeMinutes: number, gameMode: string, subMode?: 'showdown' | 'gate') => void;
   onBack: () => void;
   initialTimeMinutes?: number;
+  onPlayOnline?: () => void;
 }
 
 interface GameModeOption {
@@ -20,53 +21,63 @@ interface GameModeOption {
 const GAME_MODES: GameModeOption[] = [
   {
     id: 'standard',
-    name: 'CLASSIC',
-    subtitle: 'Standard chess',
-    desc: 'Pure calculation, FIDE rules, 64 squares.',
+    name: 'STANDARD CHESS',
+    subtitle: 'Classic FIDE rules',
+    desc: 'Pure calculation, classic FIDE rules, 64 squares, zero gimmicks.',
     colorClass: 'bento-yellow',
     bgHex: '#F2D500',
     textColor: '#0E0E0E',
     illustration: '/illustrations/king.svg',
   },
   {
-    id: 'chess960',
-    name: 'CHESS960',
-    subtitle: 'Randomised back rank',
-    desc: 'Fischer 960 positions shuffled fresh every game.',
-    colorClass: 'bento-lavender',
-    bgHex: '#A594F0',
-    textColor: '#0E0E0E',
-    illustration: '/illustrations/dice.svg',
+    id: 'math',
+    name: 'CHESS MM',
+    subtitle: 'Mental math & spells',
+    desc: 'Mental arithmetic mind gate + speed duel power-up showdowns.',
+    colorClass: 'bento-charcoal',
+    bgHex: '#1A1A1A',
+    textColor: '#F4F4F4',
+    illustration: '/illustrations/pi.svg',
   },
   {
     id: 'fog',
     name: 'FOG OF WAR',
-    subtitle: 'Limited visibility',
-    desc: 'See only the squares your pieces can physically reach.',
-    colorClass: 'bento-teal',
-    bgHex: '#66D4C2',
+    subtitle: 'Hidden piece vision',
+    desc: 'See only the squares your pieces can physically reach. Take the king to win.',
+    colorClass: 'bento-lavender',
+    bgHex: '#A594F0',
     textColor: '#0E0E0E',
     illustration: '/illustrations/fog.svg',
   },
   {
     id: 'atomic',
-    name: 'ATOMIC',
-    subtitle: 'Captures explode',
-    desc: 'Captures trigger devastating 3x3 blast detonations.',
+    name: 'ATOMIC CHESS',
+    subtitle: '3x3 Explosive blast',
+    desc: 'Captures trigger devastating 3x3 blast detonations destroying adjacent pieces.',
     colorClass: 'bento-coral',
     bgHex: '#F07040',
     textColor: '#0E0E0E',
     illustration: '/illustrations/burst.svg',
   },
   {
-    id: 'math',
-    name: 'CHESS MM',
-    subtitle: 'Maths and chess together',
-    desc: 'Mental arithmetic mind gate + speed duel power-up showdowns.',
-    colorClass: 'bento-charcoal',
-    bgHex: '#1A1A1A',
-    textColor: '#F4F4F4',
-    illustration: '/illustrations/pi.svg',
+    id: 'cross3',
+    name: '3-PLAYER CROSS-BOARD',
+    subtitle: '3-Army tactical battle',
+    desc: 'Three armies clash on a 14x14 cross-grid with an open North runway. King-capture elimination.',
+    colorClass: 'bento-teal',
+    bgHex: '#66D4C2',
+    textColor: '#0E0E0E',
+    illustration: '/illustrations/rook.svg',
+  },
+  {
+    id: 'cross4',
+    name: '4-PLAYER CROSS-BOARD',
+    subtitle: '4-Way free-for-all',
+    desc: 'Four monarchs enter the cross arena from South, West, North, and East. Last army standing takes the crown.',
+    colorClass: 'bento-coral',
+    bgHex: '#F07040',
+    textColor: '#0E0E0E',
+    illustration: '/illustrations/shield.svg',
   },
 ];
 
@@ -85,11 +96,10 @@ const BOTS: BotProfile[] = [
   { name: 'Stockfish Singular', elo: 3000, tier: 'MAX', quote: 'Inhuman calculation with near-zero blunders.' },
 ];
 
-export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 10 }: BotSelectScreenProps) {
+export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 10, onPlayOnline }: BotSelectScreenProps) {
   const [selectedMode, setSelectedMode] = useState<string>('standard');
   const [elo, setElo] = useState<number>(1850);
   const [timeMinutes, setTimeMinutes] = useState<number>(initialTimeMinutes);
-  const [category, setCategory] = useState<'bots' | 'local' | 'online'>('bots');
   const [mathFormat, setMathFormat] = useState<'showdown' | 'gate'>('showdown');
 
   const currentBot = BOTS.reduce((prev, curr) => 
@@ -121,35 +131,27 @@ export default function BotSelectScreen({ onStart, onBack, initialTimeMinutes = 
             CHOOSE YOUR GAME
           </h1>
           <p className="font-body text-sm text-[#8A8A8A] mt-1 max-w-xl">
-            Pick from 5 official modes. All rules execute purely client-side via Stockfish WASM.
+            Pick from 6 official active modes. All rules execute purely client-side via Stockfish WASM.
           </p>
 
-          {/* Mode Type Chips */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            <button
-              onClick={() => setCategory('bots')}
-              className={`chip-raised text-xs font-medium border-none cursor-pointer ${
-                category === 'bots' ? 'bg-[#262626] text-[#AFF65B]' : 'bg-[#1A1A1A] text-[#8A8A8A]'
-              }`}
-            >
-              Bots
-            </button>
-            <button
-              onClick={() => setCategory('local')}
-              className={`chip-raised text-xs font-medium border-none cursor-pointer ${
-                category === 'local' ? 'bg-[#262626] text-[#AFF65B]' : 'bg-[#1A1A1A] text-[#8A8A8A]'
-              }`}
-            >
-              Local Pass & Play
-            </button>
-            <button
-              onClick={() => setCategory('online')}
-              className={`chip-raised text-xs font-medium border-none cursor-pointer ${
-                category === 'online' ? 'bg-[#262626] text-[#AFF65B]' : 'bg-[#1A1A1A] text-[#8A8A8A]'
-              }`}
-            >
-              Online Duel
-            </button>
+          {/* Mode Type & Online Link */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#AFF65B] shadow-[0_0_8px_#AFF65B]" />
+              <span className="font-mono text-xs text-[#AFF65B] font-bold uppercase tracking-wider">
+                6 Offline-Ready Bot Modes
+              </span>
+            </div>
+            {onPlayOnline && (
+              <button
+                type="button"
+                onClick={onPlayOnline}
+                className="text-xs font-semibold text-[#8A8A8A] hover:text-[#AFF65B] bg-[#1A1A1A] hover:bg-[#222] border border-white/10 px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Looking for human duels? Play Online PvP</span>
+                <span>→</span>
+              </button>
+            )}
           </div>
         </div>
 

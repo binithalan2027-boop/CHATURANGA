@@ -1,9 +1,9 @@
 interface NavbarProps {
   user: { name: string; email: string; playerId?: string; provider?: string } | null;
   onPlay: () => void;
+  onBots?: () => void;
   onLogin: () => void;
   onLogout: () => void;
-  onOpenOnline?: () => void;
   onOpenLearn?: () => void;
   onOpenAbout?: () => void;
   onOpenProfile?: () => void;
@@ -14,9 +14,9 @@ interface NavbarProps {
 export default function Navbar({
   user,
   onPlay,
+  onBots,
   onLogin,
   onLogout,
-  onOpenOnline,
   onOpenLearn,
   onOpenAbout,
   onOpenProfile,
@@ -51,12 +51,12 @@ export default function Navbar({
           >
             Play
           </button>
-          {onOpenOnline && (
+          {onBots && (
             <button
-              onClick={onOpenOnline}
+              onClick={onBots}
               className="text-xs font-body font-medium text-[#8A8A8A] hover:text-[#AFF65B] px-3 py-2 rounded-lg bg-transparent border-none cursor-pointer transition-colors"
             >
-              Online
+              Bots
             </button>
           )}
           <a
